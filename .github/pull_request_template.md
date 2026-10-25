@@ -9,6 +9,6 @@
 ## Checklist
 
 - [ ] Lint, type-check and tests pass locally
-- [ ] Follows the architecture rules (backend README / frontend CONTRIBUTING.md)
+- [ ] Follows the architecture rules (see CONTRIBUTING.md)
 - [ ] User-facing strings go through vue-i18n (frontend)
 - [ ] No secrets or `.env` files committed

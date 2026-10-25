@@ -24,7 +24,7 @@ export default defineConfigWithVueTs(
     },
   },
 
-  // Architecture rules. See CONTRIBUTING.md.
+  // Architecture rules. See CONTRIBUTING.md in the repository root.
   {
     name: 'app/boundaries',
     files: ['src/**/*.{ts,vue}'],
