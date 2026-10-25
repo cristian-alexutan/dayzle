@@ -4,7 +4,7 @@ A web platform with five daily puzzle games: a Romanian Wordle, a Queens-style l
 a "Make the Target" math game, a 5-question trivia quiz and a GeoGuesser for Cluj-Napoca.
 
 - `backend/`: REST API (Python 3.14, Django 6.1, Django REST Framework, PostgreSQL)
-- `frontend/`: Vue 3 client
+- `frontend/`: Vue 3 client (see [frontend/README.md](frontend/README.md))
 
 ## Backend setup
 
@@ -18,15 +18,15 @@ cd dayzle
 # 2. Create your environment file
 cp .env.example .env
 
-# 3. Start PostgreSQL and the backend
+# 3. Start PostgreSQL, the backend and the frontend dev server
 docker compose up --build
 
 # 4. In another terminal, apply migrations
 docker compose exec backend python manage.py migrate
 ```
 
-The API is then available at http://localhost:8000/api/v1/ and the OpenAPI docs at
-http://localhost:8000/api/docs/.
+The API is then available at http://localhost:8000/api/v1/, the OpenAPI docs at
+http://localhost:8000/api/docs/ and the frontend at http://localhost:5173.
 
 ### Running tests and linting
 
