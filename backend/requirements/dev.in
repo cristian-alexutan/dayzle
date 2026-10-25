@@ -1,0 +1,7 @@
+# Development and test dependencies. Edit this file, then run: pip-compile requirements/dev.in
+-c base.txt
+-r base.in
+pytest
+pytest-django
+ruff
+pip-tools

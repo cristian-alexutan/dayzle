@@ -1,5 +1,76 @@
 # CLAUDE.md
 
+Dayzle: a web platform with five daily puzzle games (Romanian Wordle, a Queens-style logic game,
+a "Make the Target" math game, a 5-question trivia quiz, a GeoGuesser for Cluj-Napoca).
+
+- `backend/`: REST API. Python 3.14, Django 6.1, Django REST Framework, PostgreSQL 16,
+  drf-spectacular.
+- `frontend/`: Vue 3 client (not set up yet).
+
 ## Git commits
 
 - Never add Claude as a co-author in commit messages (no `Co-Authored-By: Claude ...` trailer or any other AI attribution).
+
+## Running things
+
+Everything runs through Docker Compose from the repo root (a local `.env` copied from
+`.env.example` is required). Run backend tools inside the container, not on the host: the host
+Python is 3.12, which doesn't match the project's 3.14.
+
+```bash
+docker compose up --build -d
+docker compose exec backend python manage.py migrate
+docker compose exec backend pytest
+docker compose exec backend ruff check .
+docker compose exec backend ruff format --check .
+```
+
+CI (`.github/workflows/backend.yml`) runs ruff check, ruff format --check, migrate and pytest
+against a Postgres service. Pytest exit code 5 (no tests collected) is temporarily allowed.
+
+## Dependencies
+
+Managed with pip-tools. Edit `backend/requirements/base.in` (runtime) or `dev.in` (dev/test),
+then recompile inside the container so pins resolve for Python 3.14:
+
+```bash
+docker compose run --rm backend pip-compile --strip-extras requirements/base.in
+docker compose run --rm backend pip-compile --strip-extras requirements/dev.in
+```
+
+Never edit the `.txt` files by hand. Commit `.in` and `.txt` together.
+
+## Settings
+
+`backend/config/settings/{base,dev,prod}.py`, selected via `DJANGO_SETTINGS_MODULE`. All
+configuration comes from environment variables via django-environ (`DATABASE_URL`,
+`DJANGO_SECRET_KEY`, ...). `TIME_ZONE = "Europe/Bucharest"`, `USE_TZ = True`.
+
+## Architecture: modular monolith
+
+Apps live in `backend/apps/`: `common`, `accounts`, `social`, `puzzles`, `results`,
+`games/{word,logic,math,trivia,geo}`, `leaderboards`, `stats`, `subscriptions`. App labels for
+games are prefixed (`games_word`, `games_math`, ...).
+
+Every app uses the same layout:
+
+- `models.py`: database models
+- `services.py`: write operations and business rules
+- `selectors.py`: read queries
+- `api/serializers.py`, `api/views.py`, `api/urls.py`
+- `tests/`
+
+Each app's `api/urls.py` is mounted by `config/urls.py` under `/api/v1/<app>/` (games under
+`/api/v1/games/<game>/`). OpenAPI is served at `/api/schema/` and `/api/docs/`.
+
+### Dependency direction (enforced in review, not by tooling)
+
+- `games/*` depend on `puzzles` and `results`, never on each other.
+- `leaderboards` and `stats` only read from `results`.
+- `common` imports from no other app.
+- No circular imports.
+
+## Code style
+
+- ruff with line length 100, target py314; rules E, W, F, I, B, UP, DJ. Migrations are excluded.
+- Tests use pytest + pytest-django; put them in each app's `tests/` package.

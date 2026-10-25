@@ -1,0 +1,6 @@
+# Runtime dependencies. Edit this file, then run: pip-compile requirements/base.in
+django>=6.1,<6.2
+djangorestframework
+drf-spectacular
+django-environ
+psycopg[binary]
