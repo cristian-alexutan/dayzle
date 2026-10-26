@@ -55,5 +55,4 @@ jobs:
         run: python manage.py migrate --noinput
 
       - name: Pytest
-        # Exit code 5 means "no tests collected", which is expected until tests are written.
-        run: pytest || [ $? -eq 5 ]
+        run: pytest

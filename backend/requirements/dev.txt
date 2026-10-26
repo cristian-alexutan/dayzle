@@ -36,6 +36,10 @@ drf-spectacular==0.30.0
     # via
     #   -c requirements/base.txt
     #   -r requirements/base.in
+factory-boy==3.3.3
+    # via -r requirements/dev.in
+faker==40.43.0
+    # via factory-boy
 inflection==0.5.1
     # via
     #   -c requirements/base.txt

@@ -3,5 +3,6 @@
 -r base.in
 pytest
 pytest-django
+factory-boy
 ruff
 pip-tools
