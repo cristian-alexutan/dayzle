@@ -21,6 +21,8 @@ For setup, see the [README](README.md).
      dismiss earlier approvals),
    - all review conversations are resolved,
    - both CI checks pass: `test` (Backend CI) and `check` (Frontend CI).
+5. Pull requests are **squash-merged**: the whole PR becomes one commit on `main`, titled with
+   the PR title. Write clear PR titles; your individual branch commits don't need polishing.
 
 ### Before opening a pull request
 
@@ -138,6 +140,67 @@ No hard-coded text in templates or scripts. Add keys to `src/locales/ro.json` (t
 - Import from `src` with the `@/` alias.
 - Tests go in the feature's `tests/` folder and are named `*.test.ts` or `*.spec.ts`.
 - Prettier handles formatting: run `npm run format` and don't argue about style in review.
+
+## How to build a game
+
+Each game lives in `backend/apps/games/<game>/` and `frontend/src/features/<game>/`, and builds
+on the shared pieces described in the README (Shared building blocks for games). Replace
+`word` / `WordPuzzle` below with your game.
+
+### Backend
+
+1. **Content model** in `models.py`, linked one-to-one to the calendar entry. Secret fields
+   (answer, solution, coordinates) live here:
+   ```python
+   class WordPuzzle(TimeStampedModel):
+       daily_puzzle = models.OneToOneField(DailyPuzzle, on_delete=models.CASCADE, related_name="word")
+       answer = models.CharField(max_length=5)
+   ```
+2. **Register the game** in `apps.py`:
+   ```python
+   def ready(self):
+       from apps.puzzles.registry import register_game
+       from .models import WordPuzzle
+       from .services import seed_puzzle
+
+       register_game(key="word", name="Cuvântul zilei", content_model=WordPuzzle, seed=seed_puzzle)
+   ```
+   `seed(daily_puzzle)` creates sample content for `manage.py seed_dev`.
+3. **Django admin** (`admin.py`): register the content model so admins can author puzzles. They
+   first add a Daily puzzle (game + date), then its content.
+4. **Services** (`services.py`) hold the game rules. Every action follows the same steps:
+   ```python
+   puzzle = get_playable_puzzle("word", day)       # access rules for the day
+   result = start_or_resume(guest_id, puzzle)      # the player's GameResult
+   ...check the guess against puzzle.word.answer...
+   save_progress(result, {"guesses": guesses})     # while playing
+   complete(result, solved=True, score=score)      # when the game ends
+   ```
+   Raise a `DomainError` subclass (in your app's `exceptions.py`) for game-specific errors.
+5. **Scoring:** turn the raw result into `score`, where higher is always better (it's what
+   leaderboards will sort on, then `duration_ms`). Document the formula in a docstring.
+6. **API** (`api/`): thin views that take `guest_id = get_guest_id(request)`, validate input
+   with a serializer, call one service and serialize the output. URLs use `<game_day:day>/`.
+   **Serializers never include secret fields while the game is in progress**; reveal them only
+   once the result is completed.
+7. **Tests** in `tests/`: services (rules, scoring, play-once) and API (status codes, no secrets
+   in responses). Use the `api_client` fixture and the factories in
+   `apps/puzzles/tests/factories.py` and `apps/results/tests/factories.py`.
+
+### Frontend
+
+1. **Types:** after your backend endpoints are merged, run `npm run generate:api` (see the
+   README) and commit `src/api/generated/schema.d.ts`.
+2. **`api/endpoints.ts`:** thin functions using `http` from `@/api/http` and the generated
+   types. **`api/queries.ts`:** TanStack Query hooks (`useQuery`, `useMutation`) used by your
+   components.
+3. **Errors** arrive as `ApiError`; handle the codes your game can get (`no_puzzle`,
+   `already_played`, `invalid`, and your own).
+4. **Views and components** in `views/` and `components/`; game-specific instant feedback in
+   `composables/`. All strings in `src/locales/ro.json` and `en.json` under a `<game>.` prefix.
+5. **Routes:** export them from `routes.ts` through your `index.ts` (path `/games/<game>`), and
+   add them to `src/app/router/index.ts`.
+6. **Tests** in `tests/`, mounting components with `mountWithPlugins` from `@/tests/utils`.
 
 ## Dependencies
 

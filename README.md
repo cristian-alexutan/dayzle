@@ -8,10 +8,11 @@ a "Make the Target" math game, a 5-question trivia quiz and a GeoGuesser for Clu
 - `frontend/`: Vue 3 single-page app (Vite, TypeScript, Vue Router, Pinia, TanStack Query,
   PrimeVue, Leaflet, vue-i18n)
 
-> **UI library:** PrimeVue is installed but **still to be confirmed by the team**. Vuetify is the
-> alternative.
+> **First demo (MVP): the five games only.** Everyone plays anonymously; login, subscriptions,
+> archive, leaderboards, stats and friends come after the demo. See [MVP scope](#mvp-scope).
 
-Before contributing, read [CONTRIBUTING.md](CONTRIBUTING.md).
+Before contributing, read [CONTRIBUTING.md](CONTRIBUTING.md). Building a game? Follow
+[How to build a game](CONTRIBUTING.md#how-to-build-a-game).
 
 ## Quick start
 
@@ -29,9 +30,16 @@ cp frontend/.env.example frontend/.env
 # 3. Start PostgreSQL, the backend and the frontend dev server
 docker compose up --build
 
-# 4. In another terminal, apply migrations
+# 4. In another terminal, apply migrations and create dev data
 docker compose exec backend python manage.py migrate
+docker compose exec backend python manage.py seed_dev
 ```
+
+`seed_dev` creates a Django admin login `admin` / `admin` (only works with `DEBUG` on) and
+puzzles for the coming days for every game that provides a seed hook.
+
+> **Set up before the backend foundation (PR #2) was merged?** The custom user model requires a
+> one-time database reset: `docker compose down -v`, then steps 3 and 4 again.
 
 | What | URL |
 |---|---|
@@ -153,6 +161,31 @@ docker build -t dayzle-frontend frontend
 docker run -p 8080:80 dayzle-frontend
 ```
 
+## MVP scope
+
+The first demo only needs the five games playable. Decisions for the MVP:
+
+- **Everyone is anonymous.** Each visitor gets a `guest_id` stored in their Django session.
+  Play-once is per guest (clearing cookies resets it; it becomes strict once login exists).
+  Admins log in to Django admin only.
+- **Puzzles are hand-authored by admins in Django admin** (http://localhost:8000/admin/). A
+  `DailyPuzzle` row is the calendar entry (game + date, no content); each game stores its
+  content in its own model linked to that row. The admin warns about games with no puzzle in
+  the next 7 days. A day without a puzzle shows "no puzzle today".
+- **Only today's puzzle is playable.** URLs already take a date (`today` or `YYYY-MM-DD`), so
+  the archive can be added later without changing them.
+- **One `GameResult` per player and puzzle**, shared by all games: created when the player
+  starts, holds progress in `details` (so a refresh restores the game), and is completed with
+  `solved`, `score` (higher is better) and a server-measured `duration_ms`.
+- **Validation:** Word and GeoGuesser check every guess on the server (the answer is secret);
+  the logic and math games give instant feedback in the browser and are fully re-checked on
+  submit.
+- **UI library: PrimeVue** (Aura theme).
+
+**After the demo** (already decided): Google login with session cookies, guest results moving
+to the account on login, subscriptions set by admins, archive access for subscribers, per-game
+daily and friends leaderboards (`score` descending, then `duration_ms`), stats and streaks.
+
 ## Architecture
 
 ### Backend: modular monolith
@@ -189,6 +222,33 @@ Every app has the same layout:
     urls.py         mounted by config/urls.py under /api/v1/<app>/
   tests/
 ```
+
+### Shared building blocks for games
+
+| Where | What |
+|---|---|
+| `common/time.py` | `today_in_romania()`: the only way to get the current game day (resets at midnight in Romania) |
+| `common/players.py` | `get_guest_id(request)`: the player's id, created in the session on first use |
+| `common/exceptions.py` | `DomainError`: base class for errors raised by services; the API turns them into the error format below |
+| `puzzles/models.py` | `Game` choices and `DailyPuzzle(game, date)` |
+| `puzzles/registry.py` | `register_game(key, name, content_model, seed=None)`, called from each game's `AppConfig.ready()` |
+| `puzzles/selectors.py` | `get_playable_puzzle(game, day)`: today's puzzle, or `NoPuzzleError` (404) / `ArchiveUnavailableError` (403) |
+| `results/services.py` | `start_or_resume`, `save_progress`, `complete` (raises `AlreadyPlayedError`, 409) |
+
+### API conventions
+
+- Game endpoints take the day in the URL with the `game_day` converter, which accepts `today`
+  or `YYYY-MM-DD`:
+  ```
+  GET  /api/v1/games/<game>/<game_day:day>/            the puzzle (without secrets) and the player's state
+  POST /api/v1/games/<game>/<game_day:day>/<action>/   e.g. guess/, submit/
+  ```
+- Every error has the same shape, whatever its cause:
+  ```json
+  {"error": {"code": "already_played", "message": "This puzzle has already been played.", "details": null}}
+  ```
+  Validation errors use the code `invalid` and put the field errors in `details`. The frontend
+  receives them as an `ApiError` with `status`, `code`, `message` and `details`.
 
 ### Frontend: feature-based
 
