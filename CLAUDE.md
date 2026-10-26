@@ -27,7 +27,7 @@ docker compose exec backend ruff format --check .
 ```
 
 CI (`.github/workflows/backend.yml`) runs ruff check, ruff format --check, migrate and pytest
-against a Postgres service. Pytest exit code 5 (no tests collected) is temporarily allowed.
+against a Postgres service.
 
 ## Dependencies
 
