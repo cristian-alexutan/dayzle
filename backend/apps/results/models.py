@@ -13,7 +13,8 @@ class GameResult(TimeStampedModel):
     """One player's attempt at one daily puzzle, from start to finish.
 
     Shared by all games. Ranking uses ``score`` (higher is better) and then ``duration_ms``;
-    anything game-specific goes in ``details``.
+    anything game-specific goes in ``details``. ``duration_ms`` is active play time, not the
+    wall-clock time since ``started_at``: see ``services.ACTIVITY_GAP_CAP``.
     """
 
     class Status(models.TextChoices):
@@ -32,6 +33,9 @@ class GameResult(TimeStampedModel):
     solved = models.BooleanField(default=False)
     score = models.IntegerField(default=0)
     duration_ms = models.PositiveIntegerField(null=True, blank=True)
+    # Active play time so far, and when the player was last active (heartbeat, move or finish).
+    active_ms = models.PositiveIntegerField(default=0)
+    last_active_at = models.DateTimeField(default=timezone.now)
     is_archive = models.BooleanField(default=False)
     details = models.JSONField(default=dict, blank=True)
 

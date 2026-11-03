@@ -176,6 +176,8 @@ on the shared pieces described in the README (Shared building blocks for games).
    save_progress(result, {"guesses": guesses})     # while playing
    complete(result, solved=True, score=score)      # when the game ends
    ```
+   `save_progress` and `complete` count the player's active time for you, and `complete` sets
+   `duration_ms` from it. Never compute a duration in your game.
    Raise a `DomainError` subclass (in your app's `exceptions.py`) for game-specific errors.
 5. **Scoring:** turn the raw result into `score`, where higher is always better (it's what
    leaderboards will sort on, then `duration_ms`). Document the formula in a docstring.
@@ -200,7 +202,10 @@ on the shared pieces described in the README (Shared building blocks for games).
    `composables/`. All strings in `src/locales/ro.json` and `en.json` under a `<game>.` prefix.
 5. **Routes:** export them from `routes.ts` through your `index.ts` (path `/games/<game>`), and
    add them to `src/app/router/index.ts`.
-6. **Tests** in `tests/`, mounting components with `mountWithPlugins` from `@/tests/utils`.
+6. **Clock:** while the game is in progress and the page is visible (`document.visibilityState`),
+   call `POST /results/<game>/today/heartbeat/` every 15 s. Stop when the page is hidden or the
+   game is finished. The timer on screen only displays time; the backend measures it.
+7. **Tests** in `tests/`, mounting components with `mountWithPlugins` from `@/tests/utils`.
 
 ## Dependencies
 
