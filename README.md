@@ -38,6 +38,11 @@ docker compose exec backend python manage.py seed_dev
 `seed_dev` creates a Django admin login `admin` / `admin` (only works with `DEBUG` on) and
 puzzles for the coming days for every game that provides a seed hook.
 
+The Word game's word lists live in `backend/apps/games/word/data/` (`guesses.txt`: every 5-letter
+form of the official Romanian word list, LOC 5.0 from [dexonline](https://dexonline.ro/scrabble);
+`answers.txt`: hand-checked common words). `seed_dev` loads them into an empty database; after
+editing the files, run `python manage.py import_words` again.
+
 > **Set up before the backend foundation (PR #2) was merged?** The custom user model requires a
 > one-time database reset: `docker compose down -v`, then steps 3 and 4 again.
 
