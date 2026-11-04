@@ -143,8 +143,9 @@ No hard-coded text in templates or scripts. Add keys to `src/locales/ro.json` (t
   and views. Need another PrimeVue component? Add a wrapper first.
 - Colors come from the `--dz-*` variables in `src/app/styles/theme.css`, for light and dark. Don't
   write colors in components; add a variable there if one is missing. PrimeVue components follow
-  them through `src/app/theme/preset.ts`. Icons come from `primeicons` (`pi pi-...`); it is pinned
-  to 7.0.0, the last MIT version.
+  them through `src/app/theme/preset.ts`. Icons come from `primeicons` (`pi pi-...`).
+- Don't upgrade `primevue` past 4.x, `@primeuix/themes` past 2.x or `primeicons` past 7.x: these are
+  the last MIT versions, and the next ones require a PrimeUI license key.
 - Tests go in the feature's `tests/` folder and are named `*.test.ts` or `*.spec.ts`.
 - Prettier handles formatting: run `npm run format` and don't argue about style in review.
 

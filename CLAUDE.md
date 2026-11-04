@@ -72,10 +72,8 @@ Never edit the `.txt` files by hand. Commit `.in` and `.txt` together.
 
 - TypeScript stays on 5.x: TypeScript 7 has no JS API, which `vue-tsc`, `typescript-eslint` and
   `openapi-typescript` need.
-- `primeicons` stays on 7.0.0, the last MIT version; 8 is under the PrimeUI license.
-- PrimeVue 5 requires a PrimeUI license key. None is configured yet, so every page shows an
-  "Invalid PrimeUI License" badge; whether to get a key or downgrade is an open team decision.
-  Don't hide the badge with code.
+- `primevue` stays on 4.x, `@primeuix/themes` on 2.x and `primeicons` on 7.x, the last MIT
+  versions. Their next major versions are under the PrimeUI license, which requires a key.
 
 ## Settings
 
