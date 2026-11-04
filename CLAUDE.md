@@ -14,7 +14,8 @@ The first demo is the five games only; README "MVP scope" lists the decisions. K
 everyone is anonymous (`guest_id` in the Django session, play-once per guest); puzzles are
 hand-authored in Django admin as a `DailyPuzzle(game, date)` calendar row plus a per-game
 content model; only today's puzzle is playable; one `GameResult` per player and puzzle holds
-progress and the final `score` (higher is better) and server-measured `duration_ms`. Login,
+progress and the final `score` (higher is better) and server-measured `duration_ms` (active
+time only: heartbeats every 15 s while the game is visible, gaps capped at 30 s). Login,
 subscriptions, archive, leaderboards, stats and friends are deferred: don't build them unless
 asked. A custom `accounts.User` exists but is unused.
 

@@ -175,8 +175,12 @@ The first demo only needs the five games playable. Decisions for the MVP:
 - **Only today's puzzle is playable.** URLs already take a date (`today` or `YYYY-MM-DD`), so
   the archive can be added later without changing them.
 - **One `GameResult` per player and puzzle**, shared by all games: created when the player
-  starts, holds progress in `details` (so a refresh restores the game), and is completed with
-  `solved`, `score` (higher is better) and a server-measured `duration_ms`.
+  opens the game, holds progress in `details` (so a refresh restores the game), and is completed
+  with `solved`, `score` (higher is better) and a server-measured `duration_ms`.
+- **Only active time counts.** The clock starts when the player opens the game. While the game
+  is visible, the frontend sends a heartbeat every 15 s; every heartbeat, move and finish adds
+  the time since the player's last activity, but at most 30 s. Time spent with the page closed
+  or hidden therefore barely counts, and the browser never reports a duration itself.
 - **Validation:** Word and GeoGuesser check every guess on the server (the answer is secret);
   the logic and math games give instant feedback in the browser and are fully re-checked on
   submit.
@@ -233,7 +237,8 @@ Every app has the same layout:
 | `puzzles/models.py` | `Game` choices and `DailyPuzzle(game, date)` |
 | `puzzles/registry.py` | `register_game(key, name, content_model, seed=None)`, called from each game's `AppConfig.ready()` |
 | `puzzles/selectors.py` | `get_playable_puzzle(game, day)`: today's puzzle, or `NoPuzzleError` (404) / `ArchiveUnavailableError` (403) |
-| `results/services.py` | `start_or_resume`, `save_progress`, `complete` (raises `AlreadyPlayedError`, 409) |
+| `results/services.py` | `start_or_resume`, `save_progress`, `complete` (raises `AlreadyPlayedError`, 409); `save_progress` and `complete` also count active time |
+| `results/api/` | `POST /api/v1/results/<game>/<game_day:day>/heartbeat/`: shared by all games, keeps the clock running while the game is visible |
 
 ### API conventions
 
