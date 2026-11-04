@@ -10,5 +10,19 @@
       "dark": "Temă: închisă",
       "light": "Temă: deschisă"
     }
+  },
+  "word": {
+    "backspace": "Șterge litera",
+    "enter": "Enter",
+    "errors": {
+      "generic": "Ceva nu a mers. Încearcă din nou.",
+      "invalid": "Cuvântul trebuie să aibă 5 litere românești",
+      "not_a_word": "Cuvântul nu este în listă",
+      "tooShort": "Cuvântul trebuie să aibă 5 litere"
+    },
+    "keyboard": "Tastatură",
+    "loading": "Se încarcă jocul",
+    "noPuzzle": "Nu există un cuvânt pentru astăzi. Revino mâine!",
+    "title": "Cuvantal"
   }
 }

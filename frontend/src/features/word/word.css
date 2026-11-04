@@ -1,0 +1,15 @@
+/* Colors of the Word game, shared by the board and the keyboard. */
+:root {
+  --word-correct: #538d4e;
+  --word-present: #b59f3b;
+  --word-absent: #787c7e;
+  --word-on-color: #ffffff;
+  --word-border: #d3d6da;
+  --word-border-filled: #878a8c;
+}
+
+.app-dark {
+  --word-absent: #3a3a3c;
+  --word-border: #3a3a3c;
+  --word-border-filled: #565758;
+}

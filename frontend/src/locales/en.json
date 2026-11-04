@@ -10,5 +10,19 @@
       "dark": "Theme: dark",
       "light": "Theme: light"
     }
+  },
+  "word": {
+    "backspace": "Delete letter",
+    "enter": "Enter",
+    "errors": {
+      "generic": "Something went wrong. Please try again.",
+      "invalid": "The word must have 5 Romanian letters",
+      "not_a_word": "The word is not in the list",
+      "tooShort": "The word must have 5 letters"
+    },
+    "keyboard": "Keyboard",
+    "loading": "Loading the game",
+    "noPuzzle": "There is no word for today. Come back tomorrow!",
+    "title": "Cuvantal"
   }
 }
