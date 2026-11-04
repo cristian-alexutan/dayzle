@@ -23,6 +23,12 @@
     "keyboard": "Keyboard",
     "loading": "Loading the game",
     "noPuzzle": "There is no word for today. Come back tomorrow!",
+    "result": {
+      "answer": "The word",
+      "lost": "Try again tomorrow!",
+      "see": "See result",
+      "won": "Congratulations!"
+    },
     "title": "Cuvantal"
   }
 }

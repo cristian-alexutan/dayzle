@@ -9,10 +9,13 @@ const props = defineProps<{
   current: string[]
   rows: number
   length: number
-  /** The row that was just guessed and should flip. Rows restored from the server don't. */
+  /** The row that flips once it holds a guess. Rows restored from the server don't flip. */
   revealRow?: number | null
   shake?: boolean
 }>()
+
+const isRevealing = (rowIndex: number) =>
+  rowIndex === props.revealRow && rowIndex < props.guesses.length
 
 interface Tile {
   letter: string
@@ -52,9 +55,9 @@ const board = computed<Tile[][]>(() =>
         :class="[
           tile.color && `word-board__tile--${tile.color}`,
           tile.letter && !tile.color && 'word-board__tile--filled',
-          rowIndex === revealRow && 'word-board__tile--reveal',
+          isRevealing(rowIndex) && 'word-board__tile--reveal',
         ]"
-        :style="rowIndex === revealRow ? { animationDelay: `${index * 250}ms` } : undefined"
+        :style="isRevealing(rowIndex) ? { animationDelay: `${index * 250}ms` } : undefined"
         role="gridcell"
         data-test="tile"
       >

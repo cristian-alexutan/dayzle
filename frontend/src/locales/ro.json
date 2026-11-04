@@ -23,6 +23,12 @@
     "keyboard": "Tastatură",
     "loading": "Se încarcă jocul",
     "noPuzzle": "Nu există un cuvânt pentru astăzi. Revino mâine!",
+    "result": {
+      "answer": "Cuvântul",
+      "lost": "Mai încearcă mâine!",
+      "see": "Vezi rezultatul",
+      "won": "Felicitări!"
+    },
     "title": "Cuvantal"
   }
 }
