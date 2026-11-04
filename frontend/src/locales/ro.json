@@ -1,1 +1,14 @@
-{}
+{
+  "common": {
+    "retry": "Încearcă din nou",
+    "time": "Timp"
+  },
+  "header": {
+    "language": "Limbă",
+    "theme": {
+      "auto": "Temă: automată",
+      "dark": "Temă: închisă",
+      "light": "Temă: deschisă"
+    }
+  }
+}

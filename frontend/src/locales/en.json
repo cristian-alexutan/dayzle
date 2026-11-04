@@ -1,1 +1,14 @@
-{}
+{
+  "common": {
+    "retry": "Try again",
+    "time": "Time"
+  },
+  "header": {
+    "language": "Language",
+    "theme": {
+      "auto": "Theme: automatic",
+      "dark": "Theme: dark",
+      "light": "Theme: light"
+    }
+  }
+}

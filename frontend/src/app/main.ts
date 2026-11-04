@@ -4,6 +4,8 @@ import { createPinia } from 'pinia'
 import PrimeVue from 'primevue/config'
 import { createApp } from 'vue'
 
+import { DARK_MODE_CLASS } from '@/shared/stores/theme'
+
 import App from './App.vue'
 import { createAppI18n } from './i18n'
 import { createAppQueryClient } from './queryClient'
@@ -14,6 +16,6 @@ createApp(App)
   .use(createPinia())
   .use(VueQueryPlugin, { queryClient: createAppQueryClient() })
   .use(createAppI18n())
-  .use(PrimeVue, { theme: { preset: Aura } })
+  .use(PrimeVue, { theme: { preset: Aura, options: { darkModeSelector: `.${DARK_MODE_CLASS}` } } })
   .use(router)
   .mount('#app')
