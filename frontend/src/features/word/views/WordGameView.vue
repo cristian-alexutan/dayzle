@@ -114,7 +114,7 @@ onBeforeUnmount(() => {
     />
     <template v-else-if="game">
       <div class="word-game__message" aria-live="polite">
-        <AppMessage v-if="rejection" severity="warn" size="small" data-test="rejection">
+        <AppMessage v-if="rejection" severity="error" size="small" data-test="rejection">
           {{ rejection }}
         </AppMessage>
       </div>
@@ -152,15 +152,14 @@ onBeforeUnmount(() => {
 </template>
 
 <style scoped>
-/* A height of 0 keeps the title close to the board: the message floats over the first rows. */
+/* Space kept for the message, so the board doesn't move when one appears. */
 .word-game__message {
-  position: relative;
-  z-index: 1;
   display: flex;
+  align-items: center;
   justify-content: center;
   width: 100%;
-  height: 0;
-  margin-bottom: -0.75rem;
+  min-height: 1.75rem;
+  margin-block: -0.5rem;
 }
 
 .word-game__see-result {

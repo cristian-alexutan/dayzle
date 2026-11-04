@@ -89,7 +89,7 @@ describe('Word game result', () => {
     wrapper.unmount()
   })
 
-  it('shows the word in tiles: green when solved, accent when failed', async () => {
+  it('shows the word in tiles: green when solved, pink when failed', async () => {
     const solved = await mountView(solvedGame)
     vi.advanceTimersByTime(0)
     await flushPromises()

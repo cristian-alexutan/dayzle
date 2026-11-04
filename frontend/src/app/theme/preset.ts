@@ -38,4 +38,20 @@ export const DayzlePreset = definePreset(Aura, {
       },
     },
   },
+  components: {
+    message: {
+      error: {
+        background: 'transparent',
+        borderColor: 'transparent',
+        color: 'var(--dz-accent-strong)',
+        shadow: 'none',
+      },
+      success: {
+        background: 'transparent',
+        borderColor: 'transparent',
+        color: 'var(--dz-primary-strong)',
+        shadow: 'none',
+      },
+    },
+  },
 })

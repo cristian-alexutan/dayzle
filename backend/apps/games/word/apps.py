@@ -11,4 +11,4 @@ class GamesWordConfig(AppConfig):
         from .models import WordPuzzle
         from .services import seed_puzzle
 
-        register_game(key="word", name="Cuvantal", content_model=WordPuzzle, seed=seed_puzzle)
+        register_game(key="word", name="Cuvântăl", content_model=WordPuzzle, seed=seed_puzzle)

@@ -56,7 +56,7 @@ defineProps<{ letter: string; color?: LetterColor | 'accent' | null }>()
 }
 
 .word-tile--accent {
-  --tile-background: var(--dz-accent);
-  --tile-color: var(--dz-on-accent);
+  --tile-background: var(--dz-accent-strong);
+  --tile-color: var(--dz-on-accent-strong);
 }
 </style>

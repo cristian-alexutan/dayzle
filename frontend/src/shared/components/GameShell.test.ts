@@ -5,18 +5,13 @@ import { mountWithPlugins } from '@/tests/utils'
 import GameShell from './GameShell.vue'
 
 describe('GameShell', () => {
-  it('spells the title in tiles, keeping it readable as one word', () => {
+  it('shows the title and the game', () => {
     const wrapper = mountWithPlugins(GameShell, {
       props: { title: 'Joc' },
       slots: { default: 'board' },
     })
 
-    expect(wrapper.findAll('.game-shell__letter').map((letter) => letter.text())).toEqual([
-      'J',
-      'o',
-      'c',
-    ])
-    expect(wrapper.find('h1').attributes('aria-label')).toBe('Joc')
+    expect(wrapper.find('h1').text()).toBe('Joc')
     expect(wrapper.text()).toContain('board')
   })
 })

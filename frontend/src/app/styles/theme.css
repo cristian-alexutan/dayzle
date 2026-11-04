@@ -1,8 +1,25 @@
 /*
- * The app's colors: green main, pink accent, pastels. Use these variables instead of writing
- * colors in components. PrimeVue components pick them up through app/theme/preset.ts.
+ * The app's colors. Use these variables instead of writing colors in components; PrimeVue
+ * components pick them up through app/theme/preset.ts.
+ *
+ * Two greens and two pinks, whose shades swap between light and dark mode:
+ *   --dz-primary, --dz-accent                 for design: buttons, highlights, decoration
+ *   --dz-primary-strong, --dz-accent-strong   stand out from the page: green for confirmations
+ *                                             and pink for errors, as text or as a background
  */
 :root {
+  --dz-primary: #9ed39c;
+  --dz-on-primary: #1a231b;
+  --dz-primary-hover: #8fc98d;
+  --dz-primary-active: #80be7e;
+  --dz-primary-strong: #437d44;
+  --dz-on-primary-strong: #ffffff;
+
+  --dz-accent: #f29bbd;
+  --dz-on-accent: #2b1620;
+  --dz-accent-strong: #c2416f;
+  --dz-on-accent-strong: #ffffff;
+
   --dz-page: #f6fbf5;
   --dz-surface: #ffffff;
   --dz-text: #3b4a3c;
@@ -10,18 +27,9 @@
   --dz-border: #d5dfd5;
   --dz-border-strong: #8fa090;
 
-  --dz-primary: #6fa96e;
-  --dz-primary-hover: #5f9a5f;
-  --dz-primary-active: #528a53;
-  --dz-on-primary: #1a231b;
-
-  --dz-accent: #e8739f;
-  --dz-accent-strong: #c94e7b; /* for text and icons on the page or a surface */
-  --dz-on-accent: #2b1620;
-
   /* Game feedback: right place, wrong place, not in the answer. */
-  --dz-correct: #8cc98a;
-  --dz-on-correct: #1a231b;
+  --dz-correct: var(--dz-primary-strong);
+  --dz-on-correct: var(--dz-on-primary-strong);
   --dz-present: #f2d06b;
   --dz-on-present: #1a231b;
   --dz-absent: #b4bfb5;
@@ -33,29 +41,29 @@
 }
 
 .app-dark {
-  --dz-page: #1a231b;
-  --dz-surface: #27322a;
-  --dz-text: #ecf6ed;
-  --dz-text-muted: #a9b8ab;
-  --dz-border: #3d4a3f;
-  --dz-border-strong: #6b7b6d;
+  --dz-primary: #437d44;
+  --dz-on-primary: #ffffff;
+  --dz-primary-hover: #4e8c4f;
+  --dz-primary-active: #599a5a;
+  --dz-primary-strong: #9ed39c;
+  --dz-on-primary-strong: #1a231b;
 
-  --dz-primary: #9ed39c;
-  --dz-primary-hover: #b1dfb0;
-  --dz-primary-active: #c2e8c1;
-  --dz-on-primary: #1a231b;
-
-  --dz-accent: #f29bbd;
+  --dz-accent: #c2416f;
+  --dz-on-accent: #ffffff;
   --dz-accent-strong: #f29bbd;
-  --dz-on-accent: #2b1620;
+  --dz-on-accent-strong: #2b1620;
 
-  --dz-correct: #8cc98a;
-  --dz-on-correct: #1a231b;
+  --dz-page: #1b1b1e;
+  --dz-surface: #29292d;
+  --dz-text: #f2f2f4;
+  --dz-text-muted: #ababb3;
+  --dz-border: #3f3f45;
+  --dz-border-strong: #6e6e76;
+
   --dz-present: #e8c85e;
-  --dz-on-present: #1a231b;
-  --dz-absent: #334036;
-  --dz-on-absent: #c3cfc4;
+  --dz-absent: #38383d;
+  --dz-on-absent: #c6c6cc;
 
-  --dz-key: #5a6b5d;
-  --dz-on-key: #f6fbf5;
+  --dz-key: #5c5c64;
+  --dz-on-key: #f6f6f7;
 }
