@@ -15,7 +15,6 @@ import WordKeyboard from '../components/WordKeyboard.vue'
 import WordResult from '../components/WordResult.vue'
 import { useGuessInput } from '../composables/useGuessInput'
 import { useKeyboardState } from '../composables/useKeyboardState'
-import '../word.css'
 
 const DAY = 'today'
 const REJECTION_MS = 2000
@@ -138,7 +137,11 @@ onBeforeUnmount(() => {
       <template v-if="finished">
         <AppButton
           v-if="!resultVisible"
+          class="word-game__see-result"
           :label="t('word.result.see')"
+          icon="pi pi-trophy"
+          rounded
+          raised
           data-test="see-result"
           @click="resultVisible = true"
         />
@@ -149,9 +152,19 @@ onBeforeUnmount(() => {
 </template>
 
 <style scoped>
+/* A height of 0 keeps the title close to the board: the message floats over the first rows. */
 .word-game__message {
+  position: relative;
+  z-index: 1;
   display: flex;
-  align-items: center;
-  min-height: 2.5rem;
+  justify-content: center;
+  width: 100%;
+  height: 0;
+  margin-bottom: -0.75rem;
+}
+
+.word-game__see-result {
+  padding-inline: 1.5rem;
+  font-weight: 600;
 }
 </style>

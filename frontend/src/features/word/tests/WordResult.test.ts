@@ -89,6 +89,26 @@ describe('Word game result', () => {
     wrapper.unmount()
   })
 
+  it('shows the word in tiles: green when solved, accent when failed', async () => {
+    const solved = await mountView(solvedGame)
+    vi.advanceTimersByTime(0)
+    await flushPromises()
+    const solvedTiles = document.querySelectorAll('[data-test="answer-tile"]')
+    expect(solvedTiles).toHaveLength(5)
+    expect(solvedTiles[0]!.classList).toContain('word-tile--correct')
+    solved.unmount()
+
+    const failed = await mountView(
+      makeGame({ status: 'completed', answer: 'câine', solved: false, duration_ms: 1000 }),
+    )
+    vi.advanceTimersByTime(0)
+    await flushPromises()
+    const failedTiles = document.querySelectorAll('[data-test="answer-tile"]')
+    expect(failedTiles[1]!.textContent?.trim()).toBe('â')
+    expect(failedTiles[1]!.classList).toContain('word-tile--accent')
+    failed.unmount()
+  })
+
   it('waits for the flip when the player has just finished', async () => {
     const wrapper = await mountView(makeGame())
     fetchMock.mockResolvedValueOnce(jsonResponse(solvedGame))

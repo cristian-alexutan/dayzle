@@ -3,6 +3,7 @@
 import { computed } from 'vue'
 
 import type { Guess, LetterColor } from '../types'
+import WordTile from './WordTile.vue'
 
 const props = defineProps<{
   guesses: Guess[]
@@ -48,21 +49,16 @@ const board = computed<Tile[][]>(() =>
       role="row"
       data-test="row"
     >
-      <div
+      <WordTile
         v-for="(tile, index) in row"
         :key="index"
-        class="word-board__tile"
-        :class="[
-          tile.color && `word-board__tile--${tile.color}`,
-          tile.letter && !tile.color && 'word-board__tile--filled',
-          isRevealing(rowIndex) && 'word-board__tile--reveal',
-        ]"
+        :letter="tile.letter"
+        :color="tile.color"
+        :class="{ 'word-board__tile--reveal': isRevealing(rowIndex) }"
         :style="isRevealing(rowIndex) ? { animationDelay: `${index * 250}ms` } : undefined"
         role="gridcell"
         data-test="tile"
-      >
-        {{ tile.letter }}
-      </div>
+      />
     </div>
   </div>
 </template>
@@ -81,42 +77,6 @@ const board = computed<Tile[][]>(() =>
   gap: 0.35rem;
 }
 
-.word-board__tile {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  aspect-ratio: 1;
-  border: 2px solid var(--word-border);
-  background: var(--tile-background, transparent);
-  color: var(--tile-color, var(--p-text-color));
-  font-size: 1.75rem;
-  font-weight: 700;
-  text-transform: uppercase;
-}
-
-.word-board__tile--filled {
-  border-color: var(--word-border-filled);
-}
-
-.word-board__tile--correct,
-.word-board__tile--present,
-.word-board__tile--absent {
-  --tile-color: var(--word-on-color);
-  border-color: var(--tile-background);
-}
-
-.word-board__tile--correct {
-  --tile-background: var(--word-correct);
-}
-
-.word-board__tile--present {
-  --tile-background: var(--word-present);
-}
-
-.word-board__tile--absent {
-  --tile-background: var(--word-absent);
-}
-
 .word-board__tile--reveal {
   animation: word-flip 500ms ease-in-out backwards;
 }
@@ -129,14 +89,14 @@ const board = computed<Tile[][]>(() =>
 @keyframes word-flip {
   0% {
     transform: rotateX(0);
-    border-color: var(--word-border-filled);
+    border-color: var(--dz-border-strong);
     background: transparent;
-    color: var(--p-text-color);
+    color: var(--dz-text);
   }
   49% {
-    border-color: var(--word-border-filled);
+    border-color: var(--dz-border-strong);
     background: transparent;
-    color: var(--p-text-color);
+    color: var(--dz-text);
   }
   50% {
     transform: rotateX(90deg);

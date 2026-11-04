@@ -71,7 +71,7 @@ describe('WordGameView', () => {
 
     const tiles = wrapper.findAll('[data-test="tile"]')
     expect(tiles[0]!.text()).toBe('t')
-    expect(tiles[0]!.classes()).toContain('word-board__tile--present')
+    expect(tiles[0]!.classes()).toContain('word-tile--present')
     expect(tiles[0]!.classes()).not.toContain('word-board__tile--reveal')
     wrapper.unmount()
   })

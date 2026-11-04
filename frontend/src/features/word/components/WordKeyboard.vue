@@ -43,7 +43,7 @@ const ACTIONS_ROW = 2
       <AppButton
         v-if="rowIndex === ACTIONS_ROW"
         class="word-keyboard__key word-keyboard__key--wide"
-        label="⌫"
+        icon="pi pi-delete-left"
         :aria-label="t('word.backspace')"
         :disabled="disabled"
         severity="secondary"
@@ -69,6 +69,17 @@ const ACTIONS_ROW = 2
 }
 
 .word-keyboard__key {
+  --key-background: var(--dz-key);
+  --key-color: var(--dz-on-key);
+  --p-button-secondary-background: var(--key-background);
+  --p-button-secondary-hover-background: var(--key-background);
+  --p-button-secondary-active-background: var(--key-background);
+  --p-button-secondary-border-color: var(--key-background);
+  --p-button-secondary-hover-border-color: var(--key-background);
+  --p-button-secondary-active-border-color: var(--key-background);
+  --p-button-secondary-color: var(--key-color);
+  --p-button-secondary-hover-color: var(--key-color);
+  --p-button-secondary-active-color: var(--key-color);
   flex: 1 1 0;
   min-width: 0;
   max-width: 2.75rem;
@@ -84,28 +95,17 @@ const ACTIONS_ROW = 2
 }
 
 .word-keyboard__key--correct {
-  --key-background: var(--word-correct);
+  --key-background: var(--dz-correct);
+  --key-color: var(--dz-on-correct);
 }
 
 .word-keyboard__key--present {
-  --key-background: var(--word-present);
+  --key-background: var(--dz-present);
+  --key-color: var(--dz-on-present);
 }
 
 .word-keyboard__key--absent {
-  --key-background: var(--word-absent);
-}
-
-.word-keyboard__key--correct,
-.word-keyboard__key--present,
-.word-keyboard__key--absent {
-  --p-button-secondary-background: var(--key-background);
-  --p-button-secondary-hover-background: var(--key-background);
-  --p-button-secondary-active-background: var(--key-background);
-  --p-button-secondary-border-color: var(--key-background);
-  --p-button-secondary-hover-border-color: var(--key-background);
-  --p-button-secondary-active-border-color: var(--key-background);
-  --p-button-secondary-color: var(--word-on-color);
-  --p-button-secondary-hover-color: var(--word-on-color);
-  --p-button-secondary-active-color: var(--word-on-color);
+  --key-background: var(--dz-absent);
+  --key-color: var(--dz-on-absent);
 }
 </style>

@@ -29,9 +29,9 @@ describe('WordBoard', () => {
     const tiles = mountBoard({ guesses: [guess] }).findAll('[data-test="tile"]')
 
     expect(tiles[1]!.text()).toBe('â')
-    expect(tiles[0]!.classes()).toContain('word-board__tile--correct')
-    expect(tiles[2]!.classes()).toContain('word-board__tile--present')
-    expect(tiles[1]!.classes()).toContain('word-board__tile--absent')
+    expect(tiles[0]!.classes()).toContain('word-tile--correct')
+    expect(tiles[2]!.classes()).toContain('word-tile--present')
+    expect(tiles[1]!.classes()).toContain('word-tile--absent')
     expect(tiles[0]!.classes()).not.toContain('word-board__tile--reveal')
   })
 
@@ -43,7 +43,7 @@ describe('WordBoard', () => {
     expect(tiles[5]!.text()).toBe('c')
     expect(tiles[6]!.text()).toBe('a')
     expect(tiles[7]!.text()).toBe('')
-    expect(tiles[5]!.classes()).toContain('word-board__tile--filled')
+    expect(tiles[5]!.classes()).toContain('word-tile--filled')
   })
 
   it('flips only the row that was just guessed', () => {
