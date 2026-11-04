@@ -1,0 +1,16 @@
+import { describe, expect, it } from 'vitest'
+
+import AppButton from '@/shared/components/AppButton.vue'
+import { mountWithPlugins } from '@/tests/utils'
+
+describe('DayzlePreset', () => {
+  it("gives PrimeVue's tokens the app's colors", () => {
+    mountWithPlugins(AppButton, { props: { label: 'x' } })
+
+    const css = Array.from(document.head.querySelectorAll('style'))
+      .map((style) => style.textContent)
+      .join('')
+    expect(css).toContain('--p-primary-color:var(--dz-primary)')
+    expect(css).toContain('--p-text-color:var(--dz-text)')
+  })
+})

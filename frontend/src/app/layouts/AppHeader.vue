@@ -8,7 +8,7 @@ import { useThemeStore } from '@/shared/stores/theme'
 
 import { storeLocale, type AppLocale } from '../i18n'
 
-const THEME_ICONS = { light: '☀️', dark: '🌙', auto: '🌓' }
+const THEME_ICONS = { light: 'pi pi-sun', dark: 'pi pi-moon', auto: 'pi pi-desktop' }
 
 const { t, locale } = useI18n({ useScope: 'global' })
 const theme = useThemeStore()
@@ -29,7 +29,7 @@ function toggleLocale() {
 <template>
   <header class="app-header">
     <AppButton
-      :label="THEME_ICONS[theme.mode]"
+      :icon="THEME_ICONS[theme.mode]"
       :aria-label="themeLabel"
       :title="themeLabel"
       text

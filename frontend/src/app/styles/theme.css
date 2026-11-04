@@ -1,0 +1,61 @@
+/*
+ * The app's colors: green main, pink accent, pastels. Use these variables instead of writing
+ * colors in components. PrimeVue components pick them up through app/theme/preset.ts.
+ */
+:root {
+  --dz-page: #f6fbf5;
+  --dz-surface: #ffffff;
+  --dz-text: #3b4a3c;
+  --dz-text-muted: #6e7d6f;
+  --dz-border: #d5dfd5;
+  --dz-border-strong: #8fa090;
+
+  --dz-primary: #6fa96e;
+  --dz-primary-hover: #5f9a5f;
+  --dz-primary-active: #528a53;
+  --dz-on-primary: #1a231b;
+
+  --dz-accent: #e8739f;
+  --dz-accent-strong: #c94e7b; /* for text and icons on the page or a surface */
+  --dz-on-accent: #2b1620;
+
+  /* Game feedback: right place, wrong place, not in the answer. */
+  --dz-correct: #8cc98a;
+  --dz-on-correct: #1a231b;
+  --dz-present: #f2d06b;
+  --dz-on-present: #1a231b;
+  --dz-absent: #b4bfb5;
+  --dz-on-absent: #1a231b;
+
+  /* On-screen keyboard keys that haven't been used yet. */
+  --dz-key: #dce8db;
+  --dz-on-key: #3b4a3c;
+}
+
+.app-dark {
+  --dz-page: #1a231b;
+  --dz-surface: #27322a;
+  --dz-text: #ecf6ed;
+  --dz-text-muted: #a9b8ab;
+  --dz-border: #3d4a3f;
+  --dz-border-strong: #6b7b6d;
+
+  --dz-primary: #9ed39c;
+  --dz-primary-hover: #b1dfb0;
+  --dz-primary-active: #c2e8c1;
+  --dz-on-primary: #1a231b;
+
+  --dz-accent: #f29bbd;
+  --dz-accent-strong: #f29bbd;
+  --dz-on-accent: #2b1620;
+
+  --dz-correct: #8cc98a;
+  --dz-on-correct: #1a231b;
+  --dz-present: #e8c85e;
+  --dz-on-present: #1a231b;
+  --dz-absent: #334036;
+  --dz-on-absent: #c3cfc4;
+
+  --dz-key: #5a6b5d;
+  --dz-on-key: #f6fbf5;
+}

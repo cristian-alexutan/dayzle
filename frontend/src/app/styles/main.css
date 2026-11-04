@@ -1,7 +1,7 @@
 /* Global styles. */
 body {
   margin: 0;
-  background: var(--p-content-background);
-  color: var(--p-text-color);
+  background: var(--dz-page);
+  color: var(--dz-text);
   font-family: system-ui, sans-serif;
 }

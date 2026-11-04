@@ -1,4 +1,4 @@
-<!-- ResultCard: Card that summarises a finished game: its result, details and time. -->
+<!-- ResultCard: Summary of a finished game: its big result, game details and time. -->
 <script setup lang="ts">
 import { useI18n } from 'vue-i18n'
 
@@ -11,11 +11,14 @@ const { t } = useI18n()
 </script>
 
 <template>
-  <AppCard>
-    <template #title>{{ result }}</template>
+  <AppCard class="result-card">
+    <template #title>
+      <span class="result-card__result">{{ result }}</span>
+    </template>
     <template #content>
       <slot />
       <p v-if="durationMs !== null" class="result-card__time">
+        <i class="pi pi-clock" aria-hidden="true" />
         {{ t('common.time') }}: {{ formatDuration(durationMs) }}
       </p>
     </template>
@@ -23,7 +26,24 @@ const { t } = useI18n()
 </template>
 
 <style scoped>
+.result-card {
+  --p-card-background: transparent;
+  --p-card-shadow: none;
+  --p-card-body-padding: 0;
+  text-align: center;
+}
+
+.result-card__result {
+  color: var(--dz-accent-strong);
+  font-size: 2.5rem;
+  font-weight: 800;
+}
+
 .result-card__time {
-  margin: 0.5rem 0 0;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  margin: 0.75rem 0 0;
+  color: var(--dz-text-muted);
 }
 </style>
