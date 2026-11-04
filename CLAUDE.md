@@ -8,15 +8,6 @@ logic game, a "Make the Target" math game, a 5-question trivia quiz, a GeoGuesse
 - `frontend/`: Vue 3 SPA. Vite, TypeScript, Vue Router, Pinia, TanStack Query, PrimeVue (Aura
   theme), PrimeIcons, Leaflet, vue-i18n. Node 24, npm, exact pins.
 
-## Status
-
-- **Cuvântăl (`word`):** the demo part is built, backend and frontend. Archive, practice, streak,
-  statistics, leaderboards and the share button are not.
-- **`logic`, `math`, `trivia`, `geo`:** placeholders only (docstring-only backend files, one-line
-  comment frontend files). So are `social`, `leaderboards`, `stats`, `subscriptions` and the
-  frontend's `auth`, `archive`, `admin`, `social`, `stats`, `leaderboards`, `subscription`.
-- `/` is intentionally blank: there is no home page or menu yet. The only route is `/games/word`.
-
 ## MVP scope
 
 The first demo is the five games only; README "MVP scope" lists the decisions. Key points:
@@ -133,19 +124,6 @@ Each app's `api/urls.py` is mounted by `config/urls.py` under `/api/v1/<app>/` (
 - `leaderboards` and `stats` only read from `results`.
 - `common` imports from no other app.
 - No circular imports.
-
-### Word game (`apps/games/word`)
-
-- `rules.py`: pure logic: `normalize` (lowercase, NFC, cedilla ş/ţ to ș/ț), the 31-letter alphabet
-  (ă, â, î, ș, ț are separate letters), 5 letters and 6 attempts, Wordle coloring, and
-  `score` (7 minus attempts when solved, 0 when failed).
-- Models: `Word` (word bank, `is_answer`) and `WordPuzzle` (the day's answer).
-- API: `GET /api/v1/games/word/<day>/` opens the game; `POST .../guess/` sends a guess. `answer`,
-  `solved`, `score` and `duration_ms` are null until the game ends. `invalid` and `not_a_word`
-  (400) don't use an attempt.
-- `data/guesses.txt` (5-letter forms of LOC 5.0, dexonline) and `data/answers.txt` (hand-checked
-  common words, all also valid guesses). `manage.py import_words` loads them and can run again
-  safely; `seed_dev` loads them into an empty word bank.
 
 ## Code style
 
