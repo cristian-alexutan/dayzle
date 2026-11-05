@@ -1,14 +1,20 @@
 """Write operations and business rules for the Math game app."""
 
 import random
+import uuid
 from collections.abc import Iterable, Sequence
 from dataclasses import dataclass
+from datetime import date
 
 from apps.puzzles.models import DailyPuzzle
+from apps.results.exceptions import AlreadyPlayedError
+from apps.results.models import GameResult
+from apps.results.services import complete, save_progress, start_or_resume
 
 from . import rules
-from .exceptions import InvalidNumbersError
+from .exceptions import InvalidNumbersError, NoStepsError
 from .models import MathPuzzle
+from .selectors import get_playable_math_puzzle
 
 # seed_dev gives the coming days all three difficulties in turn.
 SEED_DIFFICULTIES = (rules.Difficulty.EASY, rules.Difficulty.MEDIUM, rules.Difficulty.HARD)
@@ -83,3 +89,61 @@ def seed_puzzle(daily_puzzle: DailyPuzzle) -> None:
     puzzle = MathPuzzle(daily_puzzle=daily_puzzle)
     generate_puzzle(difficulty).apply_to(puzzle)
     puzzle.save()
+
+
+@dataclass(frozen=True)
+class MathGame:
+    """A player's daily game: their result and the day's puzzle (solution secret until the end)."""
+
+    result: GameResult
+    math_puzzle: MathPuzzle
+
+
+def open_game(guest_id: uuid.UUID, day: date) -> MathGame:
+    """Return the player's game for the day, starting it (and its clock) on first open."""
+    math_puzzle = get_playable_math_puzzle(day)
+    return MathGame(start_or_resume(guest_id, math_puzzle.daily_puzzle), math_puzzle)
+
+
+def _replay_for(game: MathGame, steps: Sequence[rules.Step]) -> rules.Replay:
+    """Replay the steps from the puzzle's starting numbers; nothing the browser computed counts.
+
+    A finished game is reported as already played before its steps are even looked at.
+    """
+    if game.result.status == GameResult.Status.COMPLETED:
+        raise AlreadyPlayedError()
+    return rules.replay(game.math_puzzle.numbers, game.math_puzzle.target, steps)
+
+
+def save_steps(guest_id: uuid.UUID, day: date, steps: Sequence[rules.Step]) -> MathGame:
+    """Save the board after a step, undo or reset, so a refresh restores it.
+
+    The steps replace the saved ones. An invalid step raises ``InvalidStepError`` and nothing is
+    saved, so the game goes on from the last valid board.
+    """
+    game = open_game(guest_id, day)
+    replay = _replay_for(game, steps)
+    result = save_progress(game.result, {"steps": steps_to_json(replay.steps)})
+    return MathGame(result, game.math_puzzle)
+
+
+def submit(guest_id: uuid.UUID, day: date, steps: Sequence[rules.Step]) -> MathGame:
+    """Finish the game with the player's final steps, scored with ``rules.score``.
+
+    The final result is the computed number closest to the target; at least one step is needed.
+    ``details`` keeps the steps, final result, distance and number of operations.
+    """
+    game = open_game(guest_id, day)
+    replay = _replay_for(game, steps)
+    if not steps:
+        raise NoStepsError()
+    details = {
+        "steps": steps_to_json(replay.steps),
+        "final_result": replay.final_result,
+        "distance": replay.distance,
+        "operations": len(replay.steps),
+    }
+    result = complete(
+        game.result, solved=replay.solved, score=rules.score(replay.distance), details=details
+    )
+    return MathGame(result, game.math_puzzle)

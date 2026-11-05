@@ -27,3 +27,9 @@ class InvalidStepError(DomainError):
         self.index = index
         message = None if index is None else f"Step {index + 1} can't be played ({reason})."
         super().__init__(message, details={"step": index, "reason": reason})
+
+
+class NoStepsError(DomainError):
+    status_code = 400
+    code = "invalid"
+    default_message = "Make at least one step before submitting."
