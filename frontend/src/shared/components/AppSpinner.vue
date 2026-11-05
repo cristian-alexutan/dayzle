@@ -4,5 +4,5 @@ import ProgressSpinner from 'primevue/progressspinner'
 </script>
 
 <template>
-  <ProgressSpinner style="width: 3rem; height: 3rem" :stroke-width="4" />
+  <ProgressSpinner style="width: 3rem; height: 3rem" stroke-width="4" />
 </template>

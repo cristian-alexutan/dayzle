@@ -1,6 +1,48 @@
 import { definePreset } from '@primeuix/themes'
 import Aura from '@primeuix/themes/aura'
 
+// The variables already change between light and dark mode (see styles/theme.css), so both of
+// PrimeVue's color schemes point to the same ones.
+const semanticColors = {
+  primary: {
+    color: 'var(--dz-primary)',
+    contrastColor: 'var(--dz-on-primary)',
+    hoverColor: 'var(--dz-primary-hover)',
+    activeColor: 'var(--dz-primary-active)',
+  },
+  content: {
+    background: 'var(--dz-surface)',
+    borderColor: 'var(--dz-border)',
+    color: 'var(--dz-text)',
+  },
+  text: {
+    color: 'var(--dz-text)',
+    mutedColor: 'var(--dz-text-muted)',
+  },
+  overlay: {
+    modal: {
+      background: 'var(--dz-surface)',
+      borderColor: 'var(--dz-border)',
+      color: 'var(--dz-text)',
+    },
+  },
+}
+
+const messageColors = {
+  error: {
+    background: 'transparent',
+    borderColor: 'transparent',
+    color: 'var(--dz-accent-strong)',
+    shadow: 'none',
+  },
+  success: {
+    background: 'transparent',
+    borderColor: 'transparent',
+    color: 'var(--dz-primary-strong)',
+    shadow: 'none',
+  },
+}
+
 /** PrimeVue's Aura theme using the app's colors, which are defined in styles/theme.css. */
 export const DayzlePreset = definePreset(Aura, {
   semantic: {
@@ -16,42 +58,12 @@ export const DayzlePreset = definePreset(Aura, {
       800: '#3a5a3a',
       900: '#2f4a30',
       950: '#192a1a',
-      color: 'var(--dz-primary)',
-      contrastColor: 'var(--dz-on-primary)',
-      hoverColor: 'var(--dz-primary-hover)',
-      activeColor: 'var(--dz-primary-active)',
     },
-    content: {
-      background: 'var(--dz-surface)',
-      borderColor: 'var(--dz-border)',
-      color: 'var(--dz-text)',
-    },
-    text: {
-      color: 'var(--dz-text)',
-      mutedColor: 'var(--dz-text-muted)',
-    },
-    overlay: {
-      modal: {
-        background: 'var(--dz-surface)',
-        borderColor: 'var(--dz-border)',
-        color: 'var(--dz-text)',
-      },
-    },
+    colorScheme: { light: semanticColors, dark: semanticColors },
   },
   components: {
     message: {
-      error: {
-        background: 'transparent',
-        borderColor: 'transparent',
-        color: 'var(--dz-accent-strong)',
-        shadow: 'none',
-      },
-      success: {
-        background: 'transparent',
-        borderColor: 'transparent',
-        color: 'var(--dz-primary-strong)',
-        shadow: 'none',
-      },
+      colorScheme: { light: messageColors, dark: messageColors },
     },
   },
 })
