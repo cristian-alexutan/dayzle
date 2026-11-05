@@ -5,6 +5,7 @@ import Dialog from 'primevue/dialog'
 const CLOSE_BUTTON = {
   severity: 'secondary',
   text: true,
+  rounded: true,
   class: 'app-dialog__close',
 }
 </script>
