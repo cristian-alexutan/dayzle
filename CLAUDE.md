@@ -1,12 +1,12 @@
 # CLAUDE.md
 
-Dayzle: a web platform with five daily puzzle games (Romanian Wordle, a Queens-style logic game,
-a "Make the Target" math game, a 5-question trivia quiz, a GeoGuesser for Cluj-Napoca).
+Dayzle: a web platform with five daily puzzle games: Cuvântăl (a Romanian Wordle), a Queens-style
+logic game, a "Make the Target" math game, a 5-question trivia quiz, a GeoGuesser for Cluj-Napoca.
 
 - `backend/`: REST API. Python 3.14, Django 6.1, Django REST Framework, PostgreSQL 16,
   drf-spectacular.
 - `frontend/`: Vue 3 SPA. Vite, TypeScript, Vue Router, Pinia, TanStack Query, PrimeVue (Aura
-  theme), Leaflet, vue-i18n. Node 24, npm, exact pins.
+  theme), PrimeIcons, Leaflet, vue-i18n. Node 24, npm, exact pins.
 
 ## MVP scope
 
@@ -17,33 +17,49 @@ content model; only today's puzzle is playable; one `GameResult` per player and 
 progress and the final `score` (higher is better) and server-measured `duration_ms` (active
 time only: heartbeats every 15 s while the game is visible, gaps capped at 30 s). Login,
 subscriptions, archive, leaderboards, stats and friends are deferred: don't build them unless
-asked. A custom `accounts.User` exists but is unused.
+asked. A custom `accounts.User` exists but is unused, except for Django admin logins.
 
 ## Git commits
 
-- Never add Claude as a co-author in commit messages (no `Co-Authored-By: Claude ...` trailer or any other AI attribution).
+- Never add AI attribution: no `Co-Authored-By: Claude ...` trailer in commit messages and no
+  "Generated with Claude Code" line in PR descriptions.
 
 ## Running things
 
-Everything runs through Docker Compose from the repo root (a local `.env` copied from
-`.env.example` is required). Run backend tools inside the container, not on the host: the host
-Python is 3.12, which doesn't match the project's 3.14.
+A local `.env` copied from `.env.example` is required at the repo root. Don't assume which Python
+or Node the host has: the project needs Python 3.14 and Node 24. There are two ways to run it.
+
+**Everything in Docker Compose**, from the repo root:
 
 ```bash
 docker compose up --build -d
 docker compose exec backend python manage.py migrate
+docker compose exec backend python manage.py seed_dev
 docker compose exec backend pytest
 docker compose exec backend ruff check .
 docker compose exec backend ruff format --check .
 ```
 
-CI (`.github/workflows/backend.yml`) runs ruff check, ruff format --check, migrate and pytest
-against a Postgres service.
+**Only the database in Docker** (`docker compose up -d db`), with the backend in a Python 3.14
+venv and the frontend on Node 24. Set the host in `DATABASE_URL` to `localhost` instead of `db`.
+Settings don't read `.env` by themselves, so load it into the shell or the IDE's run
+configuration first. See README "Running without Docker".
+
+`seed_dev` runs only with `DEBUG` on. It creates the admin login `admin` / `admin` and fills the
+next 7 days for every game with a seed hook.
+
+URLs: frontend http://localhost:5173 (the game is at `/games/word`), API
+http://localhost:8000/api/v1/, OpenAPI docs http://localhost:8000/api/docs/, admin
+http://localhost:8000/admin/.
+
+CI runs on every PR: `.github/workflows/backend.yml` (job `test`: ruff check, ruff format --check,
+migrate, pytest against a Postgres service) and `.github/workflows/frontend.yml` (job `check`:
+lint, type-check, test, build).
 
 ## Dependencies
 
-Managed with pip-tools. Edit `backend/requirements/base.in` (runtime) or `dev.in` (dev/test),
-then recompile inside the container so pins resolve for Python 3.14:
+**Backend:** managed with pip-tools. Edit `backend/requirements/base.in` (runtime) or `dev.in`
+(dev/test), then recompile inside the container so pins resolve for Python 3.14:
 
 ```bash
 docker compose run --rm backend pip-compile --strip-extras requirements/base.in
@@ -52,11 +68,23 @@ docker compose run --rm backend pip-compile --strip-extras requirements/dev.in
 
 Never edit the `.txt` files by hand. Commit `.in` and `.txt` together.
 
+**Frontend:** npm with exact pins (`.npmrc` has `save-exact=true`). Commit `package-lock.json`.
+
+- TypeScript stays on 5.x: TypeScript 7 has no JS API, which `vue-tsc`, `typescript-eslint` and
+  `openapi-typescript` need.
+- `primeicons` stays on 7.0.0, the last MIT version; 8 is under the PrimeUI license.
+- PrimeVue 5 requires a PrimeUI license key. None is configured yet, so every page shows an
+  "Invalid PrimeUI License" badge; whether to get a key or downgrade is an open team decision.
+  Don't hide the badge with code.
+
 ## Settings
 
 `backend/config/settings/{base,dev,prod}.py`, selected via `DJANGO_SETTINGS_MODULE`. All
 configuration comes from environment variables via django-environ (`DATABASE_URL`,
 `DJANGO_SECRET_KEY`, ...). `TIME_ZONE = "Europe/Bucharest"`, `USE_TZ = True`.
+
+`dev.py` trusts the Vite dev server in `CSRF_TRUSTED_ORIGINS`: cookies are shared across ports on
+localhost, so an admin login reaches the game too, which makes Django check CSRF on its requests.
 
 ## Architecture: modular monolith
 
@@ -81,10 +109,13 @@ Each app's `api/urls.py` is mounted by `config/urls.py` under `/api/v1/<app>/` (
   `DomainError` + `exception_handler` (errors as `{"error": {"code", "message", "details"}}`),
   `TimeStampedModel`.
 - `puzzles`: `DailyPuzzle`, `register_game(...)` in each game's `AppConfig.ready()`,
-  `get_playable_puzzle(game, day)`, the `<game_day:day>` URL converter (`today` or ISO date),
-  `manage.py seed_dev` (DEBUG only; admin/admin).
-- `results`: `GameResult`, `start_or_resume`, `save_progress`, `complete` (`AlreadyPlayedError`).
-- Frontend: `http` / `ApiError` in `src/api/http.ts`, `mountWithPlugins` in `src/tests/utils.ts`.
+  `get_playable_puzzle(game, day)` (`NoPuzzleError` 404, `ArchiveUnavailableError` 403), the
+  `<game_day:day>` URL converter (`today` or ISO date), `manage.py seed_dev`.
+- `results`: `GameResult`, `start_or_resume`, `save_progress`, `complete` (`AlreadyPlayedError`
+  409). `save_progress` and `complete` count active time, so games never compute a duration.
+  `POST /api/v1/results/<game>/<game_day:day>/heartbeat/` is shared by all games
+  (`NotStartedError` 404 before the game is opened).
+- Frontend: see the Frontend section.
 - Step-by-step for a new game: CONTRIBUTING "How to build a game".
 
 ### Dependency direction (enforced in review, not by tooling)
@@ -97,29 +128,55 @@ Each app's `api/urls.py` is mounted by `config/urls.py` under `/api/v1/<app>/` (
 ## Code style
 
 - ruff with line length 100, target py314; rules E, W, F, I, B, UP, DJ. Migrations are excluded.
-- Tests use pytest + pytest-django; put them in each app's `tests/` package.
+- Backend tests use pytest + pytest-django; put them in each app's `tests/` package.
 
 ## Frontend
 
-Run frontend tools in the `frontend` compose service (`docker compose exec frontend npm run lint`)
-or in a `node:24-alpine` container: the host Node is 18, which is too old.
+Run frontend tools with Node 24: on the host, or in the `frontend` compose service
+(`docker compose exec frontend npm run lint`).
 
 - Scripts: `dev`, `build`, `preview`, `test`, `lint`, `format`, `type-check`, `generate:api`.
-- TypeScript stays on 5.x: TypeScript 7 has no JS API, which `vue-tsc`, `typescript-eslint` and
-  `openapi-typescript` need.
 - Feature-based layout in `frontend/src/`: `app/`, `api/` (only place that talks to the backend),
   `shared/`, `features/<name>/` (public entry `index.ts`), `locales/`, `tests/`.
 - `eslint-plugin-boundaries` (v7 policy API) forbids cross-feature imports, deep imports into a
   feature from outside, and shared/api importing features. Components and views may not import
-  `@/api`. Full rules in the root `CONTRIBUTING.md`.
+  `@/api` or PrimeVue. The boundaries rule is off in `*.test.ts`, so tests can use `src/tests`.
+  Full rules in the root `CONTRIBUTING.md`.
 - `src/api/generated/schema.d.ts` is generated by `npm run generate:api` and committed. Inside
-  compose, pass `API_SCHEMA_URL=http://backend:8000/api/schema/`.
-- All user-facing strings go through vue-i18n (`ro` is the default locale).
+  compose, pass `API_SCHEMA_URL=http://backend:8000/api/schema/`. The script uses POSIX shell
+  syntax, so on Windows run it through Docker, WSL or Git Bash.
+- All user-facing strings go through vue-i18n (`ro` is the default locale, `en` the second); add
+  them to both `ro.json` and `en.json`.
+- Feature tests go in the feature's `tests/`; `src/api`, `src/app` and `src/shared` keep them next
+  to the file. `mountWithPlugins` in `src/tests/utils.ts` mounts with the app's plugins.
+
+### Shared frontend pieces
+
+- `src/api/http.ts`: `http` and `ApiError`.
+- `src/shared/components`: `AppButton`, `AppCard`, `AppDialog`, `AppMessage`, `AppSpinner` wrap
+  PrimeVue; use them instead of PrimeVue, and add a wrapper for any other component you need.
+  Also `GameShell`, `ResultCard`, `ErrorState`. `ShareButton` and `Timer` are still placeholders.
+- `src/shared/composables/useHeartbeat.ts`: beats every 15 s while active and the page is visible.
+- `src/shared/stores/theme.ts`: light, dark or auto, remembered in the browser.
+- `src/app/layouts/AppHeader.vue`: only the theme and RO/EN controls.
+
+### Colors and icons
+
+Colors come from the `--dz-*` variables in `src/app/styles/theme.css`; don't write colors in
+components. `src/app/theme/preset.ts` makes PrimeVue components follow them. There are two greens
+and two pinks, whose shades swap between light and dark mode:
+
+- `--dz-primary`, `--dz-accent`: for design (buttons, highlights, decoration).
+- `--dz-primary-strong`, `--dz-accent-strong`: stand out from the page. Green for confirmations
+  and pink for errors, which are pink text with no background.
+
+Dark mode is the `.app-dark` class on `<html>`. Icons are PrimeIcons classes (`pi pi-sun`).
 
 ## Docs and workflow
 
 - There is a single `README.md` and a single `CONTRIBUTING.md`, both in the repo root, covering
   backend and frontend. Don't add per-folder READMEs.
-- `main` is protected (ruleset `protect-main`): work on a branch and open a PR. PRs need one
-  approval from a teammate and passing `test` (Backend CI) and `check` (Frontend CI).
+- `main` is protected (ruleset `protect-main`): work on a branch and open a PR using the template.
+  PRs need one approval from a teammate and passing `test` (Backend CI) and `check` (Frontend CI).
 - PRs are squash-merged only (repository setting), so the PR title becomes the commit message.
+  When a PR is stacked on another, rebase it onto `main` after the first one merges.

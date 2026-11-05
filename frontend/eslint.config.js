@@ -76,6 +76,13 @@ export default defineConfigWithVueTs(
     },
   },
 
+  // Tests may use the shared helpers in src/tests, which production code may not import.
+  {
+    name: 'app/boundaries-in-tests',
+    files: ['src/**/*.{test,spec}.ts'],
+    rules: { 'boundaries/dependencies': 'off' },
+  },
+
   // Components and views reach the backend only through their feature's api/ folder.
   {
     name: 'app/no-direct-backend-calls',
@@ -88,6 +95,10 @@ export default defineConfigWithVueTs(
             {
               group: ['@/api', '@/api/*'],
               message: "Use the feature's api/ folder (queries.ts) instead of src/api directly.",
+            },
+            {
+              group: ['primevue', 'primevue/*'],
+              message: 'Use the App* wrappers from @/shared/components instead of PrimeVue directly.',
             },
           ],
         },

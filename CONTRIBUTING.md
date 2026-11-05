@@ -138,6 +138,13 @@ No hard-coded text in templates or scripts. Add keys to `src/locales/ro.json` (t
 - Server state lives in TanStack Query. Pinia is only for small client state (current user,
   theme).
 - Import from `src` with the `@/` alias.
+- PrimeVue is used through the wrappers in `src/shared/components` (`AppButton`, `AppCard`,
+  `AppDialog`, `AppMessage`, `AppSpinner`). Lint rejects importing it from a feature's components
+  and views. Need another PrimeVue component? Add a wrapper first.
+- Colors come from the `--dz-*` variables in `src/app/styles/theme.css`, for light and dark. Don't
+  write colors in components; add a variable there if one is missing. PrimeVue components follow
+  them through `src/app/theme/preset.ts`. Icons come from `primeicons` (`pi pi-...`); it is pinned
+  to 7.0.0, the last MIT version.
 - Tests go in the feature's `tests/` folder and are named `*.test.ts` or `*.spec.ts`.
 - Prettier handles formatting: run `npm run format` and don't argue about style in review.
 
