@@ -43,6 +43,11 @@ form of the official Romanian word list, LOC 5.0 from [dexonline](https://dexonl
 `answers.txt`: hand-checked common words). `seed_dev` loads them into an empty
 database; after editing the files, run `python manage.py import_words` again.
 
+The Trivia question bank lives in `backend/apps/games/trivia/data/questions.json` (Romanian
+questions in six categories, each with 4 choices and the index of the correct one). `seed_dev`
+loads it when the bank is too small; after adding questions, run
+`python manage.py import_questions` (existing questions are kept as they are).
+
 > **Set up before the backend foundation (PR #2) was merged?** The custom user model requires a
 > one-time database reset: `docker compose down -v`, then steps 3 and 4 again.
 
