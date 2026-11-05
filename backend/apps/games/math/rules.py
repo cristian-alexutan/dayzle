@@ -1,10 +1,15 @@
-"""Rules of the Math game that need no database: validation, step replay, scoring and solver."""
+"""Rules of the Math game that need no database: validation, step replay, scoring and solver.
+
+Broken rules raise the app's domain errors, so the API reports them in the shared error format.
+"""
 
 import random
 from collections import Counter
 from collections.abc import Iterable, Sequence
 from dataclasses import dataclass
 from enum import StrEnum
+
+from .exceptions import InvalidNumbersError, InvalidStepError
 
 NUMBER_COUNT = 6
 MAX_STEPS = NUMBER_COUNT - 1
@@ -35,19 +40,6 @@ NOT_POSITIVE = "not_positive"
 NOT_WHOLE = "not_whole"
 TOO_MANY_STEPS = "too_many_steps"
 TARGET_REACHED = "target_reached"
-
-
-class InvalidNumbersError(ValueError):
-    """A set of starting numbers or a target that breaks the puzzle rules."""
-
-
-class InvalidStepError(ValueError):
-    """A step that can't be played. ``index`` is its 0-based position, when known."""
-
-    def __init__(self, reason: str, index: int | None = None) -> None:
-        self.reason = reason
-        self.index = index
-        super().__init__(reason if index is None else f"Step {index + 1}: {reason}")
 
 
 @dataclass(frozen=True)

@@ -3,7 +3,8 @@ import random
 import pytest
 
 from apps.games.math import rules
-from apps.games.math.rules import Difficulty, InvalidNumbersError, InvalidStepError, Operator, Step
+from apps.games.math.exceptions import InvalidNumbersError, InvalidStepError
+from apps.games.math.rules import Difficulty, Operator, Step
 
 
 def step(text: str) -> Step:
