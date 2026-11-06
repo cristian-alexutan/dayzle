@@ -13,13 +13,13 @@ class PlaceInputSerializer(serializers.Serializer):
 
 
 class MarksInputSerializer(serializers.Serializer):
-    # Each mark is a cell, sent as [row, col]. A 9 × 9 grid has 81 cells, so no valid request
-    # has more marks than that.
+    # Each mark is a cell, sent as [row, col]. No valid request has more marks than the largest
+    # grid has cells.
     marks = serializers.ListField(
         child=serializers.ListField(
             child=serializers.IntegerField(min_value=0), min_length=2, max_length=2
         ),
-        max_length=81,
+        max_length=rules.MAX_SIZE**2,
     )
 
 

@@ -10,6 +10,11 @@ cell (0 to size - 1), and ``solution[row]`` is the column of the sun on that row
 Cell = tuple[int, int]
 Regions = list[list[int]]
 
+# Grid sizes a puzzle may have. Above 9 × 9 the solver gets slow when an admin saves a puzzle,
+# and the marks endpoint accepts at most 9 × 9 = 81 marks.
+MIN_SIZE = 4
+MAX_SIZE = 9
+
 # The hand-made level used until the generator exists. It has exactly one solution
 # (``tests/test_rules.py`` checks it with ``count_solutions``).
 DEMO_SIZE = 6
@@ -177,8 +182,8 @@ def validate_puzzle(size: int, regions: Regions, solution: list[int]) -> list[st
 
     Returns the problems found, as messages for the admin; an empty list means valid.
     """
-    if size < 4:
-        return ["The grid must be at least 4 × 4."]
+    if not MIN_SIZE <= size <= MAX_SIZE:
+        return [f"The grid must be from {MIN_SIZE} × {MIN_SIZE} to {MAX_SIZE} × {MAX_SIZE}."]
     if len(regions) != size or any(len(row) != size for row in regions):
         return [f"The regions must be a {size} × {size} grid."]
     if {cell for row in regions for cell in row} != set(range(size)):
