@@ -1,3 +1,5 @@
+import pytest
+
 from apps.games.logic import rules
 from apps.games.logic.rules import DEMO_REGIONS, DEMO_SIZE, DEMO_SOLUTION
 
@@ -66,6 +68,15 @@ def test_validate_rejects_a_wrong_number_of_regions():
     regions = [row[:] for row in DEMO_REGIONS]
     regions[5] = [4] * 6  # region 5 disappears
     assert rules.validate_puzzle(DEMO_SIZE, regions, DEMO_SOLUTION)
+
+
+@pytest.mark.parametrize("size", [3, 10])
+def test_validate_rejects_grids_too_small_or_too_large(size):
+    regions = [[row] * size for row in range(size)]
+    solution = list(range(size))
+    assert rules.validate_puzzle(size, regions, solution) == [
+        "The grid must be from 4 × 4 to 9 × 9."
+    ]
 
 
 def test_validate_rejects_a_solution_that_breaks_a_rule():
