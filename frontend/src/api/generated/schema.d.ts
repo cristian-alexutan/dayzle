@@ -4,6 +4,57 @@
  */
 
 export interface paths {
+    "/api/v1/games/logic/{day}/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** @description The player's board for the day. Opening it the first time starts the clock. */
+        get: operations["v1_games_logic_retrieve"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/games/logic/{day}/marks/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** @description Save the player's X marks, so a refresh restores them. */
+        post: operations["v1_games_logic_marks_create"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/games/logic/{day}/place/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** @description Place a sun. The server says whether it is correct; the last correct sun ends the game. */
+        post: operations["v1_games_logic_place_create"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/games/word/{day}/": {
         parameters: {
             query?: never;
@@ -63,6 +114,40 @@ export interface components {
             guess: string;
         };
         /**
+         * @description The player's board. ``solution``, ``solved``, ``score`` and ``duration_ms`` stay null
+         *     until the game ends. ``elapsed_ms`` is only for display.
+         */
+        LogicGame: {
+            /** Format: date */
+            date: string;
+            status: components["schemas"]["StatusEnum"];
+            size: number;
+            regions: number[][];
+            readonly suns: number[][];
+            readonly marks: number[][];
+            readonly mistakes: number;
+            readonly streak: number;
+            readonly solved: boolean | null;
+            readonly score: number | null;
+            readonly duration_ms: number | null;
+            /** @description Active play time so far, so the on-screen timer continues after a refresh. */
+            readonly elapsed_ms: number;
+            readonly solution: number[] | null;
+        };
+        MarksInput: {
+            marks: number[][];
+        };
+        PlaceInput: {
+            row: number;
+            col: number;
+        };
+        /** @description Whether the sun was correct, the suns it conflicts with, and the updated board. */
+        PlaceResult: {
+            correct: boolean;
+            conflicts: number[][];
+            game: components["schemas"]["LogicGame"];
+        };
+        /**
          * @description * `in_progress` - In progress
          *     * `completed` - Completed
          * @enum {string}
@@ -92,6 +177,81 @@ export interface components {
 }
 export type $defs = Record<string, never>;
 export interface operations {
+    v1_games_logic_retrieve: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                day: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LogicGame"];
+                };
+            };
+        };
+    };
+    v1_games_logic_marks_create: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                day: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["MarksInput"];
+                "application/x-www-form-urlencoded": components["schemas"]["MarksInput"];
+                "multipart/form-data": components["schemas"]["MarksInput"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LogicGame"];
+                };
+            };
+        };
+    };
+    v1_games_logic_place_create: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                day: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PlaceInput"];
+                "application/x-www-form-urlencoded": components["schemas"]["PlaceInput"];
+                "multipart/form-data": components["schemas"]["PlaceInput"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PlaceResult"];
+                };
+            };
+        };
+    };
     v1_games_word_retrieve: {
         parameters: {
             query?: never;

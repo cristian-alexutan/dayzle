@@ -11,6 +11,48 @@
       "light": "Theme: light"
     }
   },
+  "logic": {
+    "board": "Game grid",
+    "cell": {
+      "empty": "Row {row}, column {col}: empty",
+      "mark": "Row {row}, column {col}: X",
+      "sun": "Row {row}, column {col}: sun"
+    },
+    "errors": {
+      "generic": "Something went wrong. Please try again."
+    },
+    "loading": "Loading the game",
+    "mistakes": "Mistakes",
+    "noPuzzle": "There is no puzzle for today. Come back tomorrow!",
+    "result": {
+      "mistakes": "No mistakes | 1 mistake | {count} mistakes",
+      "see": "See result",
+      "title": "Congratulations!"
+    },
+    "streak": "Streak",
+    "title": "Sunspots",
+    "toolbar": {
+      "undo": "Undo X",
+      "clear": "Clear X marks",
+      "help": "Rules"
+    },
+    "tutorial": {
+      "title": "How to play",
+      "rulesHeading": "Rules",
+      "controlsHeading": "How you play",
+      "rules": {
+        "oneSun": "Place exactly one sun in every row and every column.",
+        "regions": "Every colored region also gets exactly one sun.",
+        "noTouching": "No two suns can touch, not even diagonally."
+      },
+      "controls": {
+        "mark": "Tap a cell once to put an X where you know there's no sun. X marks are just your notes.",
+        "sun": "Tap an X to place the sun. A correct sun stays on the board; a wrong one disappears and counts as a mistake.",
+        "score": "Correct suns in a row grow your streak and your points, and a mistake resets it. The faster you finish, the higher your score."
+      },
+      "start": "Got it"
+    }
+  },
   "word": {
     "backspace": "Delete letter",
     "enter": "Enter",

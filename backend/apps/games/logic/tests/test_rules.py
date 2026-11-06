@@ -132,3 +132,31 @@ def test_current_streak_counts_the_correct_suns_since_the_last_mistake():
     assert rules.current_streak([True, True]) == 2
     assert rules.current_streak([True, True, False]) == 0
     assert rules.current_streak([True, False, True]) == 1
+
+
+def test_the_demo_regions_are_all_connected():
+    assert rules.split_regions(DEMO_REGIONS) == []
+
+
+def test_a_region_in_two_pieces_is_found():
+    regions = [
+        [0, 1, 0],
+        [2, 1, 1],
+        [2, 2, 2],
+    ]
+    assert rules.split_regions(regions) == [0]
+
+
+def test_cells_touching_only_diagonally_are_not_connected():
+    regions = [
+        [0, 1],
+        [1, 0],
+    ]
+    assert rules.split_regions(regions) == [0, 1]
+
+
+def test_validate_rejects_a_split_region():
+    regions = [row[:] for row in DEMO_REGIONS]
+    regions[5][0] = 0  # a lone cell of region 0, far from the rest of it
+    problems = rules.validate_puzzle(DEMO_SIZE, regions, DEMO_SOLUTION)
+    assert problems == ["Every region must be one connected piece; these are split: 0."]

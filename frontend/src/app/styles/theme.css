@@ -38,6 +38,21 @@
   /* On-screen keyboard keys that haven't been used yet. */
   --dz-key: #dce8db;
   --dz-on-key: #3b4a3c;
+
+  /* Logic game: one color per region (up to 9), the lines between cells and regions, the sun. */
+  --dz-region-0: #f6c6c6;
+  --dz-region-1: #f9dcae;
+  --dz-region-2: #f3eba1;
+  --dz-region-3: #c8e9b4;
+  --dz-region-4: #b3e2de;
+  --dz-region-5: #bcd3f5;
+  --dz-region-6: #d6c8f2;
+  --dz-region-7: #f2c6e3;
+  --dz-region-8: #ddd5c6;
+  --dz-on-region: #3b4a3c;
+  --dz-region-line: rgb(0 0 0 / 0.12);
+  --dz-region-edge: #3b4a3c;
+  --dz-sun: #c26a00;
 }
 
 .app-dark {
@@ -66,4 +81,18 @@
 
   --dz-key: #5c5c64;
   --dz-on-key: #f6f6f7;
+
+  --dz-region-0: #7a4545;
+  --dz-region-1: #7a5a32;
+  --dz-region-2: #6f6a2e;
+  --dz-region-3: #3f6a3a;
+  --dz-region-4: #2f6663;
+  --dz-region-5: #3a527a;
+  --dz-region-6: #57487a;
+  --dz-region-7: #7a4466;
+  --dz-region-8: #5d564b;
+  --dz-on-region: #f2f2f4;
+  --dz-region-line: rgb(255 255 255 / 0.12);
+  --dz-region-edge: #f2f2f4;
+  --dz-sun: #ffcf5c;
 }
