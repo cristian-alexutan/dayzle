@@ -20,10 +20,12 @@ interface BoardStateOptions {
 /**
  * The first tap on an empty cell marks it with an X, and a tap on an X places a sun, which the
  * server checks. Suns come from the server; X marks live here while playing and are saved in the
- * background, so a refresh restores them.
+ * background, so a refresh restores them. X marks can be undone one by one or cleared.
  */
 export function useBoardState(options: BoardStateOptions) {
   const marks = ref(new Set<string>())
+  // The marks placed while playing, oldest first, so the last one can be undone.
+  const history = ref<string[]>([])
   const suns = computed(() => new Set((toValue(options.game)?.suns ?? []).map(key)))
 
   // The server's marks are only read once: after that the board's own marks are newer.
@@ -63,6 +65,7 @@ export function useBoardState(options: BoardStateOptions) {
     if (content === 'sun') return
     if (content === 'empty') {
       marks.value.add(key(cell))
+      history.value.push(key(cell))
       scheduleSave()
       return
     }
@@ -71,10 +74,33 @@ export function useBoardState(options: BoardStateOptions) {
     options.place(cell)
   }
 
+  /** Remove the last X still on the board. Suns can't be undone: the server has checked them. */
+  function undoMark() {
+    if (toValue(options.disabled)) return
+    while (history.value.length > 0) {
+      const last = history.value.pop()!
+      if (marks.value.delete(last)) {
+        scheduleSave()
+        return
+      }
+    }
+  }
+
+  /** Remove every X from the board. */
+  function clearMarks() {
+    if (toValue(options.disabled) || marks.value.size === 0) return
+    marks.value.clear()
+    history.value = []
+    scheduleSave()
+  }
+
+  const canUndo = computed(() => history.value.some((mark) => marks.value.has(mark)))
+  const hasMarks = computed(() => marks.value.size > 0)
+
   // Leaving the page with an unsaved change: save it right away.
   onScopeDispose(() => {
     if (saveTimer !== undefined) saveNow()
   })
 
-  return { contentOf, tap }
+  return { contentOf, tap, undoMark, clearMarks, canUndo, hasMarks }
 }

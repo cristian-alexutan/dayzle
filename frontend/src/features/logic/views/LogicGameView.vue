@@ -19,6 +19,7 @@ import {
 import LogicBoard from '../components/LogicBoard.vue'
 import LogicResult from '../components/LogicResult.vue'
 import LogicToolbar from '../components/LogicToolbar.vue'
+import LogicTutorial from '../components/LogicTutorial.vue'
 import { useBoardState } from '../composables/useBoardState'
 import { useConflicts, WRONG_SUN_MS } from '../composables/useConflicts'
 import { useElapsedTime } from '../composables/useElapsedTime'
@@ -26,6 +27,7 @@ import type { Cell } from '../types'
 
 const DAY = 'today'
 const ERROR_MS = 2500
+const TUTORIAL_SEEN_KEY = 'dayzle.logic.tutorialSeen'
 
 const { t } = useI18n()
 
@@ -74,6 +76,35 @@ const board = useBoardState({
   },
 })
 
+const tutorialVisible = ref(false)
+
+function tutorialSeen(): boolean {
+  try {
+    return localStorage.getItem(TUTORIAL_SEEN_KEY) === 'yes'
+  } catch {
+    return true
+  }
+}
+
+function rememberTutorialSeen() {
+  try {
+    localStorage.setItem(TUTORIAL_SEEN_KEY, 'yes')
+  } catch {
+    // Not remembered, e.g. in a private window: the tutorial just opens again next time.
+  }
+}
+
+// The rules open by themselves the first time a player starts a game.
+watch(
+  () => game.value?.status,
+  (status) => {
+    if (status !== 'in_progress' || tutorialSeen()) return
+    tutorialVisible.value = true
+    rememberTutorialSeen()
+  },
+  { immediate: true },
+)
+
 const resultVisible = ref(false)
 let resultTimer: ReturnType<typeof setTimeout> | undefined
 
@@ -108,8 +139,17 @@ onBeforeUnmount(() => {
       @retry="query.refetch()"
     />
     <template v-else-if="game">
-      <p class="logic-game__how-to">{{ t('logic.howTo') }}</p>
-      <LogicToolbar :elapsed-ms="elapsedMs" :mistakes="game.mistakes" :streak="game.streak" />
+      <LogicToolbar
+        :elapsed-ms="elapsedMs"
+        :mistakes="game.mistakes"
+        :streak="game.streak"
+        :can-undo="board.canUndo.value"
+        :has-marks="board.hasMarks.value"
+        :playing="inProgress"
+        @undo="board.undoMark"
+        @clear="board.clearMarks"
+        @help="tutorialVisible = true"
+      />
       <div class="logic-game__message" aria-live="polite">
         <AppMessage v-if="errorMessage" severity="error" size="small" data-test="error">
           {{ errorMessage }}
@@ -136,18 +176,12 @@ onBeforeUnmount(() => {
         />
         <LogicResult v-model:visible="resultVisible" :game="game" />
       </template>
+      <LogicTutorial v-model:visible="tutorialVisible" />
     </template>
   </GameShell>
 </template>
 
 <style scoped>
-.logic-game__how-to {
-  max-width: 26rem;
-  margin: 0;
-  color: var(--dz-text-muted);
-  text-align: center;
-}
-
 /* Space kept for the message, so the board doesn't move when one appears. */
 .logic-game__message {
   display: flex;

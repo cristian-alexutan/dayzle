@@ -33,7 +33,7 @@ def test_board_shows_the_grid_without_the_solution(api_client):
     assert data["mistakes"] == 0 and data["streak"] == 0
     assert data["score"] is None
     assert data["elapsed_ms"] == 0
-    assert "solution" not in data
+    assert data["solution"] is None
 
 
 def test_placing_a_sun_never_reveals_the_solution(api_client):
@@ -41,7 +41,7 @@ def test_placing_a_sun_never_reveals_the_solution(api_client):
 
     assert response.status_code == 200
     assert "solution" not in response.data
-    assert "solution" not in response.data["game"]
+    assert response.data["game"]["solution"] is None
 
 
 def test_correct_and_wrong_suns(api_client):
@@ -74,6 +74,8 @@ def test_finishing_returns_the_score_and_duration(api_client):
     assert 900 <= game["score"] <= 1000
     assert game["duration_ms"] is not None
     assert game["elapsed_ms"] == game["duration_ms"]
+    assert game["solution"] == rules.DEMO_SOLUTION
+    assert api_client.get(GAME_URL).data["solution"] == rules.DEMO_SOLUTION
 
 
 def test_marks_are_saved_and_restored(api_client):

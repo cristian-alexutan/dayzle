@@ -23,6 +23,7 @@ function makeGame(overrides: Partial<LogicGame> = {}): LogicGame {
     score: null,
     duration_ms: null,
     elapsed_ms: 0,
+    solution: null,
     ...overrides,
   }
 }
@@ -112,6 +113,43 @@ describe('useBoardState', () => {
     board.tap([0, 0])
 
     expect(board.contentOf([0, 0])).toBe('empty')
+  })
+
+  it('undoes the last X, then the one before', () => {
+    const { board } = setup()
+    board.tap([0, 0])
+    board.tap([1, 0])
+
+    board.undoMark()
+    expect(board.contentOf([1, 0])).toBe('empty')
+    expect(board.contentOf([0, 0])).toBe('mark')
+
+    board.undoMark()
+    expect(board.contentOf([0, 0])).toBe('empty')
+    expect(board.canUndo.value).toBe(false)
+  })
+
+  it('skips marks that became suns when undoing', () => {
+    const { board } = setup()
+    board.tap([0, 0])
+    board.tap([1, 0])
+    board.tap([1, 0]) // the X on (1, 0) becomes a sun
+
+    board.undoMark()
+
+    expect(board.contentOf([0, 0])).toBe('empty')
+  })
+
+  it('clears every X and saves the empty list', () => {
+    const { board, saveMarks } = setup(makeGame({ marks: [[0, 1]] }))
+    board.tap([0, 0])
+
+    board.clearMarks()
+    vi.advanceTimersByTime(MARKS_SAVE_DELAY_MS)
+
+    expect(board.hasMarks.value).toBe(false)
+    expect(board.contentOf([0, 1])).toBe('empty')
+    expect(saveMarks).toHaveBeenLastCalledWith([])
   })
 
   it('keeps its own marks when a newer game arrives from the server', async () => {

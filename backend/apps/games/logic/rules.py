@@ -150,8 +150,30 @@ def count_solutions(regions: Regions, limit: int = 2) -> int:
     return found
 
 
+def split_regions(regions: Regions) -> list[int]:
+    """The regions whose cells are not all connected to each other (side by side, not
+    diagonally), so the region is drawn as several separate pieces."""
+    size = len(regions)
+    split = []
+    for region in sorted({cell for row in regions for cell in row}):
+        cells = {(r, c) for r in range(size) for c in range(size) if regions[r][c] == region}
+        start = next(iter(cells))
+        reached = {start}
+        to_visit = [start]
+        while to_visit:
+            row, col = to_visit.pop()
+            for neighbor in ((row - 1, col), (row + 1, col), (row, col - 1), (row, col + 1)):
+                if neighbor in cells and neighbor not in reached:
+                    reached.add(neighbor)
+                    to_visit.append(neighbor)
+        if reached != cells:
+            split.append(region)
+    return split
+
+
 def validate_puzzle(size: int, regions: Regions, solution: list[int]) -> list[str]:
-    """Check that a puzzle is well formed and has exactly one solution, ``solution``.
+    """Check that a puzzle is well formed (a square grid of ``size`` connected regions) and has
+    exactly one solution, ``solution``.
 
     Returns the problems found, as messages for the admin; an empty list means valid.
     """
@@ -161,6 +183,10 @@ def validate_puzzle(size: int, regions: Regions, solution: list[int]) -> list[st
         return [f"The regions must be a {size} × {size} grid."]
     if {cell for row in regions for cell in row} != set(range(size)):
         return [f"The grid must have exactly {size} regions, numbered 0 to {size - 1}."]
+    split = split_regions(regions)
+    if split:
+        listed = ", ".join(str(region) for region in split)
+        return [f"Every region must be one connected piece; these are split: {listed}."]
     if len(solution) != size or any(not 0 <= col < size for col in solution):
         return [f"The solution must give one column (0 to {size - 1}) for each of the {size} rows."]
 

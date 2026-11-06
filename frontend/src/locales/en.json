@@ -21,7 +21,6 @@
     "errors": {
       "generic": "Something went wrong. Please try again."
     },
-    "howTo": "Place one sun in every row, column and colored region, with no two suns touching. Tap a cell once for an X, and again for a sun.",
     "loading": "Loading the game",
     "mistakes": "Mistakes",
     "noPuzzle": "There is no puzzle for today. Come back tomorrow!",
@@ -31,7 +30,28 @@
       "title": "Congratulations!"
     },
     "streak": "Streak",
-    "title": "Sunspots"
+    "title": "Sunspots",
+    "toolbar": {
+      "undo": "Undo X",
+      "clear": "Clear X marks",
+      "help": "Rules"
+    },
+    "tutorial": {
+      "title": "How to play",
+      "rulesHeading": "Rules",
+      "controlsHeading": "How you play",
+      "rules": {
+        "oneSun": "Place exactly one sun in every row and every column.",
+        "regions": "Every colored region also gets exactly one sun.",
+        "noTouching": "No two suns can touch, not even diagonally."
+      },
+      "controls": {
+        "mark": "Tap a cell once to put an X where you know there's no sun. X marks are just your notes.",
+        "sun": "Tap an X to place the sun. A correct sun stays on the board; a wrong one disappears and counts as a mistake.",
+        "score": "Correct suns in a row grow your streak and your points, and a mistake resets it. The faster you finish, the higher your score."
+      },
+      "start": "Got it"
+    }
   },
   "word": {
     "backspace": "Delete letter",

@@ -114,8 +114,8 @@ export interface components {
             guess: string;
         };
         /**
-         * @description The player's board. The solution is never included; ``solved``, ``score`` and
-         *     ``duration_ms`` stay null until the game ends. ``elapsed_ms`` is only for display.
+         * @description The player's board. ``solution``, ``solved``, ``score`` and ``duration_ms`` stay null
+         *     until the game ends. ``elapsed_ms`` is only for display.
          */
         LogicGame: {
             /** Format: date */
@@ -132,6 +132,7 @@ export interface components {
             readonly duration_ms: number | null;
             /** @description Active play time so far, so the on-screen timer continues after a refresh. */
             readonly elapsed_ms: number;
+            readonly solution: number[] | null;
         };
         MarksInput: {
             marks: number[][];

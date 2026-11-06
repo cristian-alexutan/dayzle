@@ -36,6 +36,7 @@ function makeGame(overrides: Partial<LogicGame> = {}): LogicGame {
     score: null,
     duration_ms: null,
     elapsed_ms: 0,
+    solution: null,
     ...overrides,
   }
 }
@@ -53,9 +54,12 @@ async function mountView(firstResponse: Response) {
 
 beforeEach(() => {
   vi.stubGlobal('fetch', fetchMock)
+  // Most tests are about playing, so the first-time rules dialog stays closed.
+  localStorage.setItem('dayzle.logic.tutorialSeen', 'yes')
 })
 
 afterEach(() => {
+  localStorage.clear()
   fetchMock.mockReset()
   vi.unstubAllGlobals()
   vi.useRealTimers()
@@ -133,6 +137,39 @@ describe('LogicGameView', () => {
     expect(document.body.textContent).toContain('850/1000')
     const mistakes = document.body.querySelector('[data-test="result-mistakes"]')
     expect(mistakes?.textContent).toContain('2 greșeli')
+    wrapper.unmount()
+  })
+
+  it('opens the rules the first time, and not again', async () => {
+    localStorage.clear()
+    const first = await mountView(jsonResponse(200, makeGame()))
+    expect(document.body.querySelector('[data-test="tutorial"]')).not.toBeNull()
+    first.unmount()
+    document.body.innerHTML = ''
+
+    const second = await mountView(jsonResponse(200, makeGame()))
+    expect(document.body.querySelector('[data-test="tutorial"]')).toBeNull()
+
+    await second.find('[data-test="help"]').trigger('click')
+    expect(document.body.querySelector('[data-test="tutorial"]')).not.toBeNull()
+    second.unmount()
+  })
+
+  it('undoes and clears X marks from the toolbar', async () => {
+    const wrapper = await mountView(jsonResponse(200, makeGame()))
+    const cells = () => wrapper.findAll('[data-test="cell"]')
+    const undo = () => wrapper.find('[data-test="undo"]')
+
+    expect(undo().attributes('disabled')).toBeDefined()
+    await cells()[0]!.trigger('click')
+    await cells()[1]!.trigger('click')
+
+    await undo().trigger('click')
+    expect(cells()[1]!.find('.pi-times').exists()).toBe(false)
+    expect(cells()[0]!.find('.pi-times').exists()).toBe(true)
+
+    await wrapper.find('[data-test="clear"]').trigger('click')
+    expect(cells()[0]!.find('.pi-times').exists()).toBe(false)
     wrapper.unmount()
   })
 
