@@ -228,6 +228,14 @@ def test_import_is_safe_to_run_again():
         {"choices": ["Paris", "Paris", "Nisa", "Lille"]},
         {"answer": 4},
         {"question": " "},
+        {"question": 42},
+        {"question": "x" * 301},
+        {"choices": ["Paris", " ", "Nisa", "Lille"]},
+        {"choices": ["Paris", 2, "Nisa", "Lille"]},
+        {"choices": ["Paris", "x" * 151, "Nisa", "Lille"]},
+        {"choices": ["Paris", "paris", "Nisa", "Lille"]},
+        {"answer": True},
+        {"answer": "1"},
     ],
 )
 def test_import_skips_invalid_questions(change):
@@ -235,6 +243,29 @@ def test_import_skips_invalid_questions(change):
 
     assert report.added == 0
     assert len(report.skipped) == 1
+
+
+@pytest.mark.parametrize("bad", ["just text", 7, None, ["a", "list"]])
+def test_items_that_are_not_objects_are_skipped(bad):
+    report = services.import_questions([bad])
+
+    assert report.added == 0
+    assert len(report.skipped) == 1
+
+
+def test_bad_items_dont_undo_the_good_ones():
+    other = {
+        **VALID,
+        "question": "Care este capitala Italiei?",
+        "choices": ["Roma", "Milano", "Napoli", "Torino"],
+        "answer": 0,
+    }
+
+    report = services.import_questions([VALID, "oops", {**VALID, "question": 42}, other])
+
+    assert report.added == 2
+    assert len(report.skipped) == 2
+    assert Question.objects.count() == 2
 
 
 def test_the_bundled_question_file_is_valid():

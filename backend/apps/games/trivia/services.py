@@ -20,6 +20,8 @@ from .models import Category, Choice, Difficulty, Question, TriviaPuzzle, Trivia
 from .selectors import get_playable_trivia_puzzle, ordered_questions, pick_questions
 
 QUESTIONS_FILE = Path(__file__).resolve().parent / "data" / "questions.json"
+QUESTION_MAX_LENGTH = Question._meta.get_field("text").max_length
+CHOICE_MAX_LENGTH = Choice._meta.get_field("text").max_length
 
 
 @dataclass(frozen=True)
@@ -60,9 +62,11 @@ def answer(guest_id: uuid.UUID, day: date, question_id: int, choice_id: int) -> 
         if result.status == GameResult.Status.COMPLETED:
             raise AlreadyPlayedError()
         answers = result.details.get("answers", [])
-        if any(given["question"] == question_id for given in answers):
+        answered = {given["question"] for given in answers}
+        if question_id in answered:
             raise AlreadyAnsweredError()
-        if game.questions[len(answers)].pk != question_id:
+        next_question = next(q for q in game.questions if q.pk not in answered)
+        if next_question.pk != question_id:
             raise OutOfOrderError()
 
         answers = [
@@ -102,50 +106,73 @@ class ImportReport:
     skipped: list[str]
 
 
-def _problem(item: dict) -> str | None:
-    """Why a question from the import file can't be used, or None if it's fine."""
-    if not str(item.get("question", "")).strip():
-        return "missing question text"
+def _text_problem(value: object, field: str, max_length: int) -> str | None:
+    if not isinstance(value, str) or not value.strip():
+        return f"{field} must be non-empty text"
+    if len(value.strip()) > max_length:
+        return f"{field} is longer than {max_length} characters"
+    return None
+
+
+def _problem(item: object) -> str | None:
+    """Why an item of the import file can't be used as a question, or None if it's fine."""
+    if not isinstance(item, dict):
+        return "not a question object"
+    problem = _text_problem(item.get("question"), "question", QUESTION_MAX_LENGTH)
+    if problem:
+        return problem
     if item.get("category") not in Category.values:
         return f"unknown category {item.get('category')!r}"
     if item.get("difficulty") not in Difficulty.values:
         return f"unknown difficulty {item.get('difficulty')!r}"
     choices = item.get("choices")
-    if (
-        not isinstance(choices, list)
-        or len(choices) != rules.CHOICES_PER_QUESTION
-        or len({str(choice).strip() for choice in choices}) != rules.CHOICES_PER_QUESTION
-    ):
-        return f"needs {rules.CHOICES_PER_QUESTION} different choices"
-    if item.get("answer") not in range(rules.CHOICES_PER_QUESTION):
-        return "answer must be the index (0-3) of the correct choice"
+    if not isinstance(choices, list) or len(choices) != rules.CHOICES_PER_QUESTION:
+        return f"needs a list of {rules.CHOICES_PER_QUESTION} choices"
+    for choice in choices:
+        problem = _text_problem(choice, "each choice", CHOICE_MAX_LENGTH)
+        if problem:
+            return problem
+    if len({choice.strip().lower() for choice in choices}) != rules.CHOICES_PER_QUESTION:
+        return "the choices must be different"
+    answer = item.get("answer")
+    # bool is an int in Python, so True would otherwise pass as index 1.
+    if isinstance(answer, bool) or answer not in range(rules.CHOICES_PER_QUESTION):
+        return (
+            f"answer must be the index (0-{rules.CHOICES_PER_QUESTION - 1}) of the correct choice"
+        )
     return None
 
 
-@transaction.atomic
-def import_questions(items: Iterable[dict]) -> ImportReport:
+def _label(item: object) -> str:
+    text = item.get("question") if isinstance(item, dict) else None
+    return text.strip()[:80] if isinstance(text, str) and text.strip() else repr(item)[:80]
+
+
+def import_questions(items: Iterable[object]) -> ImportReport:
     """Add questions to the bank. Safe to run again: questions already there are kept as is.
 
     Each item has ``question``, ``category``, ``difficulty``, 4 ``choices`` and ``answer``
-    (the index of the correct choice). Invalid items are skipped and reported.
+    (the index of the correct choice). Invalid items are skipped and reported, and never
+    undo the valid ones: each question is saved on its own.
     """
     added, skipped = 0, []
     existing = set(Question.objects.values_list("text", flat=True))
-    for item in items:
+    for number, item in enumerate(items, start=1):
         problem = _problem(item)
         if problem:
-            skipped.append(f"{item.get('question', '?')}: {problem}")
+            skipped.append(f"#{number} {_label(item)}: {problem}")
             continue
         text = item["question"].strip()
         if text in existing:
             continue
-        question = Question.objects.create(
-            text=text, category=item["category"], difficulty=item["difficulty"]
-        )
-        Choice.objects.bulk_create(
-            Choice(question=question, text=str(choice).strip(), is_correct=index == item["answer"])
-            for index, choice in enumerate(item["choices"])
-        )
+        with transaction.atomic():
+            question = Question.objects.create(
+                text=text, category=item["category"], difficulty=item["difficulty"]
+            )
+            Choice.objects.bulk_create(
+                Choice(question=question, text=choice.strip(), is_correct=index == item["answer"])
+                for index, choice in enumerate(item["choices"])
+            )
         existing.add(text)
         added += 1
     return ImportReport(added=added, skipped=skipped)

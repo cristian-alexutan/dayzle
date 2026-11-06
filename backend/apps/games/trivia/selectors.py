@@ -7,9 +7,15 @@ from django.db.models import Count, Exists, Max, OuterRef, Prefetch, QuerySet
 from apps.puzzles.exceptions import NoPuzzleError
 from apps.puzzles.models import Game
 from apps.puzzles.selectors import get_playable_puzzle
+from apps.results.models import GameResult
 
 from . import rules
 from .models import Choice, Question, TriviaPuzzle, TriviaPuzzleQuestion
+
+
+def has_players(trivia: TriviaPuzzle) -> bool:
+    """Whether anyone has opened this quiz. From then on its questions must not change."""
+    return GameResult.objects.filter(daily_puzzle_id=trivia.daily_puzzle_id).exists()
 
 
 def get_playable_trivia_puzzle(day: date) -> TriviaPuzzle:

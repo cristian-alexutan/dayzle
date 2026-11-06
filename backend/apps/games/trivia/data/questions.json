@@ -28,7 +28,7 @@
   {"category": "science", "difficulty": "medium", "question": "Care este simbolul chimic al aurului?", "choices": ["Ag", "Au", "Fe", "Go"], "answer": 1},
   {"category": "science", "difficulty": "medium", "question": "Câți cromozomi are o celulă umană obișnuită?", "choices": ["23", "44", "46", "48"], "answer": 2},
   {"category": "science", "difficulty": "medium", "question": "Ce particulă are sarcină electrică negativă?", "choices": ["Protonul", "Neutronul", "Fotonul", "Electronul"], "answer": 3},
-  {"category": "science", "difficulty": "medium", "question": "Ce inventator român a construit avionul Coandă-1910, considerat un precursor al motorului cu reacție?", "choices": ["Traian Vuia", "Henri Coandă", "Aurel Vlaicu", "Hermann Oberth"], "answer": 1},
+  {"category": "science", "difficulty": "medium", "question": "Cine a descoperit penicilina, în 1928?", "choices": ["Louis Pasteur", "Alexander Fleming", "Marie Curie", "Robert Koch"], "answer": 1},
   {"category": "science", "difficulty": "hard", "question": "Ce inventator român a brevetat în Franța, în 1827, tocul cu rezervor de cerneală?", "choices": ["Petrache Poenaru", "Henri Coandă", "Traian Vuia", "Nicolae Paulescu"], "answer": 0},
   {"category": "science", "difficulty": "hard", "question": "Care este viteza aproximativă a luminii în vid?", "choices": ["150.000 km/s", "30.000 km/s", "300.000 km/s", "1.000.000 km/s"], "answer": 2},
 
