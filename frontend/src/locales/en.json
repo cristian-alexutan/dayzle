@@ -11,6 +11,28 @@
       "light": "Theme: light"
     }
   },
+  "logic": {
+    "board": "Game grid",
+    "cell": {
+      "empty": "Row {row}, column {col}: empty",
+      "mark": "Row {row}, column {col}: X",
+      "sun": "Row {row}, column {col}: sun"
+    },
+    "errors": {
+      "generic": "Something went wrong. Please try again."
+    },
+    "howTo": "Place one sun in every row, column and colored region, with no two suns touching. Tap a cell once for an X, and again for a sun.",
+    "loading": "Loading the game",
+    "mistakes": "Mistakes",
+    "noPuzzle": "There is no puzzle for today. Come back tomorrow!",
+    "result": {
+      "mistakes": "No mistakes | 1 mistake | {count} mistakes",
+      "see": "See result",
+      "title": "Congratulations!"
+    },
+    "streak": "Streak",
+    "title": "Sunspots"
+  },
   "word": {
     "backspace": "Delete letter",
     "enter": "Enter",

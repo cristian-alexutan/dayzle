@@ -32,6 +32,7 @@ def test_board_shows_the_grid_without_the_solution(api_client):
     assert data["suns"] == [] and data["marks"] == []
     assert data["mistakes"] == 0 and data["streak"] == 0
     assert data["score"] is None
+    assert data["elapsed_ms"] == 0
     assert "solution" not in data
 
 
@@ -72,6 +73,7 @@ def test_finishing_returns_the_score_and_duration(api_client):
     assert game["solved"] is True
     assert 900 <= game["score"] <= 1000
     assert game["duration_ms"] is not None
+    assert game["elapsed_ms"] == game["duration_ms"]
 
 
 def test_marks_are_saved_and_restored(api_client):

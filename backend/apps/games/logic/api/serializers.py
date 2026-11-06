@@ -25,7 +25,7 @@ class MarksInputSerializer(serializers.Serializer):
 
 class LogicGameSerializer(serializers.Serializer):
     """The player's board. The solution is never included; ``solved``, ``score`` and
-    ``duration_ms`` stay null until the game ends."""
+    ``duration_ms`` stay null until the game ends. ``elapsed_ms`` is only for display."""
 
     date = serializers.DateField(source="puzzle.daily_puzzle.date")
     status = serializers.ChoiceField(choices=GameResult.Status.choices, source="result.status")
@@ -40,6 +40,7 @@ class LogicGameSerializer(serializers.Serializer):
     solved = serializers.SerializerMethodField()
     score = serializers.SerializerMethodField()
     duration_ms = serializers.SerializerMethodField()
+    elapsed_ms = serializers.SerializerMethodField()
 
     def _finished(self, game) -> bool:
         return game.result.status == GameResult.Status.COMPLETED
@@ -68,6 +69,12 @@ class LogicGameSerializer(serializers.Serializer):
 
     def get_duration_ms(self, game) -> int | None:
         return game.result.duration_ms if self._finished(game) else None
+
+    def get_elapsed_ms(self, game) -> int:
+        """Active play time so far, so the on-screen timer continues after a refresh."""
+        if self._finished(game) and game.result.duration_ms is not None:
+            return game.result.duration_ms
+        return game.result.active_ms
 
 
 class PlaceResultSerializer(serializers.Serializer):

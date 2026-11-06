@@ -11,6 +11,28 @@
       "light": "Temă: deschisă"
     }
   },
+  "logic": {
+    "board": "Grila jocului",
+    "cell": {
+      "empty": "Rândul {row}, coloana {col}: goală",
+      "mark": "Rândul {row}, coloana {col}: X",
+      "sun": "Rândul {row}, coloana {col}: soare"
+    },
+    "errors": {
+      "generic": "Ceva nu a mers. Încearcă din nou."
+    },
+    "howTo": "Pune câte un soare pe fiecare rând, coloană și regiune colorată, fără ca doi sori să se atingă. Atinge o celulă o dată pentru X, încă o dată pentru soare.",
+    "loading": "Se încarcă jocul",
+    "mistakes": "Greșeli",
+    "noPuzzle": "Nu există un puzzle pentru astăzi. Revino mâine!",
+    "result": {
+      "mistakes": "Nicio greșeală | O greșeală | {count} greșeli",
+      "see": "Vezi rezultatul",
+      "title": "Felicitări!"
+    },
+    "streak": "Serie",
+    "title": "Sunspots"
+  },
   "word": {
     "backspace": "Șterge litera",
     "enter": "Enter",
