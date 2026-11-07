@@ -11,6 +11,8 @@ const props = defineProps<{
   tile: Tile
   selected?: boolean
   refused?: boolean
+  /** Plays the shake once; the parent turns it off again, so a second refusal shakes too. */
+  shaking?: boolean
   disabled?: boolean
 }>()
 defineEmits<{ select: [] }>()
@@ -36,6 +38,7 @@ const label = computed(() =>
       'number-tile--computed': tile.computed,
       'number-tile--selected': selected,
       'number-tile--refused': refused,
+      'number-tile--shaking': shaking,
     }"
     severity="secondary"
     :aria-label="label"
@@ -97,6 +100,9 @@ const label = computed(() =>
 .number-tile--refused {
   --tile-color: var(--dz-accent-strong);
   --tile-border: var(--dz-accent-strong);
+}
+
+.number-tile--shaking {
   animation: number-tile-shake 0.4s;
 }
 
@@ -140,7 +146,7 @@ const label = computed(() =>
     transition: none;
   }
 
-  .number-tile--refused {
+  .number-tile--shaking {
     animation: none;
   }
 }

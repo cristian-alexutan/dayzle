@@ -15,6 +15,7 @@
     "errors": {
       "generic": "Ceva nu a mers. Încearcă din nou."
     },
+    "finished": "Ai terminat! Scor: {score}",
     "loading": "Se încarcă jocul",
     "noPuzzle": "Nu există un joc pentru astăzi. Revino mâine!",
     "numbers": "Numere disponibile",
@@ -25,6 +26,12 @@
       "multiply": "Înmulțire",
       "subtract": "Scădere"
     },
+    "refused": {
+      "not_positive": "Scăderea trebuie să dea un număr pozitiv: {step} nu se poate.",
+      "not_whole": "Împărțirea trebuie să fie exactă: {step} nu dă un număr întreg.",
+      "server": "Pasul nu a putut fi jucat. Încearcă altul."
+    },
+    "subtitle": "Puzzle-ul zilei · {date}",
     "target": "Ținta",
     "tile": {
       "computed": "rezultat calculat",
