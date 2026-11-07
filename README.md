@@ -269,8 +269,9 @@ frontend/src/
     http.ts             HTTP wrapper
     generated/          output of npm run generate:api
   shared/
-    components/         GameShell, ResultCard, ShareButton, Timer, ErrorState
-    composables/        useTimer
+    components/         App* wrappers over PrimeVue, GameShell, ResultCard, ShareButton, Timer, ErrorState
+    composables/        useHeartbeat, useTimer
+    stores/             theme (light, dark, auto)
     utils/
   features/
     auth/               Google login, guest identity, route guards

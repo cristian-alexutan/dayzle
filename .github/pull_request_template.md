@@ -10,5 +10,5 @@
 
 - [ ] Lint, type-check and tests pass locally
 - [ ] Follows the architecture rules (see CONTRIBUTING.md)
-- [ ] User-facing strings go through vue-i18n (frontend)
+- [ ] User-facing strings go through vue-i18n (if any)
 - [ ] No secrets or `.env` files committed

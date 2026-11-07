@@ -3,10 +3,87 @@
  * Do not make direct changes to the file.
  */
 
-export type paths = Record<string, never>;
+export interface paths {
+    "/api/v1/games/word/{day}/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** @description The player's board for the day. Opening it the first time starts the clock. */
+        get: operations["v1_games_word_retrieve"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/games/word/{day}/guess/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** @description Send a guess; the board comes back with its colors (and the answer once finished). */
+        post: operations["v1_games_word_guess_create"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/results/{game}/{day}/heartbeat/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** @description Count the player as active. The frontend calls this every 15 s while the game is visible. */
+        post: operations["v1_results_heartbeat_create"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+}
 export type webhooks = Record<string, never>;
 export interface components {
-    schemas: never;
+    schemas: {
+        GuessInput: {
+            guess: string;
+        };
+        /**
+         * @description * `in_progress` - In progress
+         *     * `completed` - Completed
+         * @enum {string}
+         */
+        StatusEnum: "in_progress" | "completed";
+        /** @description The player's board. ``answer``, ``solved`` and ``score`` stay null until the game ends. */
+        WordGame: {
+            /** Format: date */
+            date: string;
+            status: components["schemas"]["StatusEnum"];
+            readonly word_length: number;
+            readonly max_attempts: number;
+            readonly guesses: {
+                [key: string]: unknown;
+            }[];
+            readonly answer: string | null;
+            readonly solved: boolean | null;
+            readonly score: number | null;
+            readonly duration_ms: number | null;
+        };
+    };
     responses: never;
     parameters: never;
     requestBodies: never;
@@ -14,4 +91,74 @@ export interface components {
     pathItems: never;
 }
 export type $defs = Record<string, never>;
-export type operations = Record<string, never>;
+export interface operations {
+    v1_games_word_retrieve: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                day: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["WordGame"];
+                };
+            };
+        };
+    };
+    v1_games_word_guess_create: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                day: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["GuessInput"];
+                "application/x-www-form-urlencoded": components["schemas"]["GuessInput"];
+                "multipart/form-data": components["schemas"]["GuessInput"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["WordGame"];
+                };
+            };
+        };
+    };
+    v1_results_heartbeat_create: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                day: string;
+                game: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description No response body */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+}
