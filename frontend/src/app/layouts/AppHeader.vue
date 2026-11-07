@@ -1,9 +1,10 @@
-<!-- AppHeader: Top navigation bar with brand logo, home link, login placeholder, theme and language controls. -->
+<!-- AppHeader: Top navigation bar with brand logo, home link, user/guest status, theme and language controls. -->
 <script setup lang="ts">
 import { computed, watchEffect } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useRouter } from 'vue-router'
 
+import { useLogoutMutation, useSessionQuery } from '@/features/auth'
 import AppButton from '@/shared/components/AppButton.vue'
 import { useThemeStore } from '@/shared/stores/theme'
 
@@ -15,6 +16,11 @@ const { t, locale } = useI18n({ useScope: 'global' })
 const theme = useThemeStore()
 const router = useRouter()
 
+const sessionQuery = useSessionQuery()
+const logoutMutation = useLogoutMutation()
+
+const session = computed(() => sessionQuery.data.value)
+const isSignedIn = computed(() => Boolean(session.value?.is_authenticated && session.value?.user))
 const themeLabel = computed(() => t(`header.theme.${theme.mode}`))
 
 watchEffect(() => {
@@ -25,6 +31,10 @@ function toggleLocale() {
   const next: AppLocale = locale.value === 'ro' ? 'en' : 'ro'
   locale.value = next
   storeLocale(next)
+}
+
+function handleLogout() {
+  logoutMutation.mutate()
 }
 </script>
 
@@ -43,7 +53,23 @@ function toggleLocale() {
       </div>
 
       <div class="app-header__actions">
+        <template v-if="isSignedIn && session?.user">
+          <RouterLink to="/login" class="app-header__user" data-test="user-chip">
+            <i class="pi pi-user" aria-hidden="true" />
+            <span>{{ session.user.display_name }}</span>
+          </RouterLink>
+          <AppButton
+            :label="t('header.logout')"
+            icon="pi pi-sign-out"
+            text
+            severity="secondary"
+            :loading="logoutMutation.isPending.value"
+            data-test="logout-link"
+            @click="handleLogout"
+          />
+        </template>
         <AppButton
+          v-else
           :label="t('header.login')"
           icon="pi pi-user"
           text
@@ -51,6 +77,7 @@ function toggleLocale() {
           data-test="login-link"
           @click="router.push('/login')"
         />
+
         <AppButton
           :icon="THEME_ICONS[theme.mode]"
           :aria-label="themeLabel"
@@ -136,5 +163,23 @@ function toggleLocale() {
   display: flex;
   align-items: center;
   gap: 0.25rem;
+}
+
+.app-header__user {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.35rem 0.7rem;
+  border-radius: 999px;
+  background: var(--dz-page);
+  color: var(--dz-text);
+  font-size: 0.9rem;
+  font-weight: 600;
+  text-decoration: none;
+}
+
+.app-header__user:hover {
+  background: var(--dz-primary);
+  color: var(--dz-on-primary);
 }
 </style>
