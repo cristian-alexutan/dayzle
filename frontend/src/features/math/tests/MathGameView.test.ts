@@ -122,6 +122,20 @@ describe('MathGameView', () => {
     wrapper.unmount()
   })
 
+  it('shakes the refused tile again on a second refusal right after the first', async () => {
+    const wrapper = await mountView(jsonResponse(200, game))
+
+    await tap(wrapper, tile(wrapper, '25'))
+    await tap(wrapper, wrapper.find('[data-test="operator-divide"]'))
+    await tap(wrapper, tile(wrapper, '2'))
+    expect(tile(wrapper, '2').classes()).toContain('number-tile--shake-odd')
+
+    await tap(wrapper, tile(wrapper, '2'))
+    expect(tile(wrapper, '2').classes()).toContain('number-tile--shake-even')
+    expect(tile(wrapper, '2').classes()).not.toContain('number-tile--shake-odd')
+    wrapper.unmount()
+  })
+
   it('shows the score and locks the board when a step reaches the target', async () => {
     const wrapper = await mountView(jsonResponse(200, game))
     const steps = [

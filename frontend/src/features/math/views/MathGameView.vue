@@ -80,13 +80,16 @@ watch(firstId, (id) => {
   if (id !== null) serverError.value = null
 })
 
-const shakingId = ref<string | null>(null)
+/** The refused tile and a count that grows with each refusal, so every refusal shakes again. */
+const shake = ref<{ tileId: string; count: number } | null>(null)
+let shakeCount = 0
 let shakeTimer: ReturnType<typeof setTimeout> | undefined
 watch(refusal, (current) => {
   if (!current) return
-  shakingId.value = current.tileId
+  shakeCount += 1
+  shake.value = { tileId: current.tileId, count: shakeCount }
   clearTimeout(shakeTimer)
-  shakeTimer = setTimeout(() => (shakingId.value = null), SHAKE_MS)
+  shakeTimer = setTimeout(() => (shake.value = null), SHAKE_MS)
 })
 
 /** "sâmbătă, 7 noiembrie": the puzzle's day, in the player's language. */
@@ -126,7 +129,7 @@ onBeforeUnmount(() => clearTimeout(shakeTimer))
           :tile="tile"
           :selected="firstId === tile.id"
           :refused="refusal?.tileId === tile.id"
-          :shaking="shakingId === tile.id"
+          :shake="shake?.tileId === tile.id ? shake.count : 0"
           :disabled="boardDisabled"
           @select="selectTile(tile.id)"
         />

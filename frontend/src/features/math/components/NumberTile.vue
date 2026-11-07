@@ -11,8 +11,12 @@ const props = defineProps<{
   tile: Tile
   selected?: boolean
   refused?: boolean
-  /** Plays the shake once; the parent turns it off again, so a second refusal shakes too. */
-  shaking?: boolean
+  /**
+   * Counts the refusals that shake this tile (0: none). Each new count plays the shake once:
+   * odd and even counts use two animations with different names, because the browser only
+   * restarts an animation when its name changes.
+   */
+  shake?: number
   disabled?: boolean
 }>()
 defineEmits<{ select: [] }>()
@@ -38,7 +42,8 @@ const label = computed(() =>
       'number-tile--computed': tile.computed,
       'number-tile--selected': selected,
       'number-tile--refused': refused,
-      'number-tile--shaking': shaking,
+      'number-tile--shake-odd': shake && shake % 2 === 1,
+      'number-tile--shake-even': shake && shake % 2 === 0,
     }"
     severity="secondary"
     :aria-label="label"
@@ -102,8 +107,12 @@ const label = computed(() =>
   --tile-border: var(--dz-accent-strong);
 }
 
-.number-tile--shaking {
+.number-tile--shake-odd {
   animation: number-tile-shake 0.4s;
+}
+
+.number-tile--shake-even {
+  animation: number-tile-shake-again 0.4s;
 }
 
 .number-tile__mark {
@@ -132,7 +141,17 @@ const label = computed(() =>
   color: inherit;
 }
 
+/* The same shake twice, under two names: see the `shake` prop. */
 @keyframes number-tile-shake {
+  25% {
+    transform: translateX(-6px) rotate(-2deg);
+  }
+  75% {
+    transform: translateX(6px) rotate(2deg);
+  }
+}
+
+@keyframes number-tile-shake-again {
   25% {
     transform: translateX(-6px) rotate(-2deg);
   }
@@ -146,7 +165,8 @@ const label = computed(() =>
     transition: none;
   }
 
-  .number-tile--shaking {
+  .number-tile--shake-odd,
+  .number-tile--shake-even {
     animation: none;
   }
 }
