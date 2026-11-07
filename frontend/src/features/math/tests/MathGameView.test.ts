@@ -66,7 +66,7 @@ describe('MathGameView', () => {
   it('shows the target and every starting number, repeats included', async () => {
     const wrapper = await mountView(jsonResponse(200, game))
 
-    expect(wrapper.find('h1').text()).toBe('Atinge ținta')
+    expect(wrapper.find('h1').text()).toBe('Numărăl')
     expect(wrapper.find('[data-test="target"]').text()).toBe('Ținta: 253')
     const numbers = wrapper.findAll('[data-test="numbers"] li').map((item) => item.text())
     expect(numbers).toEqual(['1', '2', '2', '25', '50', '100'])
