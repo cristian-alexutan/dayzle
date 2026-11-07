@@ -43,12 +43,44 @@
     "title": "GeoGuesser"
   },
   "header": {
+    "home": "Acasă",
     "language": "Limbă",
+    "login": "Autentificare",
+    "nav": "Navigare principală",
     "theme": {
       "auto": "Temă: automată",
       "dark": "Temă: închisă",
       "light": "Temă: deschisă"
     }
+  },
+  "home": {
+    "backHome": "Înapoi la jocuri",
+    "comingSoon": "Jocul va fi disponibil în curând.",
+    "games": {
+      "geo": {
+        "description": "Recunoaște 5 locuri din Cluj-Napoca după fotografie și plasează pinul cât mai aproape.",
+        "title": "ClujGuesser"
+      },
+      "logic": {
+        "description": "Pune exact un soare pe fiecare rând, coloană și regiune colorată, fără să se atingă.",
+        "title": "Sunspots"
+      },
+      "math": {
+        "description": "Folosește cele 6 numere și operațiile de bază pentru a ajunge la numărul-țintă.",
+        "title": "Numărăl"
+      },
+      "trivia": {
+        "description": "Răspunde la 5 întrebări zilnice de cultură generală din domenii variate.",
+        "title": "Trivia"
+      },
+      "word": {
+        "description": "Ghicește cuvântul românesc de 5 litere din cel mult 6 încercări.",
+        "title": "Cuvântăl"
+      }
+    },
+    "play": "Joacă",
+    "subtitle": "Cinci provocări zilnice noi în fiecare zi. Alege un joc și începe!",
+    "title": "Jocurile zilei"
   },
   "logic": {
     "board": "Grila jocului",
@@ -90,6 +122,12 @@
       },
       "start": "Am înțeles"
     }
+  },
+  "login": {
+    "backHome": "Înapoi la jocuri",
+    "comingSoon": "Autentificarea cu Google va fi activată în curând. Până atunci, poți juca toate jocurile ca vizitator.",
+    "subtitle": "Conectează-ți contul pentru a-ți păstra seria zilnică și clasamentele.",
+    "title": "Autentificare"
   },
   "math": {
     "closest": "Cel mai aproape până acum: {value}",
