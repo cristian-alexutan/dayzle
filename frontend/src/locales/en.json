@@ -15,10 +15,30 @@
     "errors": {
       "generic": "Something went wrong. Please try again."
     },
+    "finished": "Finished! Score: {score}",
     "loading": "Loading the game",
     "noPuzzle": "There is no game for today. Come back tomorrow!",
-    "numbers": "Numbers",
+    "numbers": "Available numbers",
+    "operators": {
+      "add": "Addition",
+      "divide": "Division",
+      "label": "Operations",
+      "multiply": "Multiplication",
+      "subtract": "Subtraction"
+    },
+    "refused": {
+      "not_positive": "Subtraction must give a positive number: {step} isn't allowed.",
+      "not_whole": "Division must be exact: {step} isn't a whole number.",
+      "server": "That step can't be played. Try another one."
+    },
+    "subtitle": "Puzzle of the day · {date}",
     "target": "Target",
+    "tile": {
+      "computed": "computed result",
+      "new": "NEW",
+      "refused": "step refused",
+      "selected": "selected"
+    },
     "title": "Numărăl"
   },
   "word": {
