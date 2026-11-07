@@ -33,8 +33,10 @@
     },
     "subtitle": "Puzzle of the day · {date}",
     "target": "Target",
+    "targetLabel": "Target: {target}",
     "tile": {
       "computed": "computed result",
+      "labelPart": "{label}, {part}",
       "new": "NEW",
       "refused": "step refused",
       "selected": "selected"

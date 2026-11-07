@@ -23,15 +23,15 @@ defineEmits<{ select: [] }>()
 
 const { t } = useI18n()
 
+/** "200, rezultat calculat, selectat": each part is added through `math.tile.labelPart`. */
 const label = computed(() =>
   [
-    props.tile.value,
     props.tile.computed && t('math.tile.computed'),
     props.selected && t('math.tile.selected'),
     props.refused && t('math.tile.refused'),
   ]
-    .filter(Boolean)
-    .join(', '),
+    .filter((part): part is string => Boolean(part))
+    .reduce((label, part) => t('math.tile.labelPart', { label, part }), String(props.tile.value)),
 )
 </script>
 

@@ -33,8 +33,10 @@
     },
     "subtitle": "Puzzle-ul zilei · {date}",
     "target": "Ținta",
+    "targetLabel": "Ținta: {target}",
     "tile": {
       "computed": "rezultat calculat",
+      "labelPart": "{label}, {part}",
       "new": "NOU",
       "refused": "pas refuzat",
       "selected": "selectat"

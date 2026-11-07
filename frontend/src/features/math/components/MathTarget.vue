@@ -8,7 +8,7 @@ const { t } = useI18n()
 </script>
 
 <template>
-  <section class="math-target" :aria-label="`${t('math.target')}: ${target}`" data-test="target">
+  <section class="math-target" :aria-label="t('math.targetLabel', { target })" data-test="target">
     <span class="math-target__label" aria-hidden="true">
       <i class="pi pi-bullseye" />
       {{ t('math.target') }}
