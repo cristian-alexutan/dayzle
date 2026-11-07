@@ -11,6 +11,16 @@
       "light": "Temă: deschisă"
     }
   },
+  "math": {
+    "errors": {
+      "generic": "Ceva nu a mers. Încearcă din nou."
+    },
+    "loading": "Se încarcă jocul",
+    "noPuzzle": "Nu există un joc pentru astăzi. Revino mâine!",
+    "numbers": "Numere",
+    "target": "Ținta",
+    "title": "Atinge ținta"
+  },
   "word": {
     "backspace": "Șterge litera",
     "enter": "Enter",

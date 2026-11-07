@@ -11,6 +11,16 @@
       "light": "Theme: light"
     }
   },
+  "math": {
+    "errors": {
+      "generic": "Something went wrong. Please try again."
+    },
+    "loading": "Loading the game",
+    "noPuzzle": "There is no game for today. Come back tomorrow!",
+    "numbers": "Numbers",
+    "target": "Target",
+    "title": "Make the Target"
+  },
   "word": {
     "backspace": "Delete letter",
     "enter": "Enter",
