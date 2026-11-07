@@ -1,5 +1,6 @@
 import { createRouter, createWebHistory, type RouteRecordRaw } from 'vue-router'
 
+import { authRoutes } from '@/features/auth'
 import { mathRoutes } from '@/features/math'
 import { wordRoutes } from '@/features/word'
 
@@ -9,11 +10,7 @@ export const appRoutes: RouteRecordRaw[] = [
     name: 'home',
     component: () => import('../views/HomeView.vue'),
   },
-  {
-    path: '/login',
-    name: 'login',
-    component: () => import('../views/LoginView.vue'),
-  },
+  ...authRoutes,
   ...wordRoutes,
   ...mathRoutes,
   {

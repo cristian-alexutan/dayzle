@@ -1,4 +1,20 @@
 {
+  "auth": {
+    "backHome": "Înapoi la jocuri",
+    "continueAsGuest": "Continuă ca vizitator",
+    "errors": {
+      "generic": "Autentificarea a eșuat. Încearcă din nou.",
+      "invalidToken": "Token-ul Google nu este valid sau a expirat.",
+      "notConfigured": "Autentificarea cu Google nu este configurată pe server."
+    },
+    "guestInfo": "Joci ca vizitator. Progresul de azi este salvat în sesiunea ta.",
+    "loading": "Se verifică sesiunea",
+    "logout": "Deconectare",
+    "signedInAs": "Ești conectat ca {name}.",
+    "subtitle": "Conectează-ți contul Google pentru a-ți păstra rezultatele, seria zilnică și locul în clasament.",
+    "title": "Contul tău",
+    "unconfigured": "Setează VITE_GOOGLE_CLIENT_ID în frontend/.env pentru a activa butonul Google Sign-In. Poți continua ca vizitator."
+  },
   "common": {
     "retry": "Încearcă din nou",
     "time": "Timp"
@@ -7,6 +23,7 @@
     "home": "Acasă",
     "language": "Limbă",
     "login": "Autentificare",
+    "logout": "Deconectare",
     "nav": "Navigare principală",
     "theme": {
       "auto": "Temă: automată",
@@ -43,10 +60,7 @@
     "title": "Jocurile zilei"
   },
   "login": {
-    "backHome": "Înapoi la jocuri",
-    "comingSoon": "Autentificarea cu Google va fi activată în curând. Până atunci, poți juca toate jocurile ca vizitator.",
-    "subtitle": "Conectează-ți contul pentru a-ți păstra seria zilnică și clasamentele.",
-    "title": "Autentificare"
+    "backHome": "Înapoi la jocuri"
   },
   "math": {
     "errors": {
