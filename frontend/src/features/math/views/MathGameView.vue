@@ -8,7 +8,12 @@ import AppSpinner from '@/shared/components/AppSpinner.vue'
 import ErrorState from '@/shared/components/ErrorState.vue'
 import GameShell from '@/shared/components/GameShell.vue'
 
-import { errorCode, useMathGameQuery, useSaveProgressMutation } from '../api/queries'
+import {
+  errorCode,
+  useMathGameQuery,
+  useMathHeartbeat,
+  useSaveProgressMutation,
+} from '../api/queries'
 import MathTarget from '../components/MathTarget.vue'
 import NumberTile from '../components/NumberTile.vue'
 import OperatorPicker from '../components/OperatorPicker.vue'
@@ -28,6 +33,8 @@ const inProgress = computed(() => game.value?.status === 'in_progress')
 const finished = computed(() => game.value?.status === 'completed')
 const noPuzzle = computed(() => errorCode(query.error.value) === 'no_puzzle')
 const boardDisabled = computed(() => !inProgress.value || save.isPending.value)
+
+useMathHeartbeat(DAY, inProgress)
 
 const { tiles, firstId, operator, refusal, selectTile, selectOperator } = useMathBoard({
   numbers: () => game.value?.numbers ?? [],

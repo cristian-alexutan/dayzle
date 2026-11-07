@@ -63,6 +63,7 @@ beforeEach(() => {
 afterEach(() => {
   fetchMock.mockReset()
   vi.unstubAllGlobals()
+  vi.useRealTimers()
 })
 
 describe('MathGameView', () => {
@@ -165,6 +166,23 @@ describe('MathGameView', () => {
     expect(wrapper.find('[data-test="no-puzzle"]').text()).toContain('Revino mâine')
     expect(wrapper.find('button').exists()).toBe(false)
     wrapper.unmount()
+  })
+
+  it('sends heartbeats while in progress and none once the game is finished', async () => {
+    vi.useFakeTimers({ toFake: ['setInterval', 'clearInterval'] })
+    const wrapper = await mountView(jsonResponse(200, game))
+    fetchMock.mockResolvedValue(new Response(null, { status: 204 }))
+
+    vi.advanceTimersByTime(15_000)
+    expect(fetchMock.mock.calls[1]![0]).toBe('/api/v1/results/math/today/heartbeat/')
+    wrapper.unmount()
+
+    fetchMock.mockClear()
+    const finished = await mountView(jsonResponse(200, { ...game, status: 'completed' }))
+    fetchMock.mockClear()
+    vi.advanceTimersByTime(30_000)
+    expect(fetchMock).not.toHaveBeenCalled()
+    finished.unmount()
   })
 
   it('offers a retry after another error, and loads the game on retry', async () => {
