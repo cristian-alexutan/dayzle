@@ -27,7 +27,7 @@ def get_playable_puzzle(game: str, day: date) -> DailyPuzzle:
 
 
 def get_missing_days(days_ahead: int = 7) -> dict[str, list[date]]:
-    """For each registered game, the days from today on that have no puzzle yet."""
+    """For each game scheduled by admins, the days from today on that have no puzzle yet."""
     today = today_in_romania()
     upcoming = [today + timedelta(days=offset) for offset in range(days_ahead)]
     scheduled = set(
@@ -35,6 +35,8 @@ def get_missing_days(days_ahead: int = 7) -> dict[str, list[date]]:
     )
     missing = {}
     for game in get_games():
+        if not game.scheduled_by_admin:
+            continue
         days = [day for day in upcoming if (game.key, day) not in scheduled]
         if days:
             missing[game.key] = days

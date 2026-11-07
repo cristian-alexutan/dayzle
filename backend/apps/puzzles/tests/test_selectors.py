@@ -49,3 +49,12 @@ def test_missing_days_lists_unscheduled_days_for_registered_games(clean_registry
     missing = get_missing_days(days_ahead=3)
 
     assert missing == {"word": [today + timedelta(days=1), today + timedelta(days=2)]}
+
+
+def test_missing_days_skips_games_that_make_their_own_puzzles(clean_registry):
+    clean_registry.register_game(key="word", name="Word", content_model=object)
+    clean_registry.register_game(
+        key="geo", name="Geo", content_model=object, scheduled_by_admin=False
+    )
+
+    assert set(get_missing_days(days_ahead=1)) == {"word"}
