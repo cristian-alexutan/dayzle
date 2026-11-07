@@ -1,6 +1,9 @@
+from datetime import timedelta
+
 import pytest
 from django.urls import reverse
 
+from apps.common.time import today_in_romania
 from apps.games.math import rules
 from apps.games.math.exceptions import GenerationFailedError
 from apps.games.math.models import MathPuzzle
@@ -17,6 +20,10 @@ ADD_URL = reverse("admin:games_math_mathpuzzle_add")
 
 def change_url(puzzle):
     return reverse("admin:games_math_mathpuzzle_change", args=[puzzle.pk])
+
+
+def tomorrow():
+    return DailyPuzzleFactory(game=Game.MATH, date=today_in_romania() + timedelta(days=1))
 
 
 def form_data(daily_puzzle, target="", numbers="", generate=""):
@@ -102,17 +109,80 @@ def test_a_failed_generation_is_a_form_error_not_a_crash(admin_client, monkeypat
     assert not MathPuzzle.objects.exists()
 
 
-def test_a_started_puzzle_can_no_longer_change(admin_client):
+@pytest.fixture
+def started_puzzle():
     puzzle = MathPuzzleFactory()
     GameResultFactory(daily_puzzle=puzzle.daily_puzzle)
+    return puzzle
+
+
+def test_a_started_puzzle_is_shown_read_only(admin_client, started_puzzle):
+    content = admin_client.get(change_url(started_puzzle)).content.decode()
+
+    assert 'name="target"' not in content
+    assert 'name="numbers"' not in content
+    assert 'name="generate"' not in content
+    assert '<div class="readonly">[1, 2, 3, 25, 50, 100]</div>' in content
+    assert "deletelink" not in content
+
+
+def test_a_started_puzzle_can_no_longer_change(admin_client, started_puzzle):
+    other_day = tomorrow()
+
+    admin_client.post(change_url(started_puzzle), form_data(other_day, 576, "2, 2, 3, 3, 4, 4"))
+
+    started_puzzle.refresh_from_db()
+    assert started_puzzle.target == 253
+    assert started_puzzle.numbers == [1, 2, 3, 25, 50, 100]
+    assert started_puzzle.daily_puzzle != other_day
+
+
+def test_a_started_puzzle_cannot_be_deleted(admin_client, started_puzzle):
+    delete_url = reverse("admin:games_math_mathpuzzle_delete", args=[started_puzzle.pk])
+
+    assert admin_client.post(delete_url, {"post": "yes"}).status_code == 403
+    assert MathPuzzle.objects.filter(pk=started_puzzle.pk).exists()
+
+
+def test_a_started_puzzle_cannot_be_deleted_from_the_list(admin_client, started_puzzle):
+    changelist_url = reverse("admin:games_math_mathpuzzle_changelist")
+    action = {"action": "delete_selected", "_selected_action": [started_puzzle.pk], "post": "yes"}
+
+    admin_client.post(changelist_url, action)
+
+    assert MathPuzzle.objects.filter(pk=started_puzzle.pk).exists()
+
+
+def test_an_unstarted_puzzle_can_be_deleted(admin_client):
+    puzzle = MathPuzzleFactory()
+    delete_url = reverse("admin:games_math_mathpuzzle_delete", args=[puzzle.pk])
+
+    assert admin_client.post(delete_url, {"post": "yes"}).status_code == 302
+    assert not MathPuzzle.objects.exists()
+
+
+def test_a_puzzle_cannot_be_added_to_a_day_with_players(admin_client):
+    day = DailyPuzzleFactory(game=Game.MATH)
+    GameResultFactory(daily_puzzle=day)
+
+    response = admin_client.post(ADD_URL, form_data(day, 576, "2, 2, 3, 3, 4, 4"))
+
+    assert "Players have already started this day" in response.content.decode()
+    assert not MathPuzzle.objects.exists()
+
+
+def test_a_puzzle_cannot_move_to_a_day_with_players(admin_client):
+    puzzle = MathPuzzleFactory()
+    played_day = tomorrow()
+    GameResultFactory(daily_puzzle=played_day)
 
     response = admin_client.post(
-        change_url(puzzle), form_data(puzzle.daily_puzzle, 576, "2, 2, 3, 3, 4, 4")
+        change_url(puzzle), form_data(played_day, 253, "1, 2, 3, 25, 50, 100")
     )
 
-    assert "Players have already started this puzzle" in response.content.decode()
+    assert "Players have already started this day" in response.content.decode()
     puzzle.refresh_from_db()
-    assert puzzle.target == 253
+    assert puzzle.daily_puzzle != played_day
 
 
 def test_an_unstarted_puzzle_can_still_change(admin_client):

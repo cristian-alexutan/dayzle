@@ -60,11 +60,12 @@ class MathPuzzleForm(forms.ModelForm):
         if self.errors:
             return cleaned
         target, numbers, difficulty = cleaned["target"], cleaned["numbers"], cleaned["generate"]
-        if self.instance.pk and has_players(self.instance.daily_puzzle):
-            if difficulty or any(name in self.changed_data for name in GAME_FIELDS):
-                raise ValidationError(
-                    "Players have already started this puzzle, so it can't change any more."
-                )
+        # A started puzzle never gets this form (see MathPuzzleAdmin), but the chosen day can
+        # still have players, e.g. when a puzzle is added or moved onto it.
+        if has_players(cleaned["daily_puzzle"]):
+            raise ValidationError(
+                {"daily_puzzle": "Players have already started this day, so its puzzle is fixed."}
+            )
         try:
             if target is None and numbers is None:
                 if not difficulty:
@@ -106,6 +107,34 @@ class MathPuzzleAdmin(admin.ModelAdmin):
     list_select_related = ["daily_puzzle"]
     list_filter = ["difficulty"]
     ordering = ["-daily_puzzle__date"]
+
+    # Once a player has opened a puzzle, their saved steps and score depend on its numbers, so
+    # it can't be changed, moved or deleted. This is checked again on every request, so a page
+    # opened before the first player can't change the puzzle either.
+    def _is_locked(self, puzzle: MathPuzzle | None) -> bool:
+        return puzzle is not None and has_players(puzzle.daily_puzzle)
+
+    def get_fields(self, request, obj=None):
+        fields = super().get_fields(request, obj)
+        if self._is_locked(obj):
+            return [field for field in fields if field != "generate"]
+        return fields
+
+    def get_readonly_fields(self, request, obj=None):
+        readonly = super().get_readonly_fields(request, obj)
+        if self._is_locked(obj):
+            return [*GAME_FIELDS, *readonly]
+        return readonly
+
+    def get_form(self, request, obj=None, **kwargs):
+        if self._is_locked(obj):
+            kwargs["form"] = forms.ModelForm  # every field is read-only: nothing to check or save
+        return super().get_form(request, obj, **kwargs)
+
+    def has_delete_permission(self, request, obj=None):
+        if self._is_locked(obj):
+            return False
+        return super().has_delete_permission(request, obj)
 
     @admin.display(description="Example solution")
     def example_solution(self, puzzle: MathPuzzle) -> str:
