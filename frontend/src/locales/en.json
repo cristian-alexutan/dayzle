@@ -4,12 +4,49 @@
     "time": "Time"
   },
   "header": {
+    "home": "Home",
     "language": "Language",
+    "login": "Sign in",
+    "nav": "Main navigation",
     "theme": {
       "auto": "Theme: automatic",
       "dark": "Theme: dark",
       "light": "Theme: light"
     }
+  },
+  "home": {
+    "comingSoon": "This game will be available soon.",
+    "games": {
+      "geo": {
+        "description": "Spot 5 locations across Cluj-Napoca from photos and drop your pin as close as possible.",
+        "title": "ClujGuesser"
+      },
+      "logic": {
+        "description": "Place exactly one sun in each row, column and colored region without any two touching.",
+        "title": "Sunspots"
+      },
+      "math": {
+        "description": "Combine the 6 numbers with basic arithmetic operations to reach the target number.",
+        "title": "Numărăl"
+      },
+      "trivia": {
+        "description": "Answer 5 daily general-knowledge questions across a variety of categories.",
+        "title": "Trivia"
+      },
+      "word": {
+        "description": "Guess the 5-letter Romanian word in at most 6 attempts.",
+        "title": "Cuvântăl"
+      }
+    },
+    "play": "Play",
+    "subtitle": "Five fresh daily puzzles every day. Pick a game and start playing!",
+    "title": "Today's games"
+  },
+  "login": {
+    "backHome": "Back to games",
+    "comingSoon": "Google sign-in will be enabled soon. In the meantime, you can play every game as a guest.",
+    "subtitle": "Sign in to save your daily streaks and compete on leaderboards.",
+    "title": "Sign in"
   },
   "math": {
     "errors": {
