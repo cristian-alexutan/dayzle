@@ -4,6 +4,57 @@
  */
 
 export interface paths {
+    "/api/v1/games/geo/{day}/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** @description The current round's panorama and the guessed rounds. The first open starts the clock. */
+        get: operations["v1_games_geo_retrieve"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/games/geo/{day}/guess/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** @description Guess the current round; the game comes back with its location and the next panorama. */
+        post: operations["v1_games_geo_guess_create"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/games/geo/regions/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** @description The regions a player can choose, the default one first. */
+        get: operations["v1_games_geo_regions_list"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/games/logic/{day}/": {
         parameters: {
             query?: never;
@@ -211,6 +262,16 @@ export interface components {
             question: number;
             choice: number;
         };
+        Bounds: {
+            /** Format: double */
+            south: number;
+            /** Format: double */
+            west: number;
+            /** Format: double */
+            north: number;
+            /** Format: double */
+            east: number;
+        };
         /**
          * @description * `history` - History
          *     * `geography` - Geography
@@ -232,6 +293,33 @@ export interface components {
          * @enum {string}
          */
         DifficultyEnum: "easy" | "medium" | "hard";
+        /**
+         * @description The player's game. Only the current round's panorama is sent, never its coordinates.
+         *
+         *     A location's coordinates appear only in ``results``, after its round is guessed. ``solved``
+         *     and ``duration_ms`` stay null until the fifth guess.
+         */
+        GeoGame: {
+            /** Format: date */
+            date: string;
+            region: components["schemas"]["Region"];
+            status: components["schemas"]["StatusEnum"];
+            readonly rounds: number;
+            readonly current_round: number | null;
+            readonly panorama_id: string | null;
+            readonly results: components["schemas"]["RoundResult"][];
+            readonly total_score: number;
+            readonly max_score: number;
+            readonly solved: boolean | null;
+            readonly duration_ms: number | null;
+        };
+        GeoGuessInput: {
+            round: number;
+            /** Format: double */
+            lat: number;
+            /** Format: double */
+            lng: number;
+        };
         GuessInput: {
             guess: string;
         };
@@ -306,12 +394,32 @@ export interface components {
             right: number;
             result: number;
         };
+        Point: {
+            /** Format: double */
+            lat: number;
+            /** Format: double */
+            lng: number;
+        };
         /** @description A question as the player sees it: which choice is correct is never included. */
         Question: {
             id: number;
             category: components["schemas"]["CategoryEnum"];
             text: string;
             choices: components["schemas"]["Choice"][];
+        };
+        /** @description A region the player can choose. Its bounds limit the guess map; they aren't secret. */
+        Region: {
+            key: string;
+            name: string;
+            bounds: components["schemas"]["Bounds"];
+        };
+        /** @description A guessed round: the player's point and, now that it's guessed, the real one. */
+        RoundResult: {
+            round: number;
+            guess: components["schemas"]["Point"];
+            location: components["schemas"]["Point"];
+            distance_m: number;
+            score: number;
         };
         /**
          * @description * `in_progress` - In progress
@@ -372,6 +480,79 @@ export interface components {
 }
 export type $defs = Record<string, never>;
 export interface operations {
+    v1_games_geo_retrieve: {
+        parameters: {
+            query?: {
+                /** @description The region's key. Defaults to the default region. */
+                region?: string;
+            };
+            header?: never;
+            path: {
+                day: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["GeoGame"];
+                };
+            };
+        };
+    };
+    v1_games_geo_guess_create: {
+        parameters: {
+            query?: {
+                /** @description The region's key. Defaults to the default region. */
+                region?: string;
+            };
+            header?: never;
+            path: {
+                day: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["GeoGuessInput"];
+                "application/x-www-form-urlencoded": components["schemas"]["GeoGuessInput"];
+                "multipart/form-data": components["schemas"]["GeoGuessInput"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["GeoGame"];
+                };
+            };
+        };
+    };
+    v1_games_geo_regions_list: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Region"][];
+                };
+            };
+        };
+    };
     v1_games_logic_retrieve: {
         parameters: {
             query?: never;

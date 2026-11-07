@@ -13,9 +13,10 @@ logic game, a "Make the Target" math game, a 5-question trivia quiz, a GeoGuesse
 The first demo is the five games only; README "MVP scope" lists the decisions. Key points:
 everyone is anonymous (`guest_id` in the Django session, play-once per guest); puzzles are
 hand-authored in Django admin as a `DailyPuzzle(game, date)` calendar row plus a per-game
-content model; only today's puzzle is playable; one `GameResult` per player and puzzle holds
-progress and the final `score` (higher is better) and server-measured `duration_ms` (active
-time only: heartbeats every 15 s while the game is visible, gaps capped at 30 s). Login,
+content model (except Geo, whose day is made from random locations on first open); only
+today's puzzle is playable; one `GameResult` per player and puzzle holds progress and the final
+`score` (higher is better) and server-measured `duration_ms` (active time only: heartbeats
+every 15 s while the game is visible, gaps capped at 30 s). Login,
 subscriptions, archive, leaderboards, stats and friends are deferred: don't build them unless
 asked. A custom `accounts.User` exists but is unused, except for Django admin logins.
 
@@ -46,7 +47,8 @@ Settings don't read `.env` by themselves, so load it into the shell or the IDE's
 configuration first. See README "Running without Docker".
 
 `seed_dev` runs only with `DEBUG` on. It creates the admin login `admin` / `admin` and fills the
-next 7 days for every game with a seed hook.
+next 7 days for every game with a seed hook. Geo needs `GOOGLE_MAPS_SERVER_KEY` in `.env` to
+generate its location bank (nothing from Google is committed); without it, Geo is skipped.
 
 URLs: frontend http://localhost:5173 (the game is at `/games/word`), API
 http://localhost:8000/api/v1/, OpenAPI docs http://localhost:8000/api/docs/, admin
@@ -106,7 +108,8 @@ Each app's `api/urls.py` is mounted by `config/urls.py` under `/api/v1/<app>/` (
 - `common`: `today_in_romania()` (only source of the game day), `get_guest_id(request)`,
   `DomainError` + `exception_handler` (errors as `{"error": {"code", "message", "details"}}`),
   `TimeStampedModel`.
-- `puzzles`: `DailyPuzzle`, `register_game(...)` in each game's `AppConfig.ready()`,
+- `puzzles`: `DailyPuzzle`, `register_game(...)` in each game's `AppConfig.ready()`
+  (`scheduled_by_admin=False` for a game that makes its own days),
   `get_playable_puzzle(game, day)` (`NoPuzzleError` 404, `ArchiveUnavailableError` 403), the
   `<game_day:day>` URL converter (`today` or ISO date), `manage.py seed_dev`.
 - `results`: `GameResult`, `start_or_resume`, `save_progress`, `complete` (`AlreadyPlayedError`
