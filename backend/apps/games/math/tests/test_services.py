@@ -6,7 +6,12 @@ import pytest
 
 from apps.common.time import today_in_romania
 from apps.games.math import rules, services
-from apps.games.math.exceptions import InvalidNumbersError, InvalidStepError, NoStepsError
+from apps.games.math.exceptions import (
+    GenerationFailedError,
+    InvalidNumbersError,
+    InvalidStepError,
+    NoStepsError,
+)
 from apps.games.math.models import MathPuzzle
 from apps.games.math.rules import Difficulty, Operator, Step
 from apps.puzzles.exceptions import ArchiveUnavailableError, NoPuzzleError
@@ -86,6 +91,20 @@ def test_seed_creates_solvable_puzzles_cycling_through_the_difficulties():
         assert services.prepare_puzzle(puzzle.numbers, puzzle.target).min_operations == (
             puzzle.min_operations
         )
+
+
+def test_seed_falls_back_to_a_fixed_puzzle_when_generation_fails(monkeypatch):
+    def fail(difficulty, rng=None):
+        raise GenerationFailedError()
+
+    monkeypatch.setattr(rules, "generate", fail)
+    daily_puzzle = DailyPuzzleFactory(game=Game.MATH)
+
+    services.seed_puzzle(daily_puzzle)
+
+    puzzle = MathPuzzle.objects.get(daily_puzzle=daily_puzzle)
+    assert (puzzle.target, puzzle.numbers) == (576, [2, 2, 3, 3, 4, 4])
+    assert puzzle.solution[-1]["result"] == 576
 
 
 def test_opening_the_game_starts_it_without_steps(today):

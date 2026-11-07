@@ -1,6 +1,8 @@
 import pytest
 from django.urls import reverse
 
+from apps.games.math import rules
+from apps.games.math.exceptions import GenerationFailedError
 from apps.games.math.models import MathPuzzle
 from apps.puzzles.models import Game
 from apps.puzzles.tests.factories import DailyPuzzleFactory
@@ -84,6 +86,20 @@ def test_a_difficulty_generates_the_puzzle(admin_client):
     assert (puzzle.difficulty, puzzle.min_operations) == ("medium", 4)
     assert 101 <= puzzle.target <= 999
     assert len(puzzle.numbers) == 6
+
+
+def test_a_failed_generation_is_a_form_error_not_a_crash(admin_client, monkeypatch):
+    def fail(difficulty, rng=None):
+        raise GenerationFailedError()
+
+    monkeypatch.setattr(rules, "generate", fail)
+    day = DailyPuzzleFactory(game=Game.MATH)
+
+    response = admin_client.post(ADD_URL, form_data(day, generate="hard"))
+
+    assert response.status_code == 200
+    assert "No puzzle of this difficulty was found" in response.content.decode()
+    assert not MathPuzzle.objects.exists()
 
 
 def test_a_started_puzzle_can_no_longer_change(admin_client):

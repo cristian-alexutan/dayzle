@@ -12,12 +12,15 @@ from apps.results.models import GameResult
 from apps.results.services import complete, save_progress, start_or_resume
 
 from . import rules
-from .exceptions import InvalidNumbersError, NoStepsError
+from .exceptions import GenerationFailedError, InvalidNumbersError, NoStepsError
 from .models import MathPuzzle
 from .selectors import get_playable_math_puzzle
 
 # seed_dev gives the coming days all three difficulties in turn.
 SEED_DIFFICULTIES = (rules.Difficulty.EASY, rules.Difficulty.MEDIUM, rules.Difficulty.HARD)
+# Used by seed_dev if the generator fails, so a day is never left without content.
+FALLBACK_NUMBERS = (2, 2, 3, 3, 4, 4)
+FALLBACK_TARGET = 576
 
 
 def steps_to_json(steps: Iterable[rules.PlayedStep]) -> list[dict]:
@@ -84,10 +87,18 @@ def generate_puzzle(
 
 
 def seed_puzzle(daily_puzzle: DailyPuzzle) -> None:
-    """``seed_dev`` hook: a random puzzle, cycling through the difficulties by date."""
+    """``seed_dev`` hook: a random puzzle, cycling through the difficulties by date.
+
+    If the generator fails, the day gets a fixed puzzle instead: ``seed_dev`` skips days it has
+    already created, so a failure here would leave the day empty for good.
+    """
     difficulty = SEED_DIFFICULTIES[daily_puzzle.date.toordinal() % len(SEED_DIFFICULTIES)]
+    try:
+        content = generate_puzzle(difficulty)
+    except GenerationFailedError:
+        content = prepare_puzzle(FALLBACK_NUMBERS, FALLBACK_TARGET)
     puzzle = MathPuzzle(daily_puzzle=daily_puzzle)
-    generate_puzzle(difficulty).apply_to(puzzle)
+    content.apply_to(puzzle)
     puzzle.save()
 
 

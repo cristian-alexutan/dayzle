@@ -3,7 +3,11 @@ import random
 import pytest
 
 from apps.games.math import rules
-from apps.games.math.exceptions import InvalidNumbersError, InvalidStepError
+from apps.games.math.exceptions import (
+    GenerationFailedError,
+    InvalidNumbersError,
+    InvalidStepError,
+)
 from apps.games.math.rules import Difficulty, Operator, Step
 
 
@@ -280,5 +284,5 @@ def test_generate_gives_up_after_the_attempts():
         def sample(self, population, k):
             return [1, 1, 2, 2, 3, 3][:k]
 
-    with pytest.raises(RuntimeError):
+    with pytest.raises(GenerationFailedError):
         rules.generate(Difficulty.EASY, OnlyTinyNumbers(), attempts=3)

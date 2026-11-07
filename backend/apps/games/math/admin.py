@@ -5,7 +5,7 @@ from django.contrib import admin
 from django.core.exceptions import ValidationError
 
 from . import services
-from .exceptions import InvalidNumbersError
+from .exceptions import GenerationFailedError, InvalidNumbersError
 from .models import DIFFICULTY_CHOICES, MathPuzzle
 from .rules import Difficulty
 from .selectors import has_players
@@ -78,7 +78,7 @@ class MathPuzzleForm(forms.ModelForm):
                 raise ValidationError("Enter both the target and the 6 numbers.")
             else:
                 self.content = services.prepare_puzzle(numbers, target)
-        except InvalidNumbersError as error:
+        except (InvalidNumbersError, GenerationFailedError) as error:
             raise ValidationError(error.message) from None
         cleaned["target"] = self.content.target
         cleaned["numbers"] = self.content.numbers
