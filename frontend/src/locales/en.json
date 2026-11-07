@@ -17,8 +17,21 @@
     },
     "loading": "Loading the game",
     "noPuzzle": "There is no game for today. Come back tomorrow!",
-    "numbers": "Numbers",
+    "numbers": "Available numbers",
+    "operators": {
+      "add": "Addition",
+      "divide": "Division",
+      "label": "Operations",
+      "multiply": "Multiplication",
+      "subtract": "Subtraction"
+    },
     "target": "Target",
+    "tile": {
+      "computed": "computed result",
+      "new": "NEW",
+      "refused": "step refused",
+      "selected": "selected"
+    },
     "title": "Numărăl"
   },
   "word": {

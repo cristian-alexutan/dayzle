@@ -17,8 +17,21 @@
     },
     "loading": "Se încarcă jocul",
     "noPuzzle": "Nu există un joc pentru astăzi. Revino mâine!",
-    "numbers": "Numere",
+    "numbers": "Numere disponibile",
+    "operators": {
+      "add": "Adunare",
+      "divide": "Împărțire",
+      "label": "Operații",
+      "multiply": "Înmulțire",
+      "subtract": "Scădere"
+    },
     "target": "Ținta",
+    "tile": {
+      "computed": "rezultat calculat",
+      "new": "NOU",
+      "refused": "pas refuzat",
+      "selected": "selectat"
+    },
     "title": "Numărăl"
   },
   "word": {
