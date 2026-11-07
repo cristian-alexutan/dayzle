@@ -148,6 +148,7 @@ describe('MathGameView', () => {
   it('says so when the server refuses a step', async () => {
     const wrapper = await mountView(jsonResponse(200, game))
     fetchMock.mockResolvedValueOnce(errorResponse(400, 'invalid_step'))
+    fetchMock.mockResolvedValueOnce(jsonResponse(200, game))
 
     await tap(wrapper, tile(wrapper, '50'))
     await tap(wrapper, wrapper.find('[data-test="operator-add"]'))
@@ -157,6 +158,49 @@ describe('MathGameView', () => {
       'Pasul nu a putut fi jucat. Încearcă altul.',
     )
     expect(tileTexts(wrapper)).toEqual(['1', '2', '2', '25', '50', '100'])
+    wrapper.unmount()
+  })
+
+  it('reloads the board after a refused save, so the next step builds on the saved steps', async () => {
+    const wrapper = await mountView(jsonResponse(200, game))
+    // Another tab already played 100 × 2, so this tab's board is behind.
+    const elsewhere = { ...game, steps: [{ left: 100, op: '*', right: 2, result: 200 }] }
+    fetchMock.mockResolvedValueOnce(errorResponse(400, 'invalid_step'))
+    fetchMock.mockResolvedValueOnce(jsonResponse(200, elsewhere))
+
+    await tap(wrapper, tile(wrapper, '100'))
+    await tap(wrapper, wrapper.find('[data-test="operator-add"]'))
+    await tap(wrapper, tile(wrapper, '1'))
+
+    expect(fetchMock.mock.calls[2]![0]).toBe('/api/v1/games/math/today/')
+    expect(tileTexts(wrapper)).toEqual(['1', '2', '25', '50', 'NOU200'])
+    expect(wrapper.find('[data-test="refusal"]').exists()).toBe(true)
+
+    fetchMock.mockResolvedValueOnce(jsonResponse(200, elsewhere))
+    await tap(wrapper, tile(wrapper, '50'))
+    await tap(wrapper, wrapper.find('[data-test="operator-add"]'))
+    await tap(wrapper, tile(wrapper, '1'))
+
+    expect(JSON.parse(fetchMock.mock.calls[3]![1].body)).toEqual({
+      steps: [
+        { left: 100, op: '*', right: 2 },
+        { left: 50, op: '+', right: 1 },
+      ],
+    })
+    wrapper.unmount()
+  })
+
+  it('shows the finished game when it was finished in another tab', async () => {
+    const wrapper = await mountView(jsonResponse(200, game))
+    fetchMock.mockResolvedValueOnce(errorResponse(409, 'already_played'))
+    fetchMock.mockResolvedValueOnce(jsonResponse(200, { ...game, status: 'completed', score: 900 }))
+
+    await tap(wrapper, tile(wrapper, '50'))
+    await tap(wrapper, wrapper.find('[data-test="operator-add"]'))
+    await tap(wrapper, tile(wrapper, '1'))
+
+    expect(wrapper.find('[data-test="finished"]').text()).toContain('Scor: 900')
+    expect(wrapper.find('[data-test="refusal"]').exists()).toBe(false)
     wrapper.unmount()
   })
 

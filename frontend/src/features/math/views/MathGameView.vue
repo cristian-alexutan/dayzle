@@ -46,18 +46,22 @@ const { tiles, firstId, operator, refusal, selectTile, selectOperator } = useMat
 /** Shown when the server refuses a step the browser accepted, e.g. after a change elsewhere. */
 const serverError = ref<string | null>(null)
 
-/** Every step goes to the server, which replays the whole board and sends it back. */
+/**
+ * Every step goes to the server, which replays the whole board and sends it back. After a
+ * refused save the board is reloaded, so the next step builds on the server's steps rather than
+ * on a stale copy (another tab, or a page left open past midnight).
+ */
 function play(step: StepInput) {
   serverError.value = null
   save.mutate([...(game.value?.steps ?? []), step], {
     onError: (error) => {
       const code = errorCode(error)
-      // Finished in another tab: show that game instead of an error.
-      if (code === 'already_played') query.refetch()
-      else
+      // Finished in another tab: the reload shows that game instead of an error.
+      if (code !== 'already_played')
         serverError.value = t(
           code === 'invalid_step' ? 'math.refused.server' : 'math.errors.generic',
         )
+      query.refetch()
     },
   })
 }
@@ -71,7 +75,10 @@ const message = computed(() => {
   return serverError.value
 })
 
-watch(firstId, () => (serverError.value = null))
+// Picking a new number starts a new try. A reload that clears the picks keeps the message.
+watch(firstId, (id) => {
+  if (id !== null) serverError.value = null
+})
 
 const shakingId = ref<string | null>(null)
 let shakeTimer: ReturnType<typeof setTimeout> | undefined
