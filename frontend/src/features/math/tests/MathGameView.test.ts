@@ -158,6 +158,8 @@ describe('MathGameView', () => {
       'Pasul nu a putut fi jucat. Încearcă altul.',
     )
     expect(tileTexts(wrapper)).toEqual(['1', '2', '2', '25', '50', '100'])
+    // The board didn't change, so the picks stay for another try.
+    expect(tile(wrapper, '50').attributes('aria-pressed')).toBe('true')
     wrapper.unmount()
   })
 

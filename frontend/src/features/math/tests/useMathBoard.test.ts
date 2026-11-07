@@ -77,6 +77,20 @@ describe('useMathBoard', () => {
     board.selectTile(tile(2).id)
 
     expect(onStep).toHaveBeenCalledWith({ left: 100, op: '*', right: 2 })
+  })
+
+  it('keeps the picks until the server saves the step, so a failed save is easy to retry', async () => {
+    const { board, saved, tile } = setup()
+    board.selectTile(tile(100).id)
+    board.selectOperator('*')
+    board.selectTile(tile(2).id)
+
+    expect(board.firstId.value).toBe(tile(100).id)
+    expect(board.operator.value).toBe('*')
+
+    saved.value = [{ left: 100, op: '*', right: 2, result: 200 }]
+    await nextTick()
+
     expect(board.firstId.value).toBeNull()
     expect(board.operator.value).toBeNull()
   })

@@ -95,7 +95,8 @@ export function useMathBoard({ numbers, steps, disabled, onStep }: Options) {
       refusal.value = { reason, step, tileId: id }
       return
     }
-    clear()
+    // The picks stay until the saved board comes back (the tiles watcher clears them then), so
+    // after a failed save the player only has to tap the second number again.
     onStep(step)
   }
 
