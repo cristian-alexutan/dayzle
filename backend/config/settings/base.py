@@ -107,3 +107,7 @@ SPECTACULAR_SETTINGS = {
     "VERSION": "1.0.0",
     "SERVE_INCLUDE_SCHEMA": False,
 }
+
+# Google Maps server key for the GeoGuesser's Street View Metadata API calls. Restrict it to the
+# Street View Static API. Never sent to the browser; empty disables location generation.
+GOOGLE_MAPS_SERVER_KEY = env.str("GOOGLE_MAPS_SERVER_KEY", default="")
