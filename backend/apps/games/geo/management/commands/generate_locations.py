@@ -29,7 +29,8 @@ class Command(BaseCommand):
         except (UnknownRegionError, StreetViewError) as error:
             raise CommandError(error.message) from None
         self.stdout.write(
-            f"{target.key}: added {report.added} location(s) in {report.attempts} tries."
+            f"{target.key}: added {report.added} location(s) in {report.attempts} tries"
+            + (f" ({report.errors} temporary Google error(s))." if report.errors else ".")
         )
         if report.added < count:
             self.stderr.write(f"Only {report.added} of {count} found; run it again for more.")

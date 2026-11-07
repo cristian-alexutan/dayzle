@@ -6,7 +6,7 @@ from apps.common.time import today_in_romania
 
 from .exceptions import ArchiveUnavailableError, NoPuzzleError
 from .models import DailyPuzzle
-from .registry import get_games
+from .registry import GameDefinition, get_games
 
 
 def get_playable_puzzle(game: str, day: date) -> DailyPuzzle:
@@ -24,6 +24,18 @@ def get_playable_puzzle(game: str, day: date) -> DailyPuzzle:
         return DailyPuzzle.objects.get(game=game, date=day)
     except DailyPuzzle.DoesNotExist:
         raise NoPuzzleError() from None
+
+
+def has_content(game: GameDefinition, puzzle: DailyPuzzle) -> bool:
+    """Whether the game's content model has an entry for this calendar entry.
+
+    A content model is linked through a ``daily_puzzle`` field (see CONTRIBUTING); one without
+    it counts as always having content.
+    """
+    model = game.content_model
+    if not any(field.name == "daily_puzzle" for field in model._meta.get_fields()):
+        return True
+    return model.objects.filter(daily_puzzle=puzzle).exists()
 
 
 def get_missing_days(days_ahead: int = 7) -> dict[str, list[date]]:

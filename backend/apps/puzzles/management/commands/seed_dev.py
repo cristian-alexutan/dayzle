@@ -9,6 +9,7 @@ from django.core.management.base import BaseCommand, CommandError
 from apps.common.time import today_in_romania
 from apps.puzzles.models import DailyPuzzle
 from apps.puzzles.registry import get_games
+from apps.puzzles.selectors import has_content
 
 
 class Command(BaseCommand):
@@ -36,7 +37,9 @@ class Command(BaseCommand):
                 puzzle, is_new = DailyPuzzle.objects.get_or_create(
                     game=game.key, date=today + timedelta(days=offset)
                 )
-                if is_new:
+                # Also a day whose calendar entry exists without content, e.g. after an earlier
+                # run that failed half-way or had nothing to seed it with.
+                if is_new or not has_content(game, puzzle):
                     game.seed(puzzle)
                     created += 1
             self.stdout.write(f"{game.key}: created {created} puzzle(s)")

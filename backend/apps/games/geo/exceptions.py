@@ -33,3 +33,7 @@ class StreetViewError(DomainError):
     status_code = 503
     code = "streetview_unavailable"
     default_message = "Street View could not be reached."
+
+
+class TemporaryStreetViewError(StreetViewError):
+    """A failure worth retrying: a network problem or Google's own ``UNKNOWN_ERROR``."""

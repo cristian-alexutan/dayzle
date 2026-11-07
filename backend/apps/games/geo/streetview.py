@@ -4,6 +4,7 @@ Used when locations are generated and rechecked, never while someone plays. Meta
 are free. The key is ``GOOGLE_MAPS_SERVER_KEY``, restricted to the Street View Static API.
 """
 
+import http.client
 import json
 import urllib.error
 import urllib.parse
@@ -12,12 +13,14 @@ from dataclasses import dataclass
 
 from django.conf import settings
 
-from .exceptions import StreetViewError
+from .exceptions import StreetViewError, TemporaryStreetViewError
 
 METADATA_URL = "https://maps.googleapis.com/maps/api/streetview/metadata"
 TIMEOUT_S = 10
 # Statuses meaning "no panorama here": anything else that isn't OK is a problem with the request.
 NOT_FOUND_STATUSES = {"ZERO_RESULTS", "NOT_FOUND"}
+# Google's server error: "the request may succeed if you try again".
+TEMPORARY_STATUSES = {"UNKNOWN_ERROR"}
 
 
 @dataclass(frozen=True)
@@ -38,9 +41,12 @@ def _fetch(params: dict) -> dict:
     try:
         with urllib.request.urlopen(f"{METADATA_URL}?{query}", timeout=TIMEOUT_S) as response:
             return json.load(response)
-    except (urllib.error.URLError, TimeoutError, ValueError) as error:
-        # Never include the URL: it contains the key.
-        raise StreetViewError(f"Street View request failed: {type(error).__name__}") from None
+    except (OSError, http.client.HTTPException, ValueError) as error:
+        # OSError covers URLError, timeouts and dropped connections; HTTPException covers a
+        # response cut short. Never include the URL: it contains the key.
+        raise TemporaryStreetViewError(
+            f"Street View request failed: {type(error).__name__}"
+        ) from None
 
 
 def _parse(data: dict) -> Panorama | None:
@@ -49,7 +55,8 @@ def _parse(data: dict) -> Panorama | None:
         return None
     if status != "OK":
         message = data.get("error_message") or "no details"
-        raise StreetViewError(f"Street View returned {status}: {message}")
+        error = TemporaryStreetViewError if status in TEMPORARY_STATUSES else StreetViewError
+        raise error(f"Street View returned {status}: {message}")
     # Only Google's own imagery: user photo spheres can be indoors, moved or removed at will.
     if "Google" not in data.get("copyright", ""):
         return None

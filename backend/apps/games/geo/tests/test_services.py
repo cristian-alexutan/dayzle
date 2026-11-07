@@ -12,6 +12,8 @@ from apps.games.geo.exceptions import (
     AlreadyAnsweredError,
     InvalidGuessError,
     RegionLockedError,
+    StreetViewError,
+    TemporaryStreetViewError,
     UnknownRegionError,
 )
 from apps.games.geo.models import GeoPuzzle, Location
@@ -304,6 +306,65 @@ def test_generate_gives_up_after_too_many_tries(monkeypatch):
 
     assert report.added == 0
     assert report.attempts == 3 * services.ATTEMPTS_PER_LOCATION
+
+
+def fake_find_with_errors(monkeypatch, answers):
+    """Like fake_find, but an exception class in ``answers`` is raised for that call."""
+    queue = list(answers)
+
+    def find(*args):
+        answer = queue.pop(0) if queue else None
+        if isinstance(answer, type) and issubclass(answer, Exception):
+            raise answer("Street View returned UNKNOWN_ERROR: no details")
+        return answer
+
+    monkeypatch.setattr(streetview, "find_panorama", find)
+
+
+def test_generate_keeps_going_after_a_temporary_google_error(monkeypatch):
+    fake_find_with_errors(
+        monkeypatch,
+        [
+            streetview.Panorama("a", 46.77, 23.59),
+            TemporaryStreetViewError,
+            streetview.Panorama("b", 46.76, 23.60),
+        ],
+    )
+
+    report = services.generate_locations(cluj(), 2, random.Random(1))
+
+    assert (report.added, report.attempts, report.errors) == (2, 3, 1)
+
+
+def test_generate_stops_after_too_many_temporary_errors_in_a_row(monkeypatch):
+    fake_find_with_errors(
+        monkeypatch,
+        [
+            streetview.Panorama("a", 46.77, 23.59),
+            *[TemporaryStreetViewError] * services.MAX_TEMPORARY_ERRORS_IN_A_ROW,
+        ],
+    )
+
+    with pytest.raises(TemporaryStreetViewError):
+        services.generate_locations(cluj(), 5, random.Random(1))
+    # The location found before the errors is kept.
+    assert list(Location.objects.values_list("panorama_id", flat=True)) == ["a"]
+
+
+def test_generate_stops_at_once_on_a_refused_key(monkeypatch):
+    fake_find_with_errors(monkeypatch, [StreetViewError])
+
+    with pytest.raises(StreetViewError):
+        services.generate_locations(cluj(), 5, random.Random(1))
+
+
+def test_seed_survives_google_failing(monkeypatch):
+    fake_find_with_errors(monkeypatch, [TemporaryStreetViewError] * 10)
+    day = DailyPuzzleFactory(game=Game.GEO)
+
+    services.seed_puzzle(day)  # logs a warning instead of raising
+
+    assert not GeoPuzzle.objects.exists()
 
 
 def test_recheck_refreshes_coordinates_and_deactivates_removed_panoramas(monkeypatch):

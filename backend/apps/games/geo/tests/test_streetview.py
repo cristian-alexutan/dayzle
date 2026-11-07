@@ -1,3 +1,4 @@
+import http.client
 import io
 import json
 import urllib.error
@@ -6,7 +7,7 @@ import urllib.parse
 import pytest
 
 from apps.games.geo import streetview
-from apps.games.geo.exceptions import StreetViewError
+from apps.games.geo.exceptions import StreetViewError, TemporaryStreetViewError
 
 GOOGLE_PANORAMA = {
     "status": "OK",
@@ -97,3 +98,35 @@ def test_missing_key_is_an_error_without_a_request(respond, settings):
     with pytest.raises(StreetViewError):
         streetview.find_panorama(46.77, 23.59)
     assert requested == []
+
+
+def test_google_unknown_error_is_temporary(respond):
+    respond({"status": "UNKNOWN_ERROR"})
+
+    with pytest.raises(TemporaryStreetViewError):
+        streetview.find_panorama(46.77, 23.59)
+
+
+@pytest.mark.parametrize("status", ["REQUEST_DENIED", "OVER_QUERY_LIMIT"])
+def test_a_refused_key_is_not_temporary(respond, status):
+    respond({"status": status})
+
+    with pytest.raises(StreetViewError) as raised:
+        streetview.find_panorama(46.77, 23.59)
+    assert not isinstance(raised.value, TemporaryStreetViewError)
+
+
+@pytest.mark.parametrize(
+    "error",
+    [
+        http.client.RemoteDisconnected("closed"),
+        http.client.IncompleteRead(b""),
+        ConnectionResetError(),
+        TimeoutError(),
+    ],
+)
+def test_a_dropped_connection_is_temporary(respond, error):
+    respond(error=error)
+
+    with pytest.raises(TemporaryStreetViewError):
+        streetview.find_panorama(46.77, 23.59)

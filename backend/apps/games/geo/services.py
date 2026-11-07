@@ -20,7 +20,13 @@ from apps.results.selectors import get_result
 from apps.results.services import complete, save_progress, start_or_resume
 
 from . import rules, streetview
-from .exceptions import AlreadyAnsweredError, InvalidGuessError, RegionLockedError
+from .exceptions import (
+    AlreadyAnsweredError,
+    InvalidGuessError,
+    RegionLockedError,
+    StreetViewError,
+    TemporaryStreetViewError,
+)
 from .models import GeoPuzzle, GeoPuzzleLocation, Location, Region
 from .selectors import (
     active_location_count,
@@ -37,6 +43,8 @@ logger = logging.getLogger(__name__)
 SEARCH_RADIUS_M = 100
 # Random points tried per location wanted before generate_locations gives up.
 ATTEMPTS_PER_LOCATION = 20
+# generate_locations stops after this many temporary Google errors in a row.
+MAX_TEMPORARY_ERRORS_IN_A_ROW = 5
 # seed_dev fills a region's bank up to a week's worth of games (with room for the spacing
 # rule) when it has fewer than two games' worth.
 SEED_BANK_SIZE = 7 * rules.ROUNDS * 2
@@ -187,6 +195,8 @@ def guess(
 class GenerationReport:
     added: int = 0
     attempts: int = 0
+    # Tries lost to temporary Google errors (counted in ``attempts`` too).
+    errors: int = 0
 
 
 def generate_locations(
@@ -195,15 +205,26 @@ def generate_locations(
     """Add up to ``count`` random Google panoramas inside the region to its location bank.
 
     Each try picks a random point in the region and asks Google for the nearest outdoor
-    panorama. Stops after ``ATTEMPTS_PER_LOCATION`` tries per location wanted.
+    panorama. Stops after ``ATTEMPTS_PER_LOCATION`` tries per location wanted. A temporary
+    Google error only costs that try; ``MAX_TEMPORARY_ERRORS_IN_A_ROW`` of them in a row raise
+    ``TemporaryStreetViewError``, keeping the locations added so far.
     """
     rng = rng or random.Random()
     report = GenerationReport()
     known = set(Location.objects.values_list("panorama_id", flat=True))
+    errors_in_a_row = 0
     while report.added < count and report.attempts < count * ATTEMPTS_PER_LOCATION:
         report.attempts += 1
         start = region.bounds.random_point(rng)
-        panorama = streetview.find_panorama(start.lat, start.lng, SEARCH_RADIUS_M)
+        try:
+            panorama = streetview.find_panorama(start.lat, start.lng, SEARCH_RADIUS_M)
+        except TemporaryStreetViewError:
+            report.errors += 1
+            errors_in_a_row += 1
+            if errors_in_a_row >= MAX_TEMPORARY_ERRORS_IN_A_ROW:
+                raise
+            continue
+        errors_in_a_row = 0
         if panorama is None or panorama.pano_id in known:
             continue
         if not region.bounds.contains(rules.Point(panorama.lat, panorama.lng)):
@@ -249,7 +270,8 @@ def seed_puzzle(daily_puzzle: DailyPuzzle) -> None:
     """``seed_dev`` hook: make every active region's game for a new day.
 
     Generates a week's worth of locations first for a region whose bank is too small, which
-    needs ``GOOGLE_MAPS_SERVER_KEY``. Without it, regions with no bank are skipped.
+    needs ``GOOGLE_MAPS_SERVER_KEY``. Without it, or when Google fails, a region whose bank is
+    still too small is skipped with a warning; ``seed_dev`` seeds the day again on its next run.
     """
     for region in active_regions():
         size = active_location_count(region)
@@ -260,7 +282,11 @@ def seed_puzzle(daily_puzzle: DailyPuzzle) -> None:
                     region.key,
                 )
                 continue
-            generate_locations(region, SEED_BANK_SIZE - size)
+            try:
+                generate_locations(region, SEED_BANK_SIZE - size)
+            except StreetViewError as error:
+                # Keep seed_dev going for the other games; the next run fills this day in.
+                logger.warning("Geo: generating locations for %s failed: %s", region.key, error)
         try:
             ensure_daily_game(daily_puzzle, region)
         except NoPuzzleError:

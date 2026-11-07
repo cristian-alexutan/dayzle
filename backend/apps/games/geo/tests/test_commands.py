@@ -100,3 +100,23 @@ def test_seed_dev_makes_geo_games(settings, monkeypatch):
 
     assert "geo: created 3 puzzle(s)" in out
     assert GeoPuzzle.objects.count() == 3
+
+
+def test_seed_dev_fills_in_a_geo_day_after_a_failed_run(settings, monkeypatch):
+    """The first run can't reach Google; the next one makes the days it left empty."""
+    settings.DEBUG = True
+
+    def google_down(*args):
+        raise streetview.TemporaryStreetViewError("Street View returned UNKNOWN_ERROR")
+
+    monkeypatch.setattr(streetview, "find_panorama", google_down)
+    run("seed_dev", "--days", "2")
+    assert not GeoPuzzle.objects.exists()
+
+    bank = LocationFactory.build_batch(services.SEED_BANK_SIZE)
+    found = iter(streetview.Panorama(loc.panorama_id, loc.latitude, loc.longitude) for loc in bank)
+    monkeypatch.setattr(streetview, "find_panorama", lambda *args: next(found, None))
+    out, _ = run("seed_dev", "--days", "2")
+
+    assert "geo: created 2 puzzle(s)" in out
+    assert GeoPuzzle.objects.count() == 2
