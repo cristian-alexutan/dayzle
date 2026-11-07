@@ -160,6 +160,38 @@ def test_reaching_the_target_scores_1000(today):
     assert game.result.details["operations"] == 3
 
 
+def test_saving_a_step_that_reaches_the_target_finishes_the_game(today):
+    guest_id = uuid.uuid4()
+    services.save_steps(guest_id, today, steps(*SOLVED[:2]))
+
+    game = services.save_steps(guest_id, today, steps(*SOLVED))
+
+    assert game.result.status == GameResult.Status.COMPLETED
+    assert game.result.solved is True
+    assert game.result.score == 1000
+    assert game.result.duration_ms is not None
+    assert game.result.details == {
+        "steps": [
+            {"left": 100, "op": "*", "right": 2, "result": 200},
+            {"left": 50, "op": "+", "right": 3, "result": 53},
+            {"left": 200, "op": "+", "right": 53, "result": 253},
+        ],
+        "final_result": 253,
+        "distance": 0,
+        "operations": 3,
+    }
+
+
+def test_saving_steps_that_miss_the_target_keeps_the_game_going(today):
+    guest_id = uuid.uuid4()
+
+    game = services.save_steps(guest_id, today, steps("100 * 2", "200 + 50", "3 - 1"))
+
+    assert game.result.status == GameResult.Status.IN_PROGRESS
+    assert game.result.completed_at is None
+    assert set(game.result.details) == {"steps"}
+
+
 def test_the_closest_result_is_scored_by_its_distance(today):
     game = services.submit(uuid.uuid4(), today, steps("100 * 2", "200 + 50", "3 - 1"))
 

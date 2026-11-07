@@ -65,6 +65,17 @@ def test_submit_reveals_the_result_and_the_solution(api_client):
     assert api_client.get(GAME_URL).data["solution"] == response.data["solution"]
 
 
+def test_progress_that_reaches_the_target_finishes_the_game(api_client):
+    response = api_client.post(PROGRESS_URL, SOLVED, format="json")
+
+    assert response.status_code == 200
+    assert response.data["status"] == "completed"
+    assert response.data["solved"] is True
+    assert response.data["score"] == 1000
+    assert response.data["solution"] is not None
+    assert api_client.post(SUBMIT_URL, SOLVED, format="json").status_code == 409
+
+
 def test_an_inexact_submit_is_scored_by_distance(api_client):
     response = api_client.post(SUBMIT_URL, body((100, "*", 2), (200, "+", 50)), format="json")
 

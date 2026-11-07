@@ -126,28 +126,11 @@ def _replay_for(game: MathGame, steps: Sequence[rules.Step]) -> rules.Replay:
     return rules.replay(game.math_puzzle.numbers, game.math_puzzle.target, steps)
 
 
-def save_steps(guest_id: uuid.UUID, day: date, steps: Sequence[rules.Step]) -> MathGame:
-    """Save the board after a step, undo or reset, so a refresh restores it.
+def _finish(game: MathGame, replay: rules.Replay) -> MathGame:
+    """Complete the game, scored with ``rules.score`` on the distance to the target.
 
-    The steps replace the saved ones. An invalid step raises ``InvalidStepError`` and nothing is
-    saved, so the game goes on from the last valid board.
-    """
-    game = open_game(guest_id, day)
-    replay = _replay_for(game, steps)
-    result = save_progress(game.result, {"steps": steps_to_json(replay.steps)})
-    return MathGame(result, game.math_puzzle)
-
-
-def submit(guest_id: uuid.UUID, day: date, steps: Sequence[rules.Step]) -> MathGame:
-    """Finish the game with the player's final steps, scored with ``rules.score``.
-
-    The final result is the computed number closest to the target; at least one step is needed.
     ``details`` keeps the steps, final result, distance and number of operations.
     """
-    game = open_game(guest_id, day)
-    replay = _replay_for(game, steps)
-    if not steps:
-        raise NoStepsError()
     details = {
         "steps": steps_to_json(replay.steps),
         "final_result": replay.final_result,
@@ -158,3 +141,31 @@ def submit(guest_id: uuid.UUID, day: date, steps: Sequence[rules.Step]) -> MathG
         game.result, solved=replay.solved, score=rules.score(replay.distance), details=details
     )
     return MathGame(result, game.math_puzzle)
+
+
+def save_steps(guest_id: uuid.UUID, day: date, steps: Sequence[rules.Step]) -> MathGame:
+    """Save the board after a step, undo or reset, so a refresh restores it.
+
+    The steps replace the saved ones. A step that reaches the target exactly finishes the game
+    right away, as Word does on the right guess, so a solved game isn't lost if the page closes
+    before a submit. An invalid step raises ``InvalidStepError`` and nothing is saved, so the
+    game goes on from the last valid board.
+    """
+    game = open_game(guest_id, day)
+    replay = _replay_for(game, steps)
+    if replay.solved:
+        return _finish(game, replay)
+    result = save_progress(game.result, {"steps": steps_to_json(replay.steps)})
+    return MathGame(result, game.math_puzzle)
+
+
+def submit(guest_id: uuid.UUID, day: date, steps: Sequence[rules.Step]) -> MathGame:
+    """Finish the game with the player's final steps, e.g. when they can't get any closer.
+
+    The final result is the computed number closest to the target; at least one step is needed.
+    """
+    game = open_game(guest_id, day)
+    replay = _replay_for(game, steps)
+    if not steps:
+        raise NoStepsError()
+    return _finish(game, replay)

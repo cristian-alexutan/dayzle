@@ -24,7 +24,11 @@ def game(request: Request, day: date) -> Response:
 @extend_schema(request=StepsInputSerializer, responses=MathGameSerializer)
 @api_view(["POST"])
 def progress(request: Request, day: date) -> Response:
-    """Save the board after a step, undo or reset. The server replays every step."""
+    """Save the board after a step, undo or reset. The server replays every step.
+
+    A step that reaches the target finishes the game: the board comes back completed, with the
+    score and the example solution, as from submit.
+    """
     data = StepsInputSerializer(data=request.data)
     data.is_valid(raise_exception=True)
     math_game = services.save_steps(get_guest_id(request), day, data.to_steps())
