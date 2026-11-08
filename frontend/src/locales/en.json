@@ -13,6 +13,9 @@
   },
   "math": {
     "closest": "Closest so far: {value}",
+    "eggs": {
+      "notFound": "404 · Number not found"
+    },
     "errors": {
       "finish": "The game couldn't be finished. Please try again.",
       "generic": "Something went wrong. Please try again."

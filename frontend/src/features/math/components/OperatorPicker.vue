@@ -6,7 +6,10 @@ import AppButton from '@/shared/components/AppButton.vue'
 
 import { OPERATOR_SYMBOLS, type Operator } from '../types'
 
-defineProps<{ selected: Operator | null; disabled?: boolean }>()
+import { EGG_MS } from '../composables/useEasterEggs'
+
+/** `juggling`: the easter egg for a step with a 6 and a 7, the buttons jump up and down in turn. */
+defineProps<{ selected: Operator | null; disabled?: boolean; juggling?: boolean }>()
 defineEmits<{ choose: [op: Operator] }>()
 
 const { t } = useI18n()
@@ -20,7 +23,13 @@ const OPERATORS: { op: Operator; name: string }[] = [
 </script>
 
 <template>
-  <div class="operator-picker" role="group" :aria-label="t('math.operators.label')">
+  <div
+    class="operator-picker"
+    :class="{ 'operator-picker--juggling': juggling }"
+    :style="{ '--egg-ms': `${EGG_MS}ms` }"
+    role="group"
+    :aria-label="t('math.operators.label')"
+  >
     <AppButton
       v-for="{ op, name } in OPERATORS"
       :key="op"
@@ -72,5 +81,54 @@ const OPERATORS: { op: Operator; name: string }[] = [
   box-shadow:
     0 0 0 3px var(--dz-page),
     0 0 0 6px var(--dz-primary-strong);
+}
+
+/* The 6-and-7 easter egg: the buttons jump in turn, with motion lines on the side they left. */
+.operator-picker--juggling .operator-picker__operator {
+  position: relative;
+  overflow: visible;
+  animation: operator-picker-juggle calc(var(--egg-ms) / 4) ease-in-out 4 alternate;
+}
+
+.operator-picker--juggling .operator-picker__operator:nth-child(even) {
+  animation-direction: alternate-reverse;
+}
+
+.operator-picker--juggling .operator-picker__operator::after {
+  content: '';
+  position: absolute;
+  bottom: -14px;
+  left: 50%;
+  width: 16px;
+  height: 8px;
+  transform: translateX(-50%);
+  background: linear-gradient(
+    to right,
+    var(--dz-primary-strong) 0 2px,
+    transparent 2px 7px,
+    var(--dz-accent) 7px 9px,
+    transparent 9px 14px,
+    var(--dz-primary-strong) 14px 16px
+  );
+}
+
+.operator-picker--juggling .operator-picker__operator:nth-child(even)::after {
+  top: -14px;
+  bottom: auto;
+}
+
+@keyframes operator-picker-juggle {
+  from {
+    transform: translateY(-14px);
+  }
+  to {
+    transform: translateY(14px);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .operator-picker--juggling .operator-picker__operator {
+    animation: none;
+  }
 }
 </style>
