@@ -5,7 +5,8 @@
   },
   "geo": {
     "errors": {
-      "generic": "Something went wrong. Please try again."
+      "generic": "Something went wrong. Please try again.",
+      "noRegion": "The GeoGuesser isn't available right now. Please try again later."
     },
     "finished": "Finished! Score: {score} out of {max}",
     "loading": "Loading the game",

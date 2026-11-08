@@ -131,9 +131,36 @@ describe('geo queries', () => {
   })
 })
 
-describe('errorCode and errorDetails', () => {
-  it('are null for errors that did not come from the backend', () => {
-    expect(errorCode(new Error('offline'))).toBeNull()
-    expect(errorDetails(new Error('offline'))).toBeNull()
+describe('geo guess while the game reloads', () => {
+  it('does not let a reload sent before the guess bring back the guessed round', async () => {
+    const { game, guess } = await mountLoaded()
+    let finishReload!: (response: Response) => void
+    fetchMock.mockReturnValueOnce(new Promise<Response>((resolve) => (finishReload = resolve)))
+    fetchMock.mockResolvedValueOnce(jsonResponse(200, afterFirstGuess))
+
+    void game.refetch()
+    await guess.mutateAsync({ round: 1, lat: 46.77, lng: 23.6 })
+    finishReload(jsonResponse(200, newGame))
+    await flushPromises()
+
+    expect(game.data.value?.current_round).toBe(2)
+  })
+
+  it('does not let a reload started during the guess bring back the guessed round', async () => {
+    const { game, guess } = await mountLoaded()
+    let finishGuess!: (response: Response) => void
+    let finishReload!: (response: Response) => void
+    fetchMock.mockReturnValueOnce(new Promise<Response>((resolve) => (finishGuess = resolve)))
+    fetchMock.mockReturnValueOnce(new Promise<Response>((resolve) => (finishReload = resolve)))
+
+    const guessed = guess.mutateAsync({ round: 1, lat: 46.77, lng: 23.6 })
+    await flushPromises()
+    void game.refetch()
+    finishGuess(jsonResponse(200, afterFirstGuess))
+    await guessed
+    finishReload(jsonResponse(200, newGame))
+    await flushPromises()
+
+    expect(game.data.value?.current_round).toBe(2)
   })
 })

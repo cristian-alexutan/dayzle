@@ -5,7 +5,8 @@
   },
   "geo": {
     "errors": {
-      "generic": "Ceva nu a mers. Încearcă din nou."
+      "generic": "Ceva nu a mers. Încearcă din nou.",
+      "noRegion": "GeoGuesser nu este disponibil acum. Încearcă mai târziu."
     },
     "finished": "Ai terminat! Scor: {score} din {max}",
     "loading": "Se încarcă jocul",

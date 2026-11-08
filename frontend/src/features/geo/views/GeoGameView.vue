@@ -21,7 +21,9 @@ const inProgress = computed(() => game.value?.status === 'in_progress')
 const finished = computed(() => game.value?.status === 'completed')
 
 const code = computed(() => errorCode(query.error.value))
-const noPuzzle = computed(() => code.value === 'no_puzzle' || code.value === 'no_region')
+const noPuzzle = computed(() => code.value === 'no_puzzle')
+/** The region doesn't exist or is switched off: a setup problem, not a day without a game. */
+const noRegion = computed(() => code.value === 'no_region')
 /** Today's game was started in another region, which the backend names in the error. */
 const lockedRegion = computed(() =>
   code.value === 'region_locked' ? String(errorDetails(query.error.value)?.region ?? '') : null,
@@ -53,8 +55,8 @@ const subtitle = computed(() => {
     </AppMessage>
     <ErrorState
       v-else-if="query.isError.value"
-      :message="t('geo.errors.generic')"
-      retryable
+      :message="t(noRegion ? 'geo.errors.noRegion' : 'geo.errors.generic')"
+      :retryable="!noRegion"
       @retry="query.refetch()"
     />
     <template v-else-if="game">

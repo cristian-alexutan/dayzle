@@ -62,6 +62,15 @@ describe('GeoGameView', () => {
     wrapper.unmount()
   })
 
+  it('treats an unknown region as a setup problem, not a day without a game', async () => {
+    const wrapper = await mountView(errorResponse(404, 'no_region'))
+
+    expect(wrapper.find('[data-test="no-puzzle"]').exists()).toBe(false)
+    expect(wrapper.text()).toContain('GeoGuesser nu este disponibil acum.')
+    expect(wrapper.find('button').exists()).toBe(false)
+    wrapper.unmount()
+  })
+
   it('names the region today was started in when another one is locked', async () => {
     const wrapper = await mountView(errorResponse(409, 'region_locked', { region: 'cluj-napoca' }))
 

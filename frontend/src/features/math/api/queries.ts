@@ -2,7 +2,6 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/vue-query'
 import type { MaybeRefOrGetter } from 'vue'
 
-import { ApiError } from '@/api/http'
 import { useHeartbeat } from '@/shared/composables/useHeartbeat'
 
 import type { GameDay, MathGame, StepInput } from '../types'
@@ -10,10 +9,7 @@ import { fetchGame, saveProgress, sendHeartbeat, submitGame } from './endpoints'
 
 const gameKey = (day: GameDay) => ['math', 'game', day]
 
-/** The backend's error code (`no_puzzle`, `invalid_step`, ...), or null for any other error. */
-export function errorCode(error: unknown): string | null {
-  return error instanceof ApiError ? error.code : null
-}
+export { errorCode } from '@/api/http'
 
 export function useMathGameQuery(day: GameDay) {
   return useQuery({ queryKey: gameKey(day), queryFn: () => fetchGame(day) })

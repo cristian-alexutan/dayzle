@@ -1,6 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
-import { ApiError, http } from './http'
+import { ApiError, errorCode, errorDetails, http } from './http'
 
 const fetchMock = vi.fn()
 
@@ -79,5 +79,23 @@ describe('http', () => {
     const error = await http.get('/games/word/today/').catch((e: unknown) => e)
 
     expect(error).toMatchObject({ status: 0, code: 'network_error' })
+  })
+})
+
+describe('errorCode and errorDetails', () => {
+  it('read the code and the details of a backend error', () => {
+    const error = new ApiError(409, 'region_locked', 'Locked', { region: 'cluj-napoca' })
+
+    expect(errorCode(error)).toBe('region_locked')
+    expect(errorDetails(error)).toEqual({ region: 'cluj-napoca' })
+  })
+
+  it('give no details when the backend sent none', () => {
+    expect(errorDetails(new ApiError(404, 'no_puzzle', 'No puzzle'))).toBeNull()
+  })
+
+  it('are null for errors that did not come from the backend', () => {
+    expect(errorCode(new Error('offline'))).toBeNull()
+    expect(errorDetails(new Error('offline'))).toBeNull()
   })
 })
