@@ -16,6 +16,11 @@
       "generic": "Ceva nu a mers. Încearcă din nou."
     },
     "finished": "Ai terminat! Scor: {score}",
+    "history": {
+      "count": "{count} din {max} pași",
+      "empty": "Încă niciun pas. Atinge un număr, apoi o operație și un al doilea număr.",
+      "title": "Pașii tăi"
+    },
     "loading": "Se încarcă jocul",
     "noPuzzle": "Nu există un joc pentru astăzi. Revino mâine!",
     "numbers": "Numere disponibile",
