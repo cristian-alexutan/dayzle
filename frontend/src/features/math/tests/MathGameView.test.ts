@@ -220,6 +220,107 @@ describe('MathGameView', () => {
     wrapper.unmount()
   })
 
+  describe('history, closest so far, undo and reset', () => {
+    const played = {
+      ...game,
+      steps: [
+        { left: 100, op: '*', right: 2, result: 200 },
+        { left: 50, op: '+', right: 2, result: 52 },
+      ],
+    } satisfies MathGame
+    const sentSteps = (call: number) => JSON.parse(fetchMock.mock.calls[call]![1].body).steps
+    const button = (wrapper: VueWrapper, name: string) => wrapper.find(`[data-test="${name}"]`)
+
+    it('before the first step: a hint, no closest number, nothing to undo', async () => {
+      const wrapper = await mountView(jsonResponse(200, game))
+
+      expect(wrapper.find('[data-test="history-empty"]').exists()).toBe(true)
+      expect(wrapper.find('[data-test="closest"]').exists()).toBe(false)
+      expect(button(wrapper, 'undo').attributes('disabled')).toBeDefined()
+      expect(button(wrapper, 'reset').attributes('disabled')).toBeDefined()
+      wrapper.unmount()
+    })
+
+    it('lists the saved steps and the computed number closest to the target', async () => {
+      const wrapper = await mountView(jsonResponse(200, played))
+
+      expect(wrapper.findAll('[data-test="step"]')).toHaveLength(2)
+      expect(wrapper.find('[data-test="history-count"]').text()).toBe('2 din 5 pași')
+      // 200 is 53 away from 253, 52 is 201 away; 100 is a starting number, so it doesn't count.
+      expect(wrapper.find('[data-test="closest"]').text()).toBe('Cel mai aproape până acum: 200')
+      wrapper.unmount()
+    })
+
+    it('undo saves the steps without the last one and shows the board sent back', async () => {
+      const wrapper = await mountView(jsonResponse(200, played))
+      fetchMock.mockResolvedValueOnce(jsonResponse(200, { ...played, steps: [played.steps[0]] }))
+
+      await tap(wrapper, button(wrapper, 'undo'))
+
+      expect(fetchMock.mock.calls[1]![0]).toBe('/api/v1/games/math/today/progress/')
+      expect(sentSteps(1)).toEqual([{ left: 100, op: '*', right: 2 }])
+      expect(tileTexts(wrapper)).toEqual(['1', '2', '25', '50', 'NOU200'])
+      expect(wrapper.findAll('[data-test="step"]')).toHaveLength(1)
+      wrapper.unmount()
+    })
+
+    it('reset saves an empty list and brings back the starting numbers', async () => {
+      const wrapper = await mountView(jsonResponse(200, played))
+      fetchMock.mockResolvedValueOnce(jsonResponse(200, game))
+
+      await tap(wrapper, button(wrapper, 'reset'))
+
+      expect(sentSteps(1)).toEqual([])
+      expect(tileTexts(wrapper)).toEqual(['1', '2', '2', '25', '50', '100'])
+      expect(wrapper.find('[data-test="closest"]').exists()).toBe(false)
+      wrapper.unmount()
+    })
+
+    it('clears a picked number when the board changes after an undo', async () => {
+      const wrapper = await mountView(jsonResponse(200, played))
+      fetchMock.mockResolvedValueOnce(jsonResponse(200, { ...played, steps: [played.steps[0]] }))
+
+      await tap(wrapper, tile(wrapper, '25'))
+      await tap(wrapper, button(wrapper, 'undo'))
+
+      expect(tile(wrapper, '25').attributes('aria-pressed')).toBe('false')
+      wrapper.unmount()
+    })
+
+    it('can not undo while a save is on its way', async () => {
+      const wrapper = await mountView(jsonResponse(200, played))
+      fetchMock.mockReturnValueOnce(new Promise(() => {}))
+
+      await tap(wrapper, button(wrapper, 'undo'))
+
+      expect(button(wrapper, 'undo').attributes('disabled')).toBeDefined()
+      expect(button(wrapper, 'reset').attributes('disabled')).toBeDefined()
+      wrapper.unmount()
+    })
+
+    it('says so when an undo can not be saved, and reloads the board', async () => {
+      const wrapper = await mountView(jsonResponse(200, played))
+      fetchMock.mockResolvedValueOnce(errorResponse(500, 'server_error'))
+      fetchMock.mockResolvedValueOnce(jsonResponse(200, played))
+
+      await tap(wrapper, button(wrapper, 'undo'))
+
+      expect(wrapper.find('[data-test="refusal"]').text()).toContain('Ceva nu a mers')
+      expect(fetchMock.mock.calls[2]![0]).toBe('/api/v1/games/math/today/')
+      expect(wrapper.findAll('[data-test="step"]')).toHaveLength(2)
+      wrapper.unmount()
+    })
+
+    it('hides undo and reset once the game is finished, but keeps the steps', async () => {
+      const wrapper = await mountView(jsonResponse(200, { ...played, status: 'completed' }))
+
+      expect(button(wrapper, 'undo').exists()).toBe(false)
+      expect(button(wrapper, 'reset').exists()).toBe(false)
+      expect(wrapper.findAll('[data-test="step"]')).toHaveLength(2)
+      wrapper.unmount()
+    })
+  })
+
   it('says when there is no puzzle today', async () => {
     const wrapper = await mountView(errorResponse(404, 'no_puzzle'))
 

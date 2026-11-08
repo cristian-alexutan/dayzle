@@ -3,6 +3,7 @@
 import { computed, onBeforeUnmount, ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 
+import AppButton from '@/shared/components/AppButton.vue'
 import AppMessage from '@/shared/components/AppMessage.vue'
 import AppSpinner from '@/shared/components/AppSpinner.vue'
 import ErrorState from '@/shared/components/ErrorState.vue'
@@ -17,7 +18,8 @@ import {
 import MathTarget from '../components/MathTarget.vue'
 import NumberTile from '../components/NumberTile.vue'
 import OperatorPicker from '../components/OperatorPicker.vue'
-import { useMathBoard } from '../composables/useMathBoard'
+import StepHistory from '../components/StepHistory.vue'
+import { closestSoFar, useMathBoard } from '../composables/useMathBoard'
 import { OPERATOR_SYMBOLS, type StepInput } from '../types'
 
 const DAY = 'today'
@@ -36,24 +38,30 @@ const boardDisabled = computed(() => !inProgress.value || save.isPending.value)
 
 useMathHeartbeat(DAY, inProgress)
 
+const steps = computed(() => game.value?.steps ?? [])
+
 const { tiles, firstId, operator, refusal, selectTile, selectOperator } = useMathBoard({
   numbers: () => game.value?.numbers ?? [],
-  steps: () => game.value?.steps ?? [],
+  steps,
   disabled: boardDisabled,
-  onStep: play,
+  onStep: (step: StepInput) => saveSteps([...steps.value, step]),
 })
+
+const closest = computed(() => (game.value ? closestSoFar(tiles.value, game.value.target) : null))
+const canUndo = computed(() => !boardDisabled.value && steps.value.length > 0)
 
 /** Shown when the server refuses a step the browser accepted, e.g. after a change elsewhere. */
 const serverError = ref<string | null>(null)
 
 /**
- * Every step goes to the server, which replays the whole board and sends it back. After a
- * refused save the board is reloaded, so the next step builds on the server's steps rather than
- * on a stale copy (another tab, or a page left open past midnight).
+ * A step, an undo and a reset all save the whole list of steps: the server replays it from the
+ * starting numbers and sends the board back. After a refused save the board is reloaded, so the
+ * next step builds on the server's steps rather than on a stale copy (another tab, or a page
+ * left open past midnight).
  */
-function play(step: StepInput) {
+function saveSteps(next: StepInput[]) {
   serverError.value = null
-  save.mutate([...(game.value?.steps ?? []), step], {
+  save.mutate(next, {
     onError: (error) => {
       const code = errorCode(error)
       // Finished in another tab: the reload shows that game instead of an error.
@@ -139,6 +147,30 @@ onBeforeUnmount(() => clearTimeout(shakeTimer))
         <i class="pi pi-exclamation-circle" aria-hidden="true" />
         <span>{{ message }}</span>
       </p>
+      <p v-if="closest !== null" class="math-game__closest" data-test="closest">
+        {{ t('math.closest', { value: closest }) }}
+      </p>
+      <StepHistory :steps="steps" :max-steps="game.max_steps" />
+      <div v-if="inProgress" class="math-game__controls">
+        <AppButton
+          :label="t('math.undo')"
+          icon="pi pi-undo"
+          severity="secondary"
+          outlined
+          :disabled="!canUndo"
+          data-test="undo"
+          @click="saveSteps(steps.slice(0, -1))"
+        />
+        <AppButton
+          :label="t('math.reset')"
+          icon="pi pi-refresh"
+          severity="secondary"
+          outlined
+          :disabled="!canUndo"
+          data-test="reset"
+          @click="saveSteps([])"
+        />
+      </div>
       <AppMessage v-if="finished" severity="success" data-test="finished">
         {{ t('math.finished', { score: game.score }) }}
       </AppMessage>
@@ -156,6 +188,18 @@ onBeforeUnmount(() => clearTimeout(shakeTimer))
 .math-game__tiles {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 0.75rem;
+  width: 100%;
+}
+
+.math-game__closest {
+  margin: 0;
+  font-weight: 700;
+}
+
+.math-game__controls {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 0.75rem;
   width: 100%;
 }
