@@ -317,11 +317,13 @@ describe('MathGameView', () => {
       wrapper.unmount()
     })
 
-    it('hides undo and reset once the game is finished, but keeps the steps', async () => {
+    it('hides undo, reset and the closest number once the game is finished, but keeps the steps', async () => {
       const wrapper = await mountView(jsonResponse(200, { ...played, status: 'completed' }))
 
       expect(button(wrapper, 'undo').exists()).toBe(false)
       expect(button(wrapper, 'reset').exists()).toBe(false)
+      expect(wrapper.find('[data-test="closest"]').exists()).toBe(false)
+      expect(wrapper.find('[data-test="closest-announce"]').text()).toBe('')
       expect(wrapper.findAll('[data-test="step"]')).toHaveLength(2)
       wrapper.unmount()
     })

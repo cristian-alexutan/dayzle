@@ -52,8 +52,10 @@ const { tiles, firstId, operator, refusal, selectTile, selectOperator } = useMat
   onStep: (step: StepInput) => saveSteps([...steps.value, step]),
 })
 
+/** Only while playing: once the game ends, the result shows the final number instead. */
 const closestText = computed(() => {
-  const closest = game.value ? closestSoFar(tiles.value, game.value.target) : null
+  const closest =
+    game.value && inProgress.value ? closestSoFar(tiles.value, game.value.target) : null
   return closest === null ? '' : t('math.closest', { value: closest })
 })
 /** Undo, reset and finish all need at least one step, and nothing else on its way. */
@@ -194,7 +196,7 @@ onBeforeUnmount(() => clearTimeout(shakeTimer))
           :label="t('math.reset')"
           icon="pi pi-refresh"
           severity="secondary"
-          outlined
+          text
           :disabled="!canChange"
           data-test="reset"
           @click="saveSteps([])"
