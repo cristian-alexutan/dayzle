@@ -1,7 +1,7 @@
 import { describe, expect, it, vi } from 'vitest'
 import { nextTick, ref } from 'vue'
 
-import { boardTiles, checkStep, useMathBoard } from '../composables/useMathBoard'
+import { boardTiles, checkStep, closestSoFar, useMathBoard } from '../composables/useMathBoard'
 import type { PlayedStep } from '../types'
 
 const NUMBERS = [1, 2, 3, 25, 50, 100]
@@ -51,6 +51,41 @@ describe('boardTiles', () => {
 
     expect(values(tiles)).toEqual([2, 3, 4, 4, 6])
     expect(new Set(tiles.map((tile) => tile.id)).size).toBe(tiles.length)
+  })
+})
+
+describe('closestSoFar', () => {
+  it('is null before the first step, even if a starting number is near the target', () => {
+    expect(closestSoFar(boardTiles(NUMBERS, []), 99)).toBeNull()
+  })
+
+  it('picks the computed number nearest to the target', () => {
+    const steps: PlayedStep[] = [
+      { left: 100, op: '*', right: 2, result: 200 },
+      { left: 50, op: '+', right: 3, result: 53 },
+    ]
+
+    expect(closestSoFar(boardTiles(NUMBERS, steps), 60)).toBe(53)
+  })
+
+  it('picks the smaller one on a tie, as the server does', () => {
+    const steps: PlayedStep[] = [
+      { left: 50, op: '+', right: 1, result: 51 },
+      { left: 25, op: '*', right: 2, result: 50 },
+      { left: 50, op: '+', right: 3, result: 53 },
+    ]
+
+    // 51 and 53 are both 1 away from 52.
+    expect(closestSoFar(boardTiles(NUMBERS, steps), 52)).toBe(51)
+  })
+
+  it('ignores a computed number that a later step used up', () => {
+    const steps: PlayedStep[] = [
+      { left: 100, op: '+', right: 1, result: 101 },
+      { left: 101, op: '*', right: 2, result: 202 },
+    ]
+
+    expect(closestSoFar(boardTiles(NUMBERS, steps), 100)).toBe(202)
   })
 })
 
