@@ -5,6 +5,7 @@ from datetime import timedelta
 import factory
 import pytest
 from django.db import IntegrityError
+from django.utils import timezone
 
 from apps.common.time import today_in_romania
 from apps.games.geo import rules, services, streetview
@@ -16,13 +17,14 @@ from apps.games.geo.exceptions import (
     TemporaryStreetViewError,
     UnknownRegionError,
 )
-from apps.games.geo.models import GeoPuzzle, Location
-from apps.games.geo.selectors import pick_locations
+from apps.games.geo.models import GeoPuzzle, Location, Region
+from apps.games.geo.selectors import ordered_locations, pick_locations
 from apps.puzzles.exceptions import ArchiveUnavailableError, NoPuzzleError
 from apps.puzzles.models import DailyPuzzle, Game
 from apps.puzzles.tests.factories import DailyPuzzleFactory
 from apps.results.exceptions import AlreadyPlayedError
 from apps.results.models import GameResult
+from apps.results.tests.factories import GameResultFactory
 
 from .factories import CLUJ, GeoPuzzleFactory, LocationFactory, RegionFactory, cluj
 
@@ -150,6 +152,44 @@ def test_pick_keeps_the_spacing():
     assert len(picked) == 1
 
 
+def test_an_unopened_game_with_a_removed_panorama_is_made_again(bank):
+    day = DailyPuzzleFactory(game=Game.GEO)
+    old = GeoPuzzleFactory(daily_puzzle=day, locations=bank[:5])
+    Location.objects.filter(pk=bank[0].pk).update(is_active=False)
+
+    game = services.ensure_daily_game(day, cluj())
+
+    assert game.pk != old.pk
+    assert not GeoPuzzle.objects.filter(pk=old.pk).exists()
+    assert all(location.is_active for location in ordered_locations(game))
+
+
+def test_a_started_game_keeps_its_rounds_even_with_a_removed_panorama(bank, guest):
+    day = DailyPuzzleFactory(game=Game.GEO)
+    old = GeoPuzzleFactory(daily_puzzle=day, locations=bank[:5])
+    GameResultFactory(daily_puzzle=day, guest_id=guest)
+    Location.objects.filter(pk=bank[0].pk).update(is_active=False)
+
+    assert services.ensure_daily_game(day, cluj()).pk == old.pk
+
+
+def test_a_game_that_cant_be_made_again_is_kept():
+    locations = LocationFactory.create_batch(5)
+    day = DailyPuzzleFactory(game=Game.GEO)
+    old = GeoPuzzleFactory(daily_puzzle=day, locations=locations)
+    Location.objects.filter(pk=locations[0].pk).update(is_active=False)
+
+    # Only 4 active locations are left, so no new game: the old one stays.
+    assert services.ensure_daily_game(day, cluj()).pk == old.pk
+
+
+def test_locations_with_stale_coordinates_are_not_picked():
+    fresh = LocationFactory.create_batch(5)
+    LocationFactory.create_batch(5, last_checked_at=timezone.now() - timedelta(days=31))
+
+    assert set(pick_locations(cluj(), random.Random(1))) == set(fresh)
+
+
 # Playing
 
 
@@ -206,6 +246,15 @@ def test_a_guess_one_km_off_scores_with_the_region_scale(guest, bank):
     given = game.result.details["guesses"][0]
     assert given["distance_m"] == 1001
     assert given["score"] == rules.round_score(1001, 1500) == 513
+
+
+def test_a_day_keeps_the_scale_it_was_made_with(guest, bank):
+    game = services.open_game(guest, CLUJ, today())
+    Region.objects.filter(key=CLUJ).update(score_scale_m=3000)
+
+    game = play_round(guest, game, offset=0.009)
+
+    assert game.result.details["guesses"][0]["score"] == 513  # the 1500 m scale
 
 
 def test_rounds_are_guessed_in_order_and_once(guest, bank):
@@ -367,9 +416,51 @@ def test_seed_survives_google_failing(monkeypatch):
     assert not GeoPuzzle.objects.exists()
 
 
+def test_recheck_skips_a_location_after_a_temporary_error(monkeypatch):
+    checked_long_ago = timezone.now() - timedelta(days=20)
+    location = LocationFactory(last_checked_at=checked_long_ago)
+
+    def google_hiccup(pano_id):
+        raise TemporaryStreetViewError("Street View returned UNKNOWN_ERROR")
+
+    monkeypatch.setattr(streetview, "get_panorama", google_hiccup)
+
+    report = services.recheck_locations([location])
+
+    location.refresh_from_db()
+    assert (report.checked, report.skipped) == (0, 1)
+    assert location.last_checked_at == checked_long_ago  # tried again next time
+    assert location.is_active
+
+
+def test_recheck_stops_after_too_many_temporary_errors_in_a_row(monkeypatch):
+    locations = LocationFactory.create_batch(services.MAX_TEMPORARY_ERRORS_IN_A_ROW)
+
+    def google_down(pano_id):
+        raise TemporaryStreetViewError("Street View returned UNKNOWN_ERROR")
+
+    monkeypatch.setattr(streetview, "get_panorama", google_down)
+
+    with pytest.raises(TemporaryStreetViewError):
+        services.recheck_locations(locations)
+
+
+def test_recheck_deactivates_a_panorama_that_moved_outside_the_region(monkeypatch):
+    location = LocationFactory()
+    monkeypatch.setattr(
+        streetview, "get_panorama", lambda pano_id: streetview.Panorama(pano_id, 44.43, 26.10)
+    )
+
+    report = services.recheck_locations([location])
+
+    location.refresh_from_db()
+    assert report.outside == [location]
+    assert not location.is_active
+
+
 def test_recheck_refreshes_coordinates_and_deactivates_removed_panoramas(monkeypatch):
     kept, removed = LocationFactory(), LocationFactory()
-    answers = {kept.panorama_id: streetview.Panorama(kept.panorama_id, 46.7, 23.6)}
+    answers = {kept.panorama_id: streetview.Panorama(kept.panorama_id, 46.75, 23.6)}
     monkeypatch.setattr(streetview, "get_panorama", answers.get)
 
     report = services.recheck_locations([kept, removed])
@@ -378,7 +469,7 @@ def test_recheck_refreshes_coordinates_and_deactivates_removed_panoramas(monkeyp
     removed.refresh_from_db()
     assert report.checked == 2
     assert report.removed == [removed]
-    assert (kept.latitude, kept.longitude, kept.is_active) == (46.7, 23.6, True)
+    assert (kept.latitude, kept.longitude, kept.is_active) == (46.75, 23.6, True)
     assert not removed.is_active
 
 

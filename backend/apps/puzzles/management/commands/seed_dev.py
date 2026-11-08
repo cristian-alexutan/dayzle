@@ -41,5 +41,7 @@ class Command(BaseCommand):
                 # run that failed half-way or had nothing to seed it with.
                 if is_new or not has_content(game, puzzle):
                     game.seed(puzzle)
-                    created += 1
+                    # Count what was made: a hook can skip a day (e.g. Geo without a key).
+                    if has_content(game, puzzle):
+                        created += 1
             self.stdout.write(f"{game.key}: created {created} puzzle(s)")

@@ -30,6 +30,7 @@ class Command(BaseCommand):
         else:
             today = today_in_romania()
             locations = locations_on_days(today + timedelta(days=n) for n in range(days))
+        locations = locations.select_related("region")
         try:
             report = services.recheck_locations(locations)
         except StreetViewError as error:
@@ -37,3 +38,9 @@ class Command(BaseCommand):
         self.stdout.write(f"Checked {report.checked} location(s).")
         for location in report.removed:
             self.stderr.write(f"Removed by Google, deactivated: {location.panorama_id}")
+        for location in report.outside:
+            self.stderr.write(f"Moved outside its region, deactivated: {location.panorama_id}")
+        if report.skipped:
+            self.stderr.write(
+                f"Skipped {report.skipped} after temporary Google errors; run it again for those."
+            )

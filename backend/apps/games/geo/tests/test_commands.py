@@ -120,3 +120,12 @@ def test_seed_dev_fills_in_a_geo_day_after_a_failed_run(settings, monkeypatch):
 
     assert "geo: created 2 puzzle(s)" in out
     assert GeoPuzzle.objects.count() == 2
+
+
+def test_seed_dev_counts_only_days_that_got_a_game(settings):
+    settings.DEBUG = True
+    settings.GOOGLE_MAPS_SERVER_KEY = ""
+
+    out, _ = run("seed_dev", "--days", "2")
+
+    assert "geo: created 0 puzzle(s)" in out

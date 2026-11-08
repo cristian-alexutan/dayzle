@@ -54,7 +54,7 @@ class LocationAdmin(admin.ModelAdmin):
     @admin.action(description="Recheck panoramas with Google")
     def recheck(self, request, queryset):
         try:
-            report = services.recheck_locations(queryset)
+            report = services.recheck_locations(queryset.select_related("region"))
         except StreetViewError as error:
             self.message_user(request, error.message, level=messages.ERROR)
             return
@@ -63,4 +63,15 @@ class LocationAdmin(admin.ModelAdmin):
             removed = ", ".join(location.panorama_id for location in report.removed)
             self.message_user(
                 request, f"Google removed these, now deactivated: {removed}", messages.WARNING
+            )
+        if report.outside:
+            outside = ", ".join(location.panorama_id for location in report.outside)
+            self.message_user(
+                request, f"Moved outside the region, now deactivated: {outside}", messages.WARNING
+            )
+        if report.skipped:
+            self.message_user(
+                request,
+                f"Skipped {report.skipped} after temporary Google errors; try again.",
+                messages.WARNING,
             )

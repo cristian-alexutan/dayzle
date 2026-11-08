@@ -29,8 +29,8 @@ def get_playable_puzzle(game: str, day: date) -> DailyPuzzle:
 def has_content(game: GameDefinition, puzzle: DailyPuzzle) -> bool:
     """Whether the game's content model has an entry for this calendar entry.
 
-    A content model is linked through a ``daily_puzzle`` field (see CONTRIBUTING); one without
-    it counts as always having content.
+    A content model is linked through a field named ``daily_puzzle`` (CONTRIBUTING, "How to
+    build a game", step 1); one linked under another name counts as always having content.
     """
     model = game.content_model
     if not any(field.name == "daily_puzzle" for field in model._meta.get_fields()):

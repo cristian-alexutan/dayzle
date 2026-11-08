@@ -49,6 +49,7 @@ class GeoPuzzleFactory(factory.django.DjangoModelFactory):
 
     daily_puzzle = factory.SubFactory(DailyPuzzleFactory, game=Game.GEO)
     region = factory.LazyFunction(cluj)
+    score_scale_m = factory.LazyAttribute(lambda puzzle: puzzle.region.score_scale_m)
 
     @factory.post_generation
     def locations(self, create, extracted, **kwargs):

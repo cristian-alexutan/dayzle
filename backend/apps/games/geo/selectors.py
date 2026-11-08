@@ -2,9 +2,10 @@
 
 import random
 from collections.abc import Iterable
-from datetime import date
+from datetime import date, timedelta
 
 from django.db.models import Count, Max, Prefetch, QuerySet
+from django.utils import timezone
 
 from apps.puzzles.models import DailyPuzzle, Game
 from apps.results.models import GameResult
@@ -12,6 +13,11 @@ from apps.results.models import GameResult
 from . import rules
 from .exceptions import UnknownRegionError
 from .models import GeoPuzzle, GeoPuzzleLocation, Location, Region
+
+# Google lets us keep a panorama's coordinates only as a cache (30 days at most, as far as we
+# know), so locations not rechecked since then aren't used in new games until check_panoramas
+# refreshes them.
+COORDINATES_FRESH_FOR = timedelta(days=30)
 
 
 def active_regions() -> QuerySet[Region]:
@@ -29,7 +35,7 @@ def get_active_region(key: str | None = None) -> Region:
 
 
 def has_players(daily_puzzle: DailyPuzzle) -> bool:
-    """Whether anyone has opened this day's game, in any region."""
+    """Whether anyone has opened this day's game, in any region. From then on it can't change."""
     return GameResult.objects.filter(daily_puzzle=daily_puzzle).exists()
 
 
@@ -49,6 +55,15 @@ def ordered_locations(puzzle: GeoPuzzle) -> list[Location]:
     return [entry.location for entry in puzzle.entries.all()]
 
 
+def usable_locations(region: Region) -> QuerySet[Location]:
+    """The region's locations a new game can use: active, with recently checked coordinates."""
+    return Location.objects.filter(
+        region=region,
+        is_active=True,
+        last_checked_at__gte=timezone.now() - COORDINATES_FRESH_FOR,
+    )
+
+
 def active_location_count(region: Region) -> int:
     return Location.objects.filter(region=region, is_active=True).count()
 
@@ -56,13 +71,10 @@ def active_location_count(region: Region) -> int:
 def pick_locations(region: Region, rng: random.Random, count: int = rules.ROUNDS) -> list[Location]:
     """A day's worth of locations: least used first, at least ``min_spacing_m`` apart.
 
-    Fewer than ``count`` only if the bank is too small or too clustered.
+    Only usable locations (see ``usable_locations``). Fewer than ``count`` only if the bank is
+    too small, too clustered or not rechecked recently.
     """
-    candidates = list(
-        Location.objects.filter(region=region, is_active=True).annotate(
-            uses=Count("entries", distinct=True)
-        )
-    )
+    candidates = list(usable_locations(region).annotate(uses=Count("entries", distinct=True)))
     # Random order within each usage count, so equally used locations are picked fairly.
     rng.shuffle(candidates)
     candidates.sort(key=lambda location: location.uses)

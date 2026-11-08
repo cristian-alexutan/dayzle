@@ -33,6 +33,7 @@ from .selectors import (
     active_regions,
     get_active_region,
     get_geo_puzzle,
+    has_players,
     ordered_locations,
     pick_locations,
 )
@@ -43,7 +44,7 @@ logger = logging.getLogger(__name__)
 SEARCH_RADIUS_M = 100
 # Random points tried per location wanted before generate_locations gives up.
 ATTEMPTS_PER_LOCATION = 20
-# generate_locations stops after this many temporary Google errors in a row.
+# generate_locations and recheck_locations stop after this many temporary Google errors in a row.
 MAX_TEMPORARY_ERRORS_IN_A_ROW = 5
 # seed_dev fills a region's bank up to a week's worth of games (with room for the spacing
 # rule) when it has fewer than two games' worth.
@@ -66,10 +67,16 @@ class GeoGame:
 def _create_puzzle(daily_puzzle: DailyPuzzle, region: Region, rng: random.Random) -> GeoPuzzle:
     locations = pick_locations(region, rng)
     if len(locations) < rules.ROUNDS:
-        logger.warning("Geo region %s has too few spaced locations for a game.", region.key)
+        logger.warning(
+            "Geo region %s has too few usable locations for a game: run generate_locations, or "
+            "check_panoramas --all if the bank hasn't been rechecked in 30 days.",
+            region.key,
+        )
         raise NoPuzzleError()
     with transaction.atomic():
-        puzzle = GeoPuzzle.objects.create(daily_puzzle=daily_puzzle, region=region)
+        puzzle = GeoPuzzle.objects.create(
+            daily_puzzle=daily_puzzle, region=region, score_scale_m=region.score_scale_m
+        )
         GeoPuzzleLocation.objects.bulk_create(
             GeoPuzzleLocation(puzzle=puzzle, location=location, position=position)
             for position, location in enumerate(locations, start=1)
@@ -82,9 +89,13 @@ def ensure_daily_game(
 ) -> GeoPuzzle:
     """The region's game for this day, made from random locations if it doesn't exist yet.
 
-    Safe when several requests make it at once: one wins and the others load its game.
+    A game nobody has opened yet is made again if one of its panoramas was removed since (see
+    ``_replace_if_unplayed``). Safe when several requests make it at once: one wins and the
+    others load its game.
     """
     puzzle = get_geo_puzzle(daily_puzzle, region)
+    if puzzle is not None and any(not loc.is_active for loc in ordered_locations(puzzle)):
+        puzzle = _replace_if_unplayed(puzzle, rng or random.Random())
     if puzzle is None:
         try:
             _create_puzzle(daily_puzzle, region, rng or random.Random())
@@ -94,6 +105,29 @@ def ensure_daily_game(
     if puzzle is None or len(puzzle.entries.all()) != rules.ROUNDS:
         raise NoPuzzleError()
     return puzzle
+
+
+def _replace_if_unplayed(puzzle: GeoPuzzle, rng: random.Random) -> GeoPuzzle | None:
+    """Make a game with a removed panorama again, as long as nobody has opened that day.
+
+    A game someone has started is kept, so their rounds don't change under them; it's logged so
+    the broken round can be looked at. If no new game can be made, the old one is kept too.
+    """
+    daily_puzzle, region = puzzle.daily_puzzle, puzzle.region
+    if has_players(daily_puzzle):
+        logger.warning(
+            "Geo game %s has a removed panorama but players have started it; kept as is.", puzzle
+        )
+        return puzzle
+    try:
+        with transaction.atomic():
+            GeoPuzzle.objects.filter(pk=puzzle.pk).delete()
+            _create_puzzle(daily_puzzle, region, rng)
+    except IntegrityError:
+        pass  # another request made the new game first
+    except NoPuzzleError:
+        return puzzle  # rolled back: the old game stays
+    return get_geo_puzzle(daily_puzzle, region)
 
 
 def get_playable_day(day: date) -> DailyPuzzle:
@@ -176,7 +210,7 @@ def guess(
                 "lat": lat,
                 "lng": lng,
                 "distance_m": round(distance),
-                "score": rules.round_score(distance, region.score_scale_m),
+                "score": rules.round_score(distance, game.puzzle.score_scale_m),
             },
         ]
         details = {"region": region.key, "guesses": guesses}
@@ -244,17 +278,34 @@ def generate_locations(
 @dataclass
 class RecheckReport:
     checked: int = 0
+    # Deactivated: Google no longer has the panorama, or it now lies outside its region.
     removed: list[Location] = field(default_factory=list)
+    outside: list[Location] = field(default_factory=list)
+    # Not checked because of a temporary Google error; tried again on the next run.
+    skipped: int = 0
 
 
 def recheck_locations(locations: Iterable[Location]) -> RecheckReport:
-    """Refresh the locations' coordinates from Google, deactivating panoramas it removed.
+    """Refresh the locations' coordinates from Google and deactivate the ones that can't be used.
 
-    Google allows keeping panorama IDs, but coordinates only as a cache, so run this regularly.
+    Google allows keeping panorama IDs, but coordinates only as a cache, so run this regularly
+    (new games skip locations not checked for 30 days). A location is deactivated when Google
+    removed its panorama or the panorama moved outside the region, where no guess is accepted.
+    A temporary Google error skips that location, keeping its ``last_checked_at``;
+    ``MAX_TEMPORARY_ERRORS_IN_A_ROW`` of them in a row stop the run.
     """
     report = RecheckReport()
+    errors_in_a_row = 0
     for location in locations:
-        panorama = streetview.get_panorama(location.panorama_id)
+        try:
+            panorama = streetview.get_panorama(location.panorama_id)
+        except TemporaryStreetViewError:
+            report.skipped += 1
+            errors_in_a_row += 1
+            if errors_in_a_row >= MAX_TEMPORARY_ERRORS_IN_A_ROW:
+                raise
+            continue
+        errors_in_a_row = 0
         report.checked += 1
         location.last_checked_at = timezone.now()
         if panorama is None:
@@ -262,6 +313,9 @@ def recheck_locations(locations: Iterable[Location]) -> RecheckReport:
             report.removed.append(location)
         else:
             location.latitude, location.longitude = panorama.lat, panorama.lng
+            if not location.region.bounds.contains(location.point):
+                location.is_active = False
+                report.outside.append(location)
         location.save(update_fields=["latitude", "longitude", "is_active", "last_checked_at"])
     return report
 

@@ -157,7 +157,8 @@ on the shared pieces described in the README (Shared building blocks for games).
 
 ### Backend
 
-1. **Content model** in `models.py`, linked one-to-one to the calendar entry. Secret fields
+1. **Content model** in `models.py`, linked one-to-one to the calendar entry by a field named
+   `daily_puzzle` (`seed_dev` uses that name to find days left without content). Secret fields
    (answer, solution, coordinates) live here:
    ```python
    class WordPuzzle(TimeStampedModel):

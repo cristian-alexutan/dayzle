@@ -19,7 +19,12 @@ class Region(TimeStampedModel):
     north = models.FloatField()
     east = models.FloatField()
     # The distance at which a round's score falls to about a third (see rules.round_score).
-    score_scale_m = models.PositiveIntegerField(default=1500, validators=[MinValueValidator(1)])
+    score_scale_m = models.PositiveIntegerField(
+        default=1500,
+        validators=[MinValueValidator(1)],
+        help_text="Used by games made after a change: each day's game keeps the scale it was "
+        "made with, so everyone that day is scored the same way.",
+    )
     # A day's locations are at least this far apart from each other.
     min_spacing_m = models.PositiveIntegerField(default=1000)
     is_active = models.BooleanField(default=True)
@@ -86,6 +91,8 @@ class GeoPuzzle(TimeStampedModel):
         limit_choices_to={"game": Game.GEO},
     )
     region = models.ForeignKey(Region, on_delete=models.PROTECT, related_name="puzzles")
+    # The region's scale when the game was made, so a later change doesn't affect this day.
+    score_scale_m = models.PositiveIntegerField(validators=[MinValueValidator(1)])
     locations = models.ManyToManyField(
         Location, through="GeoPuzzleLocation", related_name="puzzles"
     )
