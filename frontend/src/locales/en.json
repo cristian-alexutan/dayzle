@@ -3,6 +3,19 @@
     "retry": "Try again",
     "time": "Time"
   },
+  "geo": {
+    "errors": {
+      "generic": "Something went wrong. Please try again."
+    },
+    "finished": "Finished! Score: {score} out of {max}",
+    "loading": "Loading the game",
+    "noPuzzle": "There is no game for today. Come back tomorrow!",
+    "regionLocked": "You started today's game in another region ({region}). Come back tomorrow!",
+    "round": "Round {round} of {rounds}",
+    "score": "{score} / {max} points",
+    "subtitle": "{region} · {date}",
+    "title": "GeoGuesser"
+  },
   "header": {
     "language": "Language",
     "theme": {
