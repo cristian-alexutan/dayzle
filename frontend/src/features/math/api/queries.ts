@@ -1,10 +1,12 @@
 // TanStack Query hooks for the Math feature.
 import { useMutation, useQuery, useQueryClient } from '@tanstack/vue-query'
+import type { MaybeRefOrGetter } from 'vue'
 
 import { ApiError } from '@/api/http'
+import { useHeartbeat } from '@/shared/composables/useHeartbeat'
 
 import type { GameDay, MathGame, StepInput } from '../types'
-import { fetchGame, saveProgress, submitGame } from './endpoints'
+import { fetchGame, saveProgress, sendHeartbeat, submitGame } from './endpoints'
 
 const gameKey = (day: GameDay) => ['math', 'game', day]
 
@@ -40,4 +42,9 @@ export function useSaveProgressMutation(day: GameDay) {
 /** Finish the game with the closest number so far. */
 export function useSubmitMutation(day: GameDay) {
   return useBoardMutation(day, submitGame)
+}
+
+/** Count thinking time as active: a heartbeat every 15 s while `active` and the page is visible. */
+export function useMathHeartbeat(day: GameDay, active: MaybeRefOrGetter<boolean>) {
+  useHeartbeat(() => sendHeartbeat(day), active)
 }

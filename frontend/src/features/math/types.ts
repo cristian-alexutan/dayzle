@@ -12,5 +12,8 @@ export type StepInput = components['schemas']['StepInput']
 
 export type Operator = components['schemas']['OpEnum']
 
+/** How each operator is shown: the API uses `*` and `/`, players see × and ÷. */
+export const OPERATOR_SYMBOLS: Record<Operator, string> = { '+': '+', '-': '−', '*': '×', '/': '÷' }
+
 /** The day in the URL: `today` or a date such as `2026-11-07`. */
 export type GameDay = string

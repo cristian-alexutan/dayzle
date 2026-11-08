@@ -19,3 +19,8 @@ export function saveProgress(day: GameDay, steps: StepInput[]) {
 export function submitGame(day: GameDay, steps: StepInput[]) {
   return http.post<MathGame>(`/games/math/${day}/submit/`, { steps: toInput(steps) })
 }
+
+/** Keeps the server's clock running while the game is visible; see useHeartbeat. */
+export function sendHeartbeat(day: GameDay) {
+  return http.post<void>(`/results/math/${day}/heartbeat/`)
+}
