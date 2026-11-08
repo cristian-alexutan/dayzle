@@ -12,10 +12,16 @@
     }
   },
   "math": {
+    "closest": "Closest so far: {value}",
     "errors": {
       "generic": "Something went wrong. Please try again."
     },
     "finished": "Finished! Score: {score}",
+    "history": {
+      "count": "{count} of {max} steps",
+      "empty": "No steps yet. Tap a number, then an operation and a second number.",
+      "title": "Your steps"
+    },
     "loading": "Loading the game",
     "noPuzzle": "There is no game for today. Come back tomorrow!",
     "numbers": "Available numbers",
@@ -31,6 +37,7 @@
       "not_whole": "Division must be exact: {step} isn't a whole number.",
       "server": "That step can't be played. Try another one."
     },
+    "reset": "Reset",
     "subtitle": "Puzzle of the day · {date}",
     "target": "Target",
     "targetLabel": "Target: {target}",
@@ -41,7 +48,8 @@
       "refused": "step refused",
       "selected": "selected"
     },
-    "title": "Numărăl"
+    "title": "Numărăl",
+    "undo": "Undo step"
   },
   "word": {
     "backspace": "Delete letter",

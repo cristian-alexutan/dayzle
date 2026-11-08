@@ -5,6 +5,7 @@ import { mountWithPlugins } from '@/tests/utils'
 import MathTarget from '../components/MathTarget.vue'
 import NumberTile from '../components/NumberTile.vue'
 import OperatorPicker from '../components/OperatorPicker.vue'
+import StepHistory from '../components/StepHistory.vue'
 
 describe('MathTarget', () => {
   it('shows the target with its label', () => {
@@ -70,5 +71,31 @@ describe('OperatorPicker', () => {
 
     await wrapper.find('[data-test="operator-divide"]').trigger('click')
     expect(wrapper.emitted('choose')).toEqual([['/']])
+  })
+})
+
+describe('StepHistory', () => {
+  it('shows a hint before the first step', () => {
+    const wrapper = mountWithPlugins(StepHistory, { props: { steps: [], maxSteps: 5 } })
+
+    expect(wrapper.find('[data-test="history-count"]').text()).toBe('0 din 5 pași')
+    expect(wrapper.find('[data-test="history-empty"]').text()).toContain('Încă niciun pas')
+    expect(wrapper.find('ol').exists()).toBe(false)
+  })
+
+  it('lists the steps in order, with the symbols players write', () => {
+    const steps = [
+      { left: 100, op: '*', right: 2, result: 200 },
+      { left: 50, op: '/', right: 2, result: 25 },
+      { left: 200, op: '-', right: 25, result: 175 },
+    ] as const
+
+    const wrapper = mountWithPlugins(StepHistory, { props: { steps: [...steps], maxSteps: 5 } })
+
+    expect(wrapper.find('[data-test="history-count"]').text()).toBe('3 din 5 pași')
+    expect(
+      wrapper.findAll('[data-test="step-text"]').map((item) => item.text().replace(/\s+/g, ' ')),
+    ).toEqual(['100 × 2 = 200', '50 ÷ 2 = 25', '200 − 25 = 175'])
+    expect(wrapper.find('[data-test="history-empty"]').exists()).toBe(false)
   })
 })

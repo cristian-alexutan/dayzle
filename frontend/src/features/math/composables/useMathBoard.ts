@@ -45,6 +45,23 @@ export function boardTiles(numbers: number[], steps: PlayedStep[]): Tile[] {
   return [...starting, ...produced]
 }
 
+/**
+ * The computed number on the board nearest to the target (the smaller one on a tie), or null
+ * before the first step. Only shown to the player: on submit the server picks the final result.
+ */
+export function closestSoFar(tiles: Tile[], target: number): number | null {
+  const isCloser = (a: number, b: number) => {
+    const distanceA = Math.abs(a - target)
+    const distanceB = Math.abs(b - target)
+    return distanceA < distanceB || (distanceA === distanceB && a < b)
+  }
+  let best: number | null = null
+  for (const tile of tiles) {
+    if (tile.computed && (best === null || isCloser(tile.value, best))) best = tile.value
+  }
+  return best
+}
+
 /** Why a step can't be played, or null. The result must stay a positive whole number. */
 export function checkStep({ left, op, right }: StepInput): RefusalReason | null {
   if (op === '-' && left <= right) return 'not_positive'

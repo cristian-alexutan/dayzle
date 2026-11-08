@@ -12,10 +12,16 @@
     }
   },
   "math": {
+    "closest": "Cel mai aproape până acum: {value}",
     "errors": {
       "generic": "Ceva nu a mers. Încearcă din nou."
     },
     "finished": "Ai terminat! Scor: {score}",
+    "history": {
+      "count": "{count} din {max} pași",
+      "empty": "Încă niciun pas. Atinge un număr, apoi o operație și un al doilea număr.",
+      "title": "Pașii tăi"
+    },
     "loading": "Se încarcă jocul",
     "noPuzzle": "Nu există un joc pentru astăzi. Revino mâine!",
     "numbers": "Numere disponibile",
@@ -31,6 +37,7 @@
       "not_whole": "Împărțirea trebuie să fie exactă: {step} nu dă un număr întreg.",
       "server": "Pasul nu a putut fi jucat. Încearcă altul."
     },
+    "reset": "Resetează",
     "subtitle": "Puzzle-ul zilei · {date}",
     "target": "Ținta",
     "targetLabel": "Ținta: {target}",
@@ -41,7 +48,8 @@
       "refused": "pas refuzat",
       "selected": "selectat"
     },
-    "title": "Numărăl"
+    "title": "Numărăl",
+    "undo": "Anulează pasul"
   },
   "word": {
     "backspace": "Șterge litera",
