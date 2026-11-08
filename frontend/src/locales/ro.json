@@ -40,6 +40,21 @@
       "server": "Pasul nu a putut fi jucat. Încearcă altul."
     },
     "reset": "Resetează",
+    "result": {
+      "close": "{result} — la {distance} de {target}",
+      "difficulty": {
+        "easy": "Ușor",
+        "hard": "Greu",
+        "medium": "Mediu"
+      },
+      "difficultyLabel": "Dificultate",
+      "exact": "Ai nimerit {target}!",
+      "outOf": "puncte din {max}",
+      "see": "Vezi rezultatul",
+      "solution": "O soluție posibilă",
+      "steps": "{count} pas · minimul {min} | {count} pași · minimul {min}",
+      "stepsLabel": "Pași"
+    },
     "subtitle": "Puzzle-ul zilei · {date}",
     "target": "Ținta",
     "targetLabel": "Ținta: {target}",
