@@ -14,6 +14,7 @@ import {
   useMathGameQuery,
   useMathHeartbeat,
   useSaveProgressMutation,
+  useSubmitMutation,
 } from '../api/queries'
 import MathTarget from '../components/MathTarget.vue'
 import NumberTile from '../components/NumberTile.vue'
@@ -29,12 +30,15 @@ const { t, locale } = useI18n()
 
 const query = useMathGameQuery(DAY)
 const save = useSaveProgressMutation(DAY)
+const submit = useSubmitMutation(DAY)
 
 const game = computed(() => query.data.value)
 const inProgress = computed(() => game.value?.status === 'in_progress')
 const finished = computed(() => game.value?.status === 'completed')
 const noPuzzle = computed(() => errorCode(query.error.value) === 'no_puzzle')
-const boardDisabled = computed(() => !inProgress.value || save.isPending.value)
+const boardDisabled = computed(
+  () => !inProgress.value || save.isPending.value || submit.isPending.value,
+)
 
 useMathHeartbeat(DAY, inProgress)
 
@@ -48,30 +52,37 @@ const { tiles, firstId, operator, refusal, selectTile, selectOperator } = useMat
 })
 
 const closest = computed(() => (game.value ? closestSoFar(tiles.value, game.value.target) : null))
-const canUndo = computed(() => !boardDisabled.value && steps.value.length > 0)
+/** Undo, reset and finish all need at least one step, and nothing else on its way. */
+const canChange = computed(() => !boardDisabled.value && steps.value.length > 0)
 
 /** Shown when the server refuses a step the browser accepted, e.g. after a change elsewhere. */
 const serverError = ref<string | null>(null)
 
 /**
+ * After a refused save or finish the board is reloaded, so the next action builds on the
+ * server's steps rather than on a stale copy (another tab, or a page left open past midnight).
+ * Finished in another tab: the reload shows that game instead of an error.
+ */
+function onRefused(error: Error, refusedMessage: string) {
+  const code = errorCode(error)
+  if (code !== 'already_played')
+    serverError.value = t(code === 'invalid_step' ? refusedMessage : 'math.errors.generic')
+  query.refetch()
+}
+
+/**
  * A step, an undo and a reset all save the whole list of steps: the server replays it from the
- * starting numbers and sends the board back. After a refused save the board is reloaded, so the
- * next step builds on the server's steps rather than on a stale copy (another tab, or a page
- * left open past midnight).
+ * starting numbers and sends the board back.
  */
 function saveSteps(next: StepInput[]) {
   serverError.value = null
-  save.mutate(next, {
-    onError: (error) => {
-      const code = errorCode(error)
-      // Finished in another tab: the reload shows that game instead of an error.
-      if (code !== 'already_played')
-        serverError.value = t(
-          code === 'invalid_step' ? 'math.refused.server' : 'math.errors.generic',
-        )
-      query.refetch()
-    },
-  })
+  save.mutate(next, { onError: (error) => onRefused(error, 'math.refused.server') })
+}
+
+/** End the game with the computed number closest to the target; the server picks and scores it. */
+function finish() {
+  serverError.value = null
+  submit.mutate(steps.value, { onError: (error) => onRefused(error, 'math.errors.finish') })
 }
 
 const message = computed(() => {
@@ -157,7 +168,7 @@ onBeforeUnmount(() => clearTimeout(shakeTimer))
           icon="pi pi-undo"
           severity="secondary"
           outlined
-          :disabled="!canUndo"
+          :disabled="!canChange"
           data-test="undo"
           @click="saveSteps(steps.slice(0, -1))"
         />
@@ -166,9 +177,17 @@ onBeforeUnmount(() => clearTimeout(shakeTimer))
           icon="pi pi-refresh"
           severity="secondary"
           outlined
-          :disabled="!canUndo"
+          :disabled="!canChange"
           data-test="reset"
           @click="saveSteps([])"
+        />
+        <AppButton
+          class="math-game__finish"
+          :label="t('math.finish')"
+          icon="pi pi-flag"
+          :disabled="!canChange"
+          data-test="finish"
+          @click="finish"
         />
       </div>
       <AppMessage v-if="finished" severity="success" data-test="finished">
@@ -202,6 +221,10 @@ onBeforeUnmount(() => clearTimeout(shakeTimer))
   grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 0.75rem;
   width: 100%;
+}
+
+.math-game__finish {
+  grid-column: 1 / -1;
 }
 
 .math-game__refusal {

@@ -321,6 +321,88 @@ describe('MathGameView', () => {
     })
   })
 
+  describe('finish with the closest number', () => {
+    const played = {
+      ...game,
+      steps: [{ left: 100, op: '*', right: 2, result: 200 }],
+    } satisfies MathGame
+    const close = {
+      ...played,
+      status: 'completed',
+      final_result: 200,
+      distance: 53,
+      operations: 1,
+      solved: false,
+      score: 0,
+      duration_ms: 42_000,
+    } satisfies MathGame
+    const finishButton = (wrapper: VueWrapper) => wrapper.find('[data-test="finish"]')
+
+    it('can not finish before the first step', async () => {
+      const wrapper = await mountView(jsonResponse(200, game))
+
+      expect(finishButton(wrapper).attributes('disabled')).toBeDefined()
+      wrapper.unmount()
+    })
+
+    it('sends the saved steps to submit and shows the finished game', async () => {
+      const wrapper = await mountView(jsonResponse(200, played))
+      fetchMock.mockResolvedValueOnce(jsonResponse(200, close))
+
+      await tap(wrapper, finishButton(wrapper))
+
+      const [url, init] = fetchMock.mock.calls[1]!
+      expect(url).toBe('/api/v1/games/math/today/submit/')
+      expect(JSON.parse(init.body)).toEqual({ steps: [{ left: 100, op: '*', right: 2 }] })
+      expect(finishButton(wrapper).exists()).toBe(false)
+      expect(
+        wrapper.findAll('[data-test="tile"]').every((t) => t.attributes('disabled') !== undefined),
+      ).toBe(true)
+      wrapper.unmount()
+    })
+
+    it('locks the board and the buttons while finishing', async () => {
+      const wrapper = await mountView(jsonResponse(200, played))
+      fetchMock.mockReturnValueOnce(new Promise(() => {}))
+
+      await tap(wrapper, finishButton(wrapper))
+
+      for (const name of ['finish', 'undo', 'reset'])
+        expect(wrapper.find(`[data-test="${name}"]`).attributes('disabled')).toBeDefined()
+      expect(
+        wrapper.findAll('[data-test="tile"]').every((t) => t.attributes('disabled') !== undefined),
+      ).toBe(true)
+      wrapper.unmount()
+    })
+
+    it('says so when the game can not be finished, and reloads the board', async () => {
+      const wrapper = await mountView(jsonResponse(200, played))
+      fetchMock.mockResolvedValueOnce(errorResponse(400, 'invalid_step'))
+      fetchMock.mockResolvedValueOnce(jsonResponse(200, played))
+
+      await tap(wrapper, finishButton(wrapper))
+
+      expect(wrapper.find('[data-test="refusal"]').text()).toBe(
+        'Jocul nu a putut fi terminat. Încearcă din nou.',
+      )
+      expect(fetchMock.mock.calls[2]![0]).toBe('/api/v1/games/math/today/')
+      expect(finishButton(wrapper).attributes('disabled')).toBeUndefined()
+      wrapper.unmount()
+    })
+
+    it('shows the finished game without an error when it was finished in another tab', async () => {
+      const wrapper = await mountView(jsonResponse(200, played))
+      fetchMock.mockResolvedValueOnce(errorResponse(409, 'already_played'))
+      fetchMock.mockResolvedValueOnce(jsonResponse(200, close))
+
+      await tap(wrapper, finishButton(wrapper))
+
+      expect(wrapper.find('[data-test="refusal"]').exists()).toBe(false)
+      expect(finishButton(wrapper).exists()).toBe(false)
+      wrapper.unmount()
+    })
+  })
+
   it('says when there is no puzzle today', async () => {
     const wrapper = await mountView(errorResponse(404, 'no_puzzle'))
 

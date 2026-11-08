@@ -14,8 +14,10 @@
   "math": {
     "closest": "Cel mai aproape până acum: {value}",
     "errors": {
+      "finish": "Jocul nu a putut fi terminat. Încearcă din nou.",
       "generic": "Ceva nu a mers. Încearcă din nou."
     },
+    "finish": "Termină cu cel mai apropiat număr",
     "finished": "Ai terminat! Scor: {score}",
     "history": {
       "count": "{count} din {max} pași",
