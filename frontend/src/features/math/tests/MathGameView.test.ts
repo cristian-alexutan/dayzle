@@ -1,9 +1,10 @@
 import { type DOMWrapper, flushPromises, type VueWrapper } from '@vue/test-utils'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-import { defineComponent, h, nextTick, ref } from 'vue'
+import { defineComponent, h, ref } from 'vue'
 
 import { mountWithPlugins } from '@/tests/utils'
 
+import { EGG_MS } from '../composables/useEasterEggs'
 import type { MathGame } from '../types'
 import MathGameView from '../views/MathGameView.vue'
 
@@ -67,6 +68,12 @@ afterEach(() => {
   vi.useRealTimers()
   document.body.innerHTML = ''
 })
+
+/** Let requests answer, then the timer that opens the result. */
+async function settle() {
+  await flushPromises()
+  await new Promise((resolve) => setTimeout(resolve))
+}
 
 /** The result dialog's text, or null while it's closed. It's rendered at the end of the page. */
 const dialogText = () => document.querySelector('[role="dialog"]')?.textContent ?? null
@@ -428,20 +435,21 @@ describe('MathGameView', () => {
     })
 
     it('opens the result again when coming back to a finished game that is still cached', async () => {
-      fetchMock.mockResolvedValue(jsonResponse(200, close))
+      // A new response each time: a response body can only be read once.
+      fetchMock.mockImplementation(async () => jsonResponse(200, close))
       const shown = ref(true)
-      const Page = defineComponent(() => () => (shown.value ? h(MathGameView) : null))
+      const Page = defineComponent(() => () => h('div', shown.value ? [h(MathGameView)] : []))
       const wrapper = mountWithPlugins(Page)
-      await flushPromises()
+      await settle()
       expect(dialogText()).not.toBeNull()
 
       shown.value = false
       await flushPromises()
       expect(dialogText()).toBeNull()
 
-      // Same app, same cache: the finished game is there at once, before any request returns.
+      // Same app, same cache: the game is finished from the start, so `finished` never changes.
       shown.value = true
-      await nextTick()
+      await settle()
       expect(dialogText()).toContain('200 — la 53 de 253')
       wrapper.unmount()
     })
@@ -451,6 +459,158 @@ describe('MathGameView', () => {
 
       expect(dialogText()).toBeNull()
       expect(wrapper.find('[data-test="see-result"]').exists()).toBe(false)
+      wrapper.unmount()
+    })
+  })
+
+  describe('easter eggs', () => {
+    // The demo puzzle: every easter egg can be reached from these numbers.
+    const demo = { ...game, target: 253, numbers: [4, 6, 7, 10, 50, 100] } satisfies MathGame
+    const withSteps = (steps: MathGame['steps'], extra: Partial<MathGame> = {}) =>
+      jsonResponse(200, { ...demo, steps, ...extra })
+    const egg = (wrapper: VueWrapper, name: string) => wrapper.find(`[data-test="egg-${name}"]`)
+
+    beforeEach(() => vi.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout'] }))
+
+    async function play(wrapper: VueWrapper, left: string, op: string, right: string) {
+      // By the accessible name: a computed tile also shows its "NOU" badge.
+      const byValue = (value: string) =>
+        wrapper
+          .findAll('[data-test="tile"]')
+          .find((item) => item.attributes('aria-label')?.split(',')[0] === value)!
+      await tap(wrapper, byValue(left))
+      await tap(wrapper, wrapper.find(`[data-test="operator-${op}"]`))
+      await tap(wrapper, byValue(right))
+    }
+
+    it('juggles two hands for a 67, then hides them', async () => {
+      const sixty = [{ left: 6, op: '*', right: 10, result: 60 }] as const
+      const wrapper = await mountView(withSteps([...sixty]))
+      fetchMock.mockResolvedValueOnce(
+        withSteps([...sixty, { left: 60, op: '+', right: 7, result: 67 }]),
+      )
+
+      await play(wrapper, '60', 'add', '7')
+
+      expect(egg(wrapper, 'hands').exists()).toBe(true)
+      vi.advanceTimersByTime(EGG_MS)
+      await flushPromises()
+      expect(egg(wrapper, 'hands').exists()).toBe(false)
+      wrapper.unmount()
+    })
+
+    it('juggles the operators for a step with a 6 and a 7', async () => {
+      const wrapper = await mountView(withSteps([]))
+      fetchMock.mockResolvedValueOnce(withSteps([{ left: 7, op: '-', right: 6, result: 1 }]))
+
+      await play(wrapper, '7', 'subtract', '6')
+
+      expect(wrapper.find('.operator-picker').classes()).toContain('operator-picker--juggling')
+      wrapper.unmount()
+    })
+
+    it('glitches the board for a 404', async () => {
+      const before = [
+        { left: 100, op: '*', right: 4, result: 400 },
+        { left: 10, op: '-', right: 6, result: 4 },
+      ] as const
+      const wrapper = await mountView(withSteps([...before]))
+      fetchMock.mockResolvedValueOnce(
+        withSteps([...before, { left: 400, op: '+', right: 4, result: 404 }]),
+      )
+
+      await play(wrapper, '400', 'add', '4')
+
+      expect(egg(wrapper, 'glitch').text()).toBe('404 · Număr negăsit')
+      expect(wrapper.find('.math-game__tiles').classes()).toContain('math-game__tiles--glitch')
+      wrapper.unmount()
+    })
+
+    it('floats a π for a 314', async () => {
+      const before = [
+        { left: 50, op: '*', right: 6, result: 300 },
+        { left: 300, op: '+', right: 10, result: 310 },
+      ] as const
+      const wrapper = await mountView(withSteps([...before]))
+      fetchMock.mockResolvedValueOnce(
+        withSteps([...before, { left: 310, op: '+', right: 4, result: 314 }]),
+      )
+
+      await play(wrapper, '310', 'add', '4')
+
+      expect(egg(wrapper, 'pi').exists()).toBe(true)
+      wrapper.unmount()
+    })
+
+    it('plays nothing for steps restored when the page loads', async () => {
+      const wrapper = await mountView(withSteps([{ left: 7, op: '-', right: 6, result: 1 }]))
+
+      expect(wrapper.find('.operator-picker').classes()).not.toContain('operator-picker--juggling')
+      wrapper.unmount()
+    })
+
+    it('plays nothing for an undo, and each egg only once per game', async () => {
+      const one = [{ left: 7, op: '-', right: 6, result: 1 }] as const
+      const wrapper = await mountView(withSteps([]))
+      const juggling = () =>
+        wrapper.find('.operator-picker').classes().includes('operator-picker--juggling')
+
+      fetchMock.mockResolvedValueOnce(withSteps([...one]))
+      await play(wrapper, '7', 'subtract', '6')
+      expect(juggling()).toBe(true)
+      vi.advanceTimersByTime(EGG_MS)
+      await flushPromises()
+
+      fetchMock.mockResolvedValueOnce(withSteps([]))
+      await tap(wrapper, wrapper.find('[data-test="undo"]'))
+      expect(juggling()).toBe(false)
+
+      fetchMock.mockResolvedValueOnce(withSteps([...one]))
+      await play(wrapper, '7', 'subtract', '6')
+      expect(juggling()).toBe(false)
+      wrapper.unmount()
+    })
+
+    it('plays nothing when an undo leaves an easter-egg step last', async () => {
+      const one = { left: 7, op: '-', right: 6, result: 1 } as const
+      const two = { left: 100, op: '*', right: 4, result: 400 } as const
+      const wrapper = await mountView(withSteps([one, two]))
+      fetchMock.mockResolvedValueOnce(withSteps([one]))
+
+      await tap(wrapper, wrapper.find('[data-test="undo"]'))
+
+      expect(wrapper.find('[data-test="step"]').exists()).toBe(true)
+      expect(wrapper.find('.operator-picker').classes()).not.toContain('operator-picker--juggling')
+      wrapper.unmount()
+    })
+
+    it('opens the result only after the egg of the finishing step', async () => {
+      const before = [
+        { left: 100, op: '*', right: 4, result: 400 },
+        { left: 10, op: '-', right: 6, result: 4 },
+      ] as const
+      const wrapper = await mountView(withSteps([...before], { target: 404 }))
+      fetchMock.mockResolvedValueOnce(
+        withSteps([...before, { left: 400, op: '+', right: 4, result: 404 }], {
+          target: 404,
+          status: 'completed',
+          final_result: 404,
+          distance: 0,
+          solved: true,
+          score: 1000,
+        }),
+      )
+
+      await play(wrapper, '400', 'add', '4')
+      vi.advanceTimersByTime(0)
+      await flushPromises()
+      expect(egg(wrapper, 'glitch').exists()).toBe(true)
+      expect(dialogText()).toBeNull()
+
+      vi.advanceTimersByTime(EGG_MS)
+      await flushPromises()
+      expect(egg(wrapper, 'glitch').exists()).toBe(false)
+      expect(dialogText()).toContain('Ai nimerit 404!')
       wrapper.unmount()
     })
   })

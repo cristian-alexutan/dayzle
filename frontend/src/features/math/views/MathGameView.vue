@@ -16,11 +16,15 @@ import {
   useSaveProgressMutation,
   useSubmitMutation,
 } from '../api/queries'
+import FloatingPi from '../components/FloatingPi.vue'
+import GlitchOverlay from '../components/GlitchOverlay.vue'
+import JugglingHands from '../components/JugglingHands.vue'
 import MathResult from '../components/MathResult.vue'
 import MathTarget from '../components/MathTarget.vue'
 import NumberTile from '../components/NumberTile.vue'
 import OperatorPicker from '../components/OperatorPicker.vue'
 import StepHistory from '../components/StepHistory.vue'
+import { useEasterEggs } from '../composables/useEasterEggs'
 import { closestSoFar, useMathBoard } from '../composables/useMathBoard'
 import { OPERATOR_SYMBOLS, type StepInput } from '../types'
 
@@ -76,14 +80,34 @@ function onRefused(error: Error, refusedMessage: string) {
   query.refetch()
 }
 
+const eggs = useEasterEggs()
+
+/**
+ * How many steps the board will have once a new step is saved, or null. Only that step can play
+ * an easter egg: steps restored on load, an undo or a reset never do.
+ */
+let awaitedSteps: number | null = null
+
 /**
  * A step, an undo and a reset all save the whole list of steps: the server replays it from the
  * starting numbers and sends the board back.
  */
 function saveSteps(next: StepInput[]) {
   serverError.value = null
-  save.mutate(next, { onError: (error) => onRefused(error, 'math.refused.server') })
+  awaitedSteps = next.length > steps.value.length ? next.length : null
+  save.mutate(next, {
+    onError: (error) => {
+      awaitedSteps = null
+      onRefused(error, 'math.refused.server')
+    },
+  })
 }
+
+watch(steps, (now) => {
+  const step = now[now.length - 1]
+  if (step && now.length === awaitedSteps) eggs.celebrate(step)
+  awaitedSteps = null
+})
 
 /** End the game with the computed number closest to the target; the server picks and scores it. */
 function finish() {
@@ -130,16 +154,35 @@ const subtitle = computed(() => {
 })
 
 // The result opens by itself when the game ends, or right away when a finished game loads.
+// The step that ends the game may also play an easter egg: the result waits for it to finish.
 const resultVisible = ref(false)
+let resultTimer: ReturnType<typeof setTimeout> | undefined
+let stopWaitingForEgg: (() => void) | undefined
 watch(
   finished,
   (isFinished) => {
-    if (isFinished) resultVisible.value = true
+    if (!isFinished) return
+    // One tick later, so the finishing step's egg (started by the steps watcher) is known.
+    resultTimer = setTimeout(() => {
+      if (eggs.active.value === null) {
+        resultVisible.value = true
+        return
+      }
+      stopWaitingForEgg = watch(eggs.active, (egg) => {
+        if (egg !== null) return
+        stopWaitingForEgg?.()
+        resultVisible.value = true
+      })
+    }, 0)
   },
   { immediate: true },
 )
 
-onBeforeUnmount(() => clearTimeout(shakeTimer))
+onBeforeUnmount(() => {
+  clearTimeout(shakeTimer)
+  clearTimeout(resultTimer)
+  stopWaitingForEgg?.()
+})
 </script>
 
 <template>
@@ -157,19 +200,34 @@ onBeforeUnmount(() => clearTimeout(shakeTimer))
     <template v-else-if="game">
       <p class="math-game__subtitle" data-test="subtitle">{{ subtitle }}</p>
       <MathTarget :target="game.target" />
-      <div class="math-game__tiles" role="group" :aria-label="t('math.numbers')">
-        <NumberTile
-          v-for="tile in tiles"
-          :key="tile.id"
-          :tile="tile"
-          :selected="firstId === tile.id"
-          :refused="refusal?.tileId === tile.id"
-          :shake="shake?.tileId === tile.id ? shake.count : 0"
+      <div class="math-game__board" data-test="board">
+        <div
+          class="math-game__tiles"
+          :class="{ 'math-game__tiles--glitch': eggs.active.value === 'glitch' }"
+          role="group"
+          :aria-label="t('math.numbers')"
+        >
+          <NumberTile
+            v-for="tile in tiles"
+            :key="tile.id"
+            :tile="tile"
+            :selected="firstId === tile.id"
+            :refused="refusal?.tileId === tile.id"
+            :shake="shake?.tileId === tile.id ? shake.count : 0"
+            :disabled="boardDisabled"
+            @select="selectTile(tile.id)"
+          />
+        </div>
+        <OperatorPicker
+          :selected="operator"
           :disabled="boardDisabled"
-          @select="selectTile(tile.id)"
+          :juggling="eggs.active.value === 'operators'"
+          @choose="selectOperator"
         />
+        <JugglingHands v-if="eggs.active.value === 'hands'" data-test="egg-hands" />
+        <GlitchOverlay v-if="eggs.active.value === 'glitch'" data-test="egg-glitch" />
+        <FloatingPi v-if="eggs.active.value === 'pi'" data-test="egg-pi" />
       </div>
-      <OperatorPicker :selected="operator" :disabled="boardDisabled" @choose="selectOperator" />
       <p v-if="message" class="math-game__refusal" role="alert" data-test="refusal">
         <i class="pi pi-exclamation-circle" aria-hidden="true" />
         <span>{{ message }}</span>
@@ -232,11 +290,49 @@ onBeforeUnmount(() => clearTimeout(shakeTimer))
   font-size: 0.875rem;
 }
 
+/* The tiles and operators, with room for an easter egg on top of them. */
+.math-game__board {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  width: 100%;
+}
+
 .math-game__tiles {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 0.75rem;
   width: 100%;
+}
+
+/* The 404 easter egg: the tiles jump sideways, a few pixels at a time. */
+.math-game__tiles--glitch {
+  animation: math-game-glitch 0.4s steps(1, end) 4;
+}
+
+@keyframes math-game-glitch {
+  0% {
+    transform: translateX(8px);
+  }
+  25% {
+    transform: translateX(-12px);
+  }
+  50% {
+    transform: translateX(6px);
+  }
+  75% {
+    transform: translateX(-10px);
+  }
+  100% {
+    transform: none;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .math-game__tiles--glitch {
+    animation: none;
+  }
 }
 
 .math-game__closest {
