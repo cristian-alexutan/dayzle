@@ -16,6 +16,7 @@ import {
   useSaveProgressMutation,
   useSubmitMutation,
 } from '../api/queries'
+import MathResult from '../components/MathResult.vue'
 import MathTarget from '../components/MathTarget.vue'
 import NumberTile from '../components/NumberTile.vue'
 import OperatorPicker from '../components/OperatorPicker.vue'
@@ -51,7 +52,10 @@ const { tiles, firstId, operator, refusal, selectTile, selectOperator } = useMat
   onStep: (step: StepInput) => saveSteps([...steps.value, step]),
 })
 
-const closest = computed(() => (game.value ? closestSoFar(tiles.value, game.value.target) : null))
+const closestText = computed(() => {
+  const closest = game.value ? closestSoFar(tiles.value, game.value.target) : null
+  return closest === null ? '' : t('math.closest', { value: closest })
+})
 /** Undo, reset and finish all need at least one step, and nothing else on its way. */
 const canChange = computed(() => !boardDisabled.value && steps.value.length > 0)
 
@@ -123,6 +127,16 @@ const subtitle = computed(() => {
   return t('math.subtitle', { date })
 })
 
+// The result opens by itself when the game ends, or right away when a finished game loads.
+const resultVisible = ref(false)
+watch(
+  finished,
+  (isFinished) => {
+    if (isFinished) resultVisible.value = true
+  },
+  { immediate: true },
+)
+
 onBeforeUnmount(() => clearTimeout(shakeTimer))
 </script>
 
@@ -158,8 +172,12 @@ onBeforeUnmount(() => clearTimeout(shakeTimer))
         <i class="pi pi-exclamation-circle" aria-hidden="true" />
         <span>{{ message }}</span>
       </p>
-      <p v-if="closest !== null" class="math-game__closest" data-test="closest">
-        {{ t('math.closest', { value: closest }) }}
+      <p v-if="closestText" class="math-game__closest" aria-hidden="true" data-test="closest">
+        {{ closestText }}
+      </p>
+      <!-- Always in the page, so screen readers announce every change of the closest number. -->
+      <p class="math-game__announce" aria-live="polite" data-test="closest-announce">
+        {{ closestText }}
       </p>
       <StepHistory :steps="steps" :max-steps="game.max_steps" />
       <div v-if="inProgress" class="math-game__controls">
@@ -190,9 +208,17 @@ onBeforeUnmount(() => clearTimeout(shakeTimer))
           @click="finish"
         />
       </div>
-      <AppMessage v-if="finished" severity="success" data-test="finished">
-        {{ t('math.finished', { score: game.score }) }}
-      </AppMessage>
+      <AppButton
+        v-if="finished && !resultVisible"
+        class="math-game__see-result"
+        :label="t('math.result.see')"
+        icon="pi pi-trophy"
+        rounded
+        raised
+        data-test="see-result"
+        @click="resultVisible = true"
+      />
+      <MathResult v-if="finished" v-model:visible="resultVisible" :game="game" />
     </template>
   </GameShell>
 </template>
@@ -225,6 +251,23 @@ onBeforeUnmount(() => clearTimeout(shakeTimer))
 
 .math-game__finish {
   grid-column: 1 / -1;
+}
+
+.math-game__see-result {
+  align-self: center;
+}
+
+/* Read by screen readers, hidden on screen (the visible line above shows the same text). */
+.math-game__announce {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  padding: 0;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+  border: 0;
 }
 
 .math-game__refusal {

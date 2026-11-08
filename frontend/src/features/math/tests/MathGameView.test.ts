@@ -1,5 +1,6 @@
 import { type DOMWrapper, flushPromises, type VueWrapper } from '@vue/test-utils'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+import { defineComponent, h, nextTick, ref } from 'vue'
 
 import { mountWithPlugins } from '@/tests/utils'
 
@@ -64,7 +65,11 @@ afterEach(() => {
   fetchMock.mockReset()
   vi.unstubAllGlobals()
   vi.useRealTimers()
+  document.body.innerHTML = ''
 })
+
+/** The result dialog's text, or null while it's closed. It's rendered at the end of the page. */
+const dialogText = () => document.querySelector('[role="dialog"]')?.textContent ?? null
 
 describe('MathGameView', () => {
   it('shows a spinner while the game loads', () => {
@@ -152,7 +157,8 @@ describe('MathGameView', () => {
     await tap(wrapper, wrapper.find('[data-test="operator-multiply"]'))
     await tap(wrapper, tile(wrapper, '2'))
 
-    expect(wrapper.find('[data-test="finished"]').text()).toContain('Ai terminat! Scor: 1000')
+    expect(dialogText()).toContain('Ai nimerit 253!')
+    expect(dialogText()).toContain('1000')
     expect(
       wrapper.findAll('[data-test="tile"]').every((t) => t.attributes('disabled') !== undefined),
     ).toBe(true)
@@ -215,7 +221,7 @@ describe('MathGameView', () => {
     await tap(wrapper, wrapper.find('[data-test="operator-add"]'))
     await tap(wrapper, tile(wrapper, '1'))
 
-    expect(wrapper.find('[data-test="finished"]').text()).toContain('Scor: 900')
+    expect(dialogText()).toContain('900')
     expect(wrapper.find('[data-test="refusal"]').exists()).toBe(false)
     wrapper.unmount()
   })
@@ -354,6 +360,7 @@ describe('MathGameView', () => {
       const [url, init] = fetchMock.mock.calls[1]!
       expect(url).toBe('/api/v1/games/math/today/submit/')
       expect(JSON.parse(init.body)).toEqual({ steps: [{ left: 100, op: '*', right: 2 }] })
+      expect(dialogText()).toContain('200 — la 53 de 253')
       expect(finishButton(wrapper).exists()).toBe(false)
       expect(
         wrapper.findAll('[data-test="tile"]').every((t) => t.attributes('disabled') !== undefined),
@@ -399,8 +406,71 @@ describe('MathGameView', () => {
 
       expect(wrapper.find('[data-test="refusal"]').exists()).toBe(false)
       expect(finishButton(wrapper).exists()).toBe(false)
+      expect(dialogText()).toContain('200 — la 53 de 253')
       wrapper.unmount()
     })
+
+    it('opens the result right away when a finished game loads, and reopens it after closing', async () => {
+      const wrapper = await mountView(jsonResponse(200, close))
+
+      expect(dialogText()).toContain('200 — la 53 de 253')
+      expect(wrapper.find('[data-test="see-result"]').exists()).toBe(false)
+
+      document.querySelector<HTMLElement>('[role="dialog"] button')!.click()
+      await flushPromises()
+      expect(dialogText()).toBeNull()
+
+      await tap(wrapper, wrapper.find('[data-test="see-result"]'))
+      expect(dialogText()).toContain('200 — la 53 de 253')
+      wrapper.unmount()
+    })
+
+    it('opens the result again when coming back to a finished game that is still cached', async () => {
+      fetchMock.mockResolvedValue(jsonResponse(200, close))
+      const shown = ref(true)
+      const Page = defineComponent(() => () => (shown.value ? h(MathGameView) : null))
+      const wrapper = mountWithPlugins(Page)
+      await flushPromises()
+      expect(dialogText()).not.toBeNull()
+
+      shown.value = false
+      await flushPromises()
+      expect(dialogText()).toBeNull()
+
+      // Same app, same cache: the finished game is there at once, before any request returns.
+      shown.value = true
+      await nextTick()
+      expect(dialogText()).toContain('200 — la 53 de 253')
+      wrapper.unmount()
+    })
+
+    it('keeps the result closed while the game is in progress', async () => {
+      const wrapper = await mountView(jsonResponse(200, played))
+
+      expect(dialogText()).toBeNull()
+      expect(wrapper.find('[data-test="see-result"]').exists()).toBe(false)
+      wrapper.unmount()
+    })
+  })
+
+  it('tells screen readers the closest number, from a region that is always there', async () => {
+    const wrapper = await mountView(jsonResponse(200, game))
+    const announce = () => wrapper.find('[data-test="closest-announce"]')
+
+    expect(announce().attributes('aria-live')).toBe('polite')
+    expect(announce().text()).toBe('')
+    expect(wrapper.find('[data-test="closest"]').exists()).toBe(false)
+
+    fetchMock.mockResolvedValueOnce(
+      jsonResponse(200, { ...game, steps: [{ left: 100, op: '*', right: 2, result: 200 }] }),
+    )
+    await tap(wrapper, tile(wrapper, '100'))
+    await tap(wrapper, wrapper.find('[data-test="operator-multiply"]'))
+    await tap(wrapper, tile(wrapper, '2'))
+
+    expect(announce().text()).toBe('Cel mai aproape până acum: 200')
+    expect(wrapper.find('[data-test="closest"]').attributes('aria-hidden')).toBe('true')
+    wrapper.unmount()
   })
 
   it('says when there is no puzzle today', async () => {

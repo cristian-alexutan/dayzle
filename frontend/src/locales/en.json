@@ -18,7 +18,6 @@
       "generic": "Something went wrong. Please try again."
     },
     "finish": "Finish with the closest number",
-    "finished": "Finished! Score: {score}",
     "history": {
       "count": "{count} of {max} steps",
       "empty": "No steps yet. Tap a number, then an operation and a second number.",

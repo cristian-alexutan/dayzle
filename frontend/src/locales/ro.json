@@ -18,7 +18,6 @@
       "generic": "Ceva nu a mers. Încearcă din nou."
     },
     "finish": "Termină cu cel mai apropiat număr",
-    "finished": "Ai terminat! Scor: {score}",
     "history": {
       "count": "{count} din {max} pași",
       "empty": "Încă niciun pas. Atinge un număr, apoi o operație și un al doilea număr.",
