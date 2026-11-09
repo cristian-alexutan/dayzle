@@ -1,6 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
-import { ApiError, http } from './http'
+import { ApiError, errorCode, http } from './http'
 
 const fetchMock = vi.fn()
 
@@ -79,5 +79,13 @@ describe('http', () => {
     const error = await http.get('/games/word/today/').catch((e: unknown) => e)
 
     expect(error).toMatchObject({ status: 0, code: 'network_error' })
+  })
+})
+
+describe('errorCode', () => {
+  it('returns the code of an ApiError and null for anything else', () => {
+    expect(errorCode(new ApiError(404, 'no_puzzle', 'No puzzle'))).toBe('no_puzzle')
+    expect(errorCode(new Error('boom'))).toBeNull()
+    expect(errorCode(undefined)).toBeNull()
   })
 })

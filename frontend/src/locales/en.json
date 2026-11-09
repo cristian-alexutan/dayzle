@@ -29,11 +29,10 @@
       "see": "See result",
       "title": "Congratulations!"
     },
-    "streak": "Streak",
     "title": "Sunspots",
     "toolbar": {
-      "undo": "Undo X",
-      "clear": "Clear X marks",
+      "undo": "Undo",
+      "clear": "Clear board",
       "help": "Rules"
     },
     "tutorial": {
@@ -47,8 +46,8 @@
       },
       "controls": {
         "mark": "Tap a cell once to put an X where you know there's no sun. X marks are just your notes.",
-        "sun": "Tap an X to place the sun. A correct sun stays on the board; a wrong one disappears and counts as a mistake.",
-        "score": "Correct suns in a row grow your streak and your points, and a mistake resets it. The faster you finish, the higher your score."
+        "sun": "Tap it again for a sun, and once more to empty it. A sun that breaks a rule is rejected and counts as a mistake.",
+        "score": "Your score starts at 1000 and goes down with time, and each mistake costs 50 points. Once every sun is placed, the puzzle is solved."
       },
       "start": "Got it"
     }

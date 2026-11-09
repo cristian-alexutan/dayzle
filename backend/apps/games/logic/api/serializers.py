@@ -4,28 +4,18 @@ from rest_framework import serializers
 
 from apps.results.models import GameResult
 
-from .. import rules
+from ..services import CellContent
 
 
-class PlaceInputSerializer(serializers.Serializer):
+class CellInputSerializer(serializers.Serializer):
     row = serializers.IntegerField(min_value=0)
     col = serializers.IntegerField(min_value=0)
-
-
-class MarksInputSerializer(serializers.Serializer):
-    # Each mark is a cell, sent as [row, col]. No valid request has more marks than the largest
-    # grid has cells.
-    marks = serializers.ListField(
-        child=serializers.ListField(
-            child=serializers.IntegerField(min_value=0), min_length=2, max_length=2
-        ),
-        max_length=rules.MAX_SIZE**2,
-    )
+    content = serializers.ChoiceField(choices=[content.value for content in CellContent])
 
 
 class LogicGameSerializer(serializers.Serializer):
-    """The player's board. ``solution``, ``solved``, ``score`` and ``duration_ms`` stay null
-    until the game ends. ``elapsed_ms`` is only for display."""
+    """The player's board. ``solved``, ``score`` and ``duration_ms`` stay null until the game
+    ends. ``elapsed_ms`` is only for display. The solution is never sent."""
 
     date = serializers.DateField(source="puzzle.daily_puzzle.date")
     status = serializers.ChoiceField(choices=GameResult.Status.choices, source="result.status")
@@ -36,19 +26,13 @@ class LogicGameSerializer(serializers.Serializer):
     suns = serializers.SerializerMethodField()
     marks = serializers.SerializerMethodField()
     mistakes = serializers.SerializerMethodField()
-    streak = serializers.SerializerMethodField()
     solved = serializers.SerializerMethodField()
     score = serializers.SerializerMethodField()
     duration_ms = serializers.SerializerMethodField()
     elapsed_ms = serializers.SerializerMethodField()
-    solution = serializers.SerializerMethodField()
 
     def _finished(self, game) -> bool:
         return game.result.status == GameResult.Status.COMPLETED
-
-    @staticmethod
-    def _moves(game) -> list[bool]:
-        return game.result.details.get("moves", [])
 
     def get_suns(self, game) -> list[list[int]]:
         return game.result.details.get("suns", [])
@@ -57,10 +41,7 @@ class LogicGameSerializer(serializers.Serializer):
         return game.result.details.get("marks", [])
 
     def get_mistakes(self, game) -> int:
-        return self._moves(game).count(False)
-
-    def get_streak(self, game) -> int:
-        return rules.current_streak(self._moves(game))
+        return game.result.details.get("mistakes", 0)
 
     def get_solved(self, game) -> bool | None:
         return game.result.solved if self._finished(game) else None
@@ -71,10 +52,6 @@ class LogicGameSerializer(serializers.Serializer):
     def get_duration_ms(self, game) -> int | None:
         return game.result.duration_ms if self._finished(game) else None
 
-    # Secret until the game is finished: never reveal the solution while it can still be played.
-    def get_solution(self, game) -> list[int] | None:
-        return game.puzzle.solution if self._finished(game) else None
-
     def get_elapsed_ms(self, game) -> int:
         """Active play time so far, so the on-screen timer continues after a refresh."""
         if self._finished(game) and game.result.duration_ms is not None:
@@ -82,9 +59,9 @@ class LogicGameSerializer(serializers.Serializer):
         return game.result.active_ms
 
 
-class PlaceResultSerializer(serializers.Serializer):
-    """Whether the sun was correct, the suns it conflicts with, and the updated board."""
+class CellResultSerializer(serializers.Serializer):
+    """Whether a new sun was rejected, the suns it conflicts with, and the updated board."""
 
-    correct = serializers.BooleanField()
+    rejected = serializers.BooleanField()
     conflicts = serializers.ListField(child=serializers.ListField(child=serializers.IntegerField()))
     game = LogicGameSerializer()

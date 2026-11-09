@@ -46,17 +46,6 @@ def test_only_the_conflicting_suns_are_returned():
     assert rules.conflicts((0, 5), suns, DEMO_REGIONS) == [(0, 2)]
 
 
-def test_is_correct():
-    assert rules.is_correct((0, 2), DEMO_SOLUTION)
-    assert not rules.is_correct((0, 3), DEMO_SOLUTION)
-
-
-def test_is_solved_only_with_every_sun_of_the_solution():
-    all_suns = [(row, col) for row, col in enumerate(DEMO_SOLUTION)]
-    assert rules.is_solved(all_suns, DEMO_SOLUTION)
-    assert not rules.is_solved(all_suns[:-1], DEMO_SOLUTION)
-
-
 def test_is_in_grid():
     assert rules.is_in_grid((0, 0), 6)
     assert rules.is_in_grid((5, 5), 6)
@@ -91,49 +80,6 @@ def test_validate_rejects_a_grid_with_several_solutions():
     assert rules.validate_puzzle(5, regions, solution) == ["The grid has more than one solution."]
 
 
-def test_combo_points_grow_with_the_streak():
-    assert rules.combo_points([True, True, True]) == 1 + 2 + 3
-
-
-def test_a_mistake_resets_the_streak():
-    # 1 + 2 + 3, mistake, then 1 + 2 + 3 again
-    assert rules.combo_points([True, True, True, False, True, True, True]) == 12
-
-
-def test_mistakes_alone_give_no_combo_points():
-    assert rules.combo_points([False, False]) == 0
-
-
-def test_max_combo_points():
-    assert rules.max_combo_points(6) == 21
-    assert rules.max_combo_points(9) == 45
-
-
-def test_score_examples_from_the_documentation():
-    perfect = [True] * 6
-    one_mistake = [True, True, True, False, True, True, True]
-    assert rules.score(perfect, 6, duration_ms=2 * 60_000) == 900
-    assert rules.score(perfect, 6, duration_ms=4 * 60_000) == 800
-    assert rules.score(one_mistake, 6, duration_ms=4 * 60_000) == 500
-
-
-def test_score_is_1000_at_most_and_time_points_never_go_negative():
-    assert rules.score([True] * 6, 6, duration_ms=0) == 1000
-    assert rules.score([True] * 6, 6, duration_ms=60 * 60_000) == 700
-
-
-def test_every_grid_size_can_reach_the_same_combo_maximum():
-    slow = 60 * 60_000  # long enough to get no time points
-    assert rules.score([True] * 6, 6, slow) == rules.score([True] * 9, 9, slow) == 700
-
-
-def test_current_streak_counts_the_correct_suns_since_the_last_mistake():
-    assert rules.current_streak([]) == 0
-    assert rules.current_streak([True, True]) == 2
-    assert rules.current_streak([True, True, False]) == 0
-    assert rules.current_streak([True, False, True]) == 1
-
-
 def test_the_demo_regions_are_all_connected():
     assert rules.split_regions(DEMO_REGIONS) == []
 
@@ -160,3 +106,29 @@ def test_validate_rejects_a_split_region():
     regions[5][0] = 0  # a lone cell of region 0, far from the rest of it
     problems = rules.validate_puzzle(DEMO_SIZE, regions, DEMO_SOLUTION)
     assert problems == ["Every region must be one connected piece; these are split: 0."]
+
+
+def test_the_board_is_full_with_one_sun_per_row():
+    all_suns = list(enumerate(DEMO_SOLUTION))
+    assert rules.is_full(all_suns, DEMO_SIZE)
+    assert not rules.is_full(all_suns[:-1], DEMO_SIZE)
+
+
+def test_score_example_from_the_review():
+    # 6 × 6 in 3 minutes with 1 mistake: 1000 × (1 − 3 / 12) − 50 = 700.
+    assert rules.score(6, duration_ms=3 * 60_000, mistakes=1) == 700
+
+
+def test_score_is_1000_for_an_instant_solve_with_no_mistakes():
+    assert rules.score(6, duration_ms=0, mistakes=0) == 1000
+
+
+def test_the_time_limit_grows_with_the_grid():
+    # Half of the limit is used: 6 of 12 minutes, or 9 of 18.
+    assert rules.score(6, duration_ms=6 * 60_000, mistakes=0) == 500
+    assert rules.score(9, duration_ms=9 * 60_000, mistakes=0) == 500
+
+
+def test_the_score_never_goes_below_zero():
+    assert rules.score(6, duration_ms=60 * 60_000, mistakes=0) == 0
+    assert rules.score(6, duration_ms=0, mistakes=30) == 0

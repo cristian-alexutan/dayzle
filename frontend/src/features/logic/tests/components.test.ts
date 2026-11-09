@@ -29,10 +29,10 @@ describe('LogicCell', () => {
     expect(style).toContain('var(--dz-region-2)')
   })
 
-  it('shows a wrong sun and a conflicting one', () => {
-    const wrong = mountCell({ wrong: true })
-    expect(wrong.find('.pi-sun').exists()).toBe(true)
-    expect(wrong.classes()).toContain('logic-cell--wrong')
+  it('shows a rejected sun and a conflicting one', () => {
+    const rejected = mountCell({ rejected: true })
+    expect(rejected.find('.pi-sun').exists()).toBe(true)
+    expect(rejected.classes()).toContain('logic-cell--rejected')
     expect(mountCell({ content: 'sun', conflict: true }).classes()).toContain(
       'logic-cell--conflict',
     )
@@ -59,7 +59,7 @@ describe('LogicBoard', () => {
       props: {
         regions,
         contentOf: (): CellContent => 'empty',
-        isWrong: () => false,
+        isRejected: () => false,
         isConflict: () => false,
       },
     })
@@ -90,20 +90,18 @@ describe('LogicToolbar', () => {
       props: {
         elapsedMs: 83_000,
         mistakes: 2,
-        streak: 3,
         canUndo: true,
-        hasMarks: true,
+        canClear: true,
         playing: true,
         ...props,
       },
     })
   }
 
-  it('shows the time, the mistakes and the streak', () => {
+  it('shows the time and the mistakes', () => {
     const toolbar = mountToolbar()
     expect(toolbar.find('[data-test="time"]').text()).toContain('1:23')
     expect(toolbar.find('[data-test="mistakes"]').text()).toContain('2')
-    expect(toolbar.find('[data-test="streak"]').text()).toContain('×3')
   })
 
   it('emits undo, clear and help', async () => {
@@ -116,13 +114,13 @@ describe('LogicToolbar', () => {
     expect(toolbar.emitted('help')).toHaveLength(1)
   })
 
-  it('disables the X buttons when there is nothing to undo or clear', () => {
-    const toolbar = mountToolbar({ canUndo: false, hasMarks: false })
+  it('disables undo and clear when there is nothing to undo or clear', () => {
+    const toolbar = mountToolbar({ canUndo: false, canClear: false })
     expect(toolbar.find('[data-test="undo"]').attributes('disabled')).toBeDefined()
     expect(toolbar.find('[data-test="clear"]').attributes('disabled')).toBeDefined()
   })
 
-  it('hides the X buttons once the game is over', () => {
+  it('hides undo and clear once the game is over', () => {
     const toolbar = mountToolbar({ playing: false })
     expect(toolbar.find('[data-test="undo"]').exists()).toBe(false)
     expect(toolbar.find('[data-test="help"]').exists()).toBe(true)

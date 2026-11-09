@@ -5,7 +5,13 @@ import type { components } from '@/api/generated/schema'
 export type Cell = [number, number]
 
 /** What a cell shows: nothing, the player's X note, or a sun. */
-export type CellContent = 'empty' | 'mark' | 'sun'
+export type CellContent = components['schemas']['ContentEnum']
+
+/** A change the player makes to one cell. */
+export interface CellChange {
+  cell: Cell
+  content: CellContent
+}
 
 /** The player's game. `solved`, `score` and `duration_ms` are null until it ends. */
 export type LogicGame = Omit<components['schemas']['LogicGame'], 'suns' | 'marks'> & {
@@ -13,8 +19,8 @@ export type LogicGame = Omit<components['schemas']['LogicGame'], 'suns' | 'marks
   marks: Cell[]
 }
 
-/** The server's answer to a placed sun, with the updated game. */
-export type PlaceResult = Omit<components['schemas']['PlaceResult'], 'conflicts' | 'game'> & {
+/** The server's answer to a cell change: whether a new sun was rejected, and the new board. */
+export type CellResult = Omit<components['schemas']['CellResult'], 'conflicts' | 'game'> & {
   conflicts: Cell[]
   game: LogicGame
 }

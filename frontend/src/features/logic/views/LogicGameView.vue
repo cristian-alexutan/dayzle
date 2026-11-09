@@ -8,75 +8,29 @@ import AppMessage from '@/shared/components/AppMessage.vue'
 import AppSpinner from '@/shared/components/AppSpinner.vue'
 import ErrorState from '@/shared/components/ErrorState.vue'
 import GameShell from '@/shared/components/GameShell.vue'
+import { useTimer } from '@/shared/composables/useTimer'
 
 import {
   errorCode,
+  useCellMutation,
+  useClearMutation,
   useLogicGameQuery,
   useLogicHeartbeat,
-  useMarksMutation,
-  usePlaceMutation,
 } from '../api/queries'
 import LogicBoard from '../components/LogicBoard.vue'
 import LogicResult from '../components/LogicResult.vue'
 import LogicToolbar from '../components/LogicToolbar.vue'
 import LogicTutorial from '../components/LogicTutorial.vue'
 import { useBoardState } from '../composables/useBoardState'
-import { useConflicts, WRONG_SUN_MS } from '../composables/useConflicts'
-import { useElapsedTime } from '../composables/useElapsedTime'
-import type { Cell } from '../types'
+import { useConflicts } from '../composables/useConflicts'
 
 const DAY = 'today'
 const ERROR_MS = 2500
+/** A moment to see the last sun on the board before the result opens. */
+const RESULT_DELAY_MS = 600
 const TUTORIAL_SEEN_KEY = 'dayzle.logic.tutorialSeen'
 
 const { t } = useI18n()
-
-const query = useLogicGameQuery(DAY)
-const placeSun = usePlaceMutation(DAY)
-const saveMarks = useMarksMutation(DAY)
-
-const game = computed(() => query.data.value)
-const inProgress = computed(() => game.value?.status === 'in_progress')
-const finished = computed(() => game.value?.status === 'completed')
-const noPuzzle = computed(() => errorCode(query.error.value) === 'no_puzzle')
-
-useLogicHeartbeat(DAY, inProgress)
-
-const elapsedMs = useElapsedTime(() => game.value?.elapsed_ms ?? 0, inProgress)
-const conflicts = useConflicts()
-const errorMessage = ref<string | null>(null)
-let errorTimer: ReturnType<typeof setTimeout> | undefined
-
-function showError(message: string) {
-  errorMessage.value = message
-  clearTimeout(errorTimer)
-  errorTimer = setTimeout(() => (errorMessage.value = null), ERROR_MS)
-}
-
-function place(cell: Cell) {
-  placeSun.mutate(cell, {
-    onSuccess: (result) => {
-      if (!result.correct) conflicts.show(cell, result.conflicts)
-    },
-    onError: (error) => {
-      // Finished in another tab: show that game instead of an error.
-      if (errorCode(error) === 'already_played') query.refetch()
-      else showError(t('logic.errors.generic'))
-    },
-  })
-}
-
-const board = useBoardState({
-  game,
-  disabled: () => !inProgress.value || placeSun.isPending.value,
-  place,
-  // A failed save is ignored: the next tap sends all the marks again.
-  saveMarks: (marks) => {
-    if (inProgress.value) saveMarks.mutate(marks)
-  },
-})
-
-const tutorialVisible = ref(false)
 
 function tutorialSeen(): boolean {
   try {
@@ -94,16 +48,59 @@ function rememberTutorialSeen() {
   }
 }
 
-// The rules open by themselves the first time a player starts a game.
-watch(
-  () => game.value?.status,
-  (status) => {
-    if (status !== 'in_progress' || tutorialSeen()) return
-    tutorialVisible.value = true
-    rememberTutorialSeen()
+// The first time, the rules open before the game is loaded: loading it starts the clock, so
+// reading them doesn't count as play time.
+const started = ref(tutorialSeen())
+const tutorialVisible = ref(!started.value)
+
+watch(tutorialVisible, (visible) => {
+  if (visible || started.value) return
+  started.value = true
+  rememberTutorialSeen()
+})
+
+const query = useLogicGameQuery(DAY, started)
+const game = computed(() => query.data.value)
+const inProgress = computed(() => game.value?.status === 'in_progress')
+const finished = computed(() => game.value?.status === 'completed')
+const noPuzzle = computed(() => errorCode(query.error.value) === 'no_puzzle')
+// Reading the rules again in the middle of a game pauses the clock too.
+const playing = computed(() => inProgress.value && !tutorialVisible.value)
+
+useLogicHeartbeat(DAY, playing)
+const elapsedMs = useTimer(() => game.value?.elapsed_ms ?? 0, playing)
+
+const conflicts = useConflicts()
+const errorMessage = ref<string | null>(null)
+let errorTimer: ReturnType<typeof setTimeout> | undefined
+
+function onError(error: unknown) {
+  // Finished in another tab: the board is loaded again and shows that game.
+  if (errorCode(error) === 'already_played') return
+  errorMessage.value = t('logic.errors.generic')
+  clearTimeout(errorTimer)
+  errorTimer = setTimeout(() => (errorMessage.value = null), ERROR_MS)
+}
+
+const cellMutation = useCellMutation(DAY, {
+  onRejected: (cell, conflicting) => {
+    board.forget(cell)
+    conflicts.show(cell, conflicting)
   },
-  { immediate: true },
-)
+  onError,
+})
+const clearMutation = useClearMutation(DAY, { onError })
+
+const board = useBoardState({
+  game,
+  disabled: () => !inProgress.value,
+  change: (change) => cellMutation.mutate(change),
+})
+
+function clearBoard() {
+  board.clearHistory()
+  clearMutation.mutate()
+}
 
 const resultVisible = ref(false)
 let resultTimer: ReturnType<typeof setTimeout> | undefined
@@ -115,7 +112,7 @@ watch(
   (status, previous) => {
     if (status !== 'completed') return
     if (previous !== 'in_progress') resultVisible.value = true
-    else resultTimer = setTimeout(() => (resultVisible.value = true), WRONG_SUN_MS)
+    else resultTimer = setTimeout(() => (resultVisible.value = true), RESULT_DELAY_MS)
   },
   { immediate: true },
 )
@@ -142,12 +139,11 @@ onBeforeUnmount(() => {
       <LogicToolbar
         :elapsed-ms="elapsedMs"
         :mistakes="game.mistakes"
-        :streak="game.streak"
         :can-undo="board.canUndo.value"
-        :has-marks="board.hasMarks.value"
+        :can-clear="!board.isEmpty.value"
         :playing="inProgress"
-        @undo="board.undoMark"
-        @clear="board.clearMarks"
+        @undo="board.undo"
+        @clear="clearBoard"
         @help="tutorialVisible = true"
       />
       <div class="logic-game__message" aria-live="polite">
@@ -158,7 +154,7 @@ onBeforeUnmount(() => {
       <LogicBoard
         :regions="game.regions"
         :content-of="board.contentOf"
-        :is-wrong="conflicts.isWrong"
+        :is-rejected="conflicts.isRejected"
         :is-conflict="conflicts.isConflict"
         :disabled="!inProgress"
         @tap="board.tap"
@@ -176,8 +172,8 @@ onBeforeUnmount(() => {
         />
         <LogicResult v-model:visible="resultVisible" :game="game" />
       </template>
-      <LogicTutorial v-model:visible="tutorialVisible" />
     </template>
+    <LogicTutorial v-model:visible="tutorialVisible" />
   </GameShell>
 </template>
 

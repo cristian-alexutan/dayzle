@@ -1,17 +1,16 @@
-<!-- LogicToolbar: the clock, mistakes and streak, and the buttons for X marks and the rules. -->
+<!-- LogicToolbar: the clock and mistakes, and the buttons to undo, clear and see the rules. -->
 <script setup lang="ts">
 import { useI18n } from 'vue-i18n'
 
 import AppButton from '@/shared/components/AppButton.vue'
-import { formatDuration } from '@/shared/utils/formatDuration'
+import Timer from '@/shared/components/Timer.vue'
 
 defineProps<{
   elapsedMs: number
   mistakes: number
-  streak: number
   canUndo: boolean
-  hasMarks: boolean
-  /** Hides the X buttons once the game is over. */
+  canClear: boolean
+  /** Hides the undo and clear buttons once the game is over. */
   playing: boolean
 }>()
 
@@ -23,19 +22,11 @@ const { t } = useI18n()
 <template>
   <div class="logic-toolbar">
     <div class="logic-toolbar__stats">
-      <span class="logic-toolbar__item" :title="t('common.time')" data-test="time">
-        <i class="pi pi-clock" aria-hidden="true" />
-        {{ formatDuration(elapsedMs) }}
-      </span>
+      <Timer :ms="elapsedMs" data-test="time" />
       <span class="logic-toolbar__item" :title="t('logic.mistakes')" data-test="mistakes">
         <i class="pi pi-times-circle" aria-hidden="true" />
         <span>{{ t('logic.mistakes') }}:</span>
         {{ mistakes }}
-      </span>
-      <span class="logic-toolbar__item" :title="t('logic.streak')" data-test="streak">
-        <i class="pi pi-bolt" aria-hidden="true" />
-        <span>{{ t('logic.streak') }}:</span>
-        ×{{ streak }}
       </span>
     </div>
     <div class="logic-toolbar__actions">
@@ -56,7 +47,7 @@ const { t } = useI18n()
           severity="secondary"
           text
           size="small"
-          :disabled="!hasMarks"
+          :disabled="!canClear"
           data-test="clear"
           @click="$emit('clear')"
         />

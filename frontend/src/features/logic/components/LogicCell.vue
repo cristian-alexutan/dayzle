@@ -17,8 +17,8 @@ const props = defineProps<{
   content: CellContent
   edges: RegionEdges
   label: string
-  /** A sun the server just rejected: shown in red for a moment, then removed. */
-  wrong?: boolean
+  /** A sun the server just rejected for breaking a rule: shown in red for a moment. */
+  rejected?: boolean
   /** A sun that the rejected one broke a rule with. */
   conflict?: boolean
   disabled?: boolean
@@ -34,7 +34,7 @@ const regionColor = computed(() => ({ '--cell-background': `var(--dz-region-${pr
     type="button"
     class="logic-cell"
     :class="{
-      'logic-cell--wrong': wrong,
+      'logic-cell--rejected': rejected,
       'logic-cell--conflict': conflict,
       'logic-cell--edge-top': edges.top,
       'logic-cell--edge-right': edges.right,
@@ -48,7 +48,7 @@ const regionColor = computed(() => ({ '--cell-background': `var(--dz-region-${pr
     @click="$emit('tap')"
   >
     <i
-      v-if="wrong || content === 'sun'"
+      v-if="rejected || content === 'sun'"
       class="pi pi-sun logic-cell__sun"
       aria-hidden="true"
       data-test="sun"
@@ -105,7 +105,7 @@ const regionColor = computed(() => ({ '--cell-background': `var(--dz-region-${pr
   opacity: 0.7;
 }
 
-.logic-cell--wrong .logic-cell__sun {
+.logic-cell--rejected .logic-cell__sun {
   color: var(--dz-accent-strong);
   animation: logic-cell-shake 0.3s;
 }
@@ -124,7 +124,7 @@ const regionColor = computed(() => ({ '--cell-background': `var(--dz-region-${pr
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .logic-cell--wrong .logic-cell__sun {
+  .logic-cell--rejected .logic-cell__sun {
     animation: none;
   }
 }

@@ -29,11 +29,10 @@
       "see": "Vezi rezultatul",
       "title": "Felicitări!"
     },
-    "streak": "Serie",
     "title": "Sunspots",
     "toolbar": {
-      "undo": "Anulează X",
-      "clear": "Șterge X-urile",
+      "undo": "Anulează",
+      "clear": "Golește tabla",
       "help": "Reguli"
     },
     "tutorial": {
@@ -47,8 +46,8 @@
       },
       "controls": {
         "mark": "Atinge o celulă o dată ca să pui un X acolo unde știi că nu e soare. X-urile sunt doar notițele tale.",
-        "sun": "Atinge un X ca să pui soarele. Dacă e corect rămâne pe tablă; dacă e greșit, dispare și se numără o greșeală.",
-        "score": "Sorii corecți la rând îți cresc seria și punctele, iar o greșeală o resetează. Cu cât termini mai repede, cu atât scorul e mai mare."
+        "sun": "Atinge-o din nou ca să pui un soare și încă o dată ca s-o golești. Un soare care încalcă o regulă e respins și se numără ca greșeală.",
+        "score": "Scorul pornește de la 1000 și scade cu timpul, iar fiecare greșeală costă 50 de puncte. Când ai pus toți sorii, ai rezolvat puzzle-ul."
       },
       "start": "Am înțeles"
     }

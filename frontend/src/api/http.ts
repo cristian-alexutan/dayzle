@@ -24,6 +24,11 @@ export class ApiError extends Error {
   }
 }
 
+/** The backend's error code (`no_puzzle`, `already_played`, ...), or null for any other error. */
+export function errorCode(error: unknown): string | null {
+  return error instanceof ApiError ? error.code : null
+}
+
 function isErrorBody(value: unknown): value is ErrorBody {
   if (typeof value !== 'object' || value === null || !('error' in value)) return false
   const error = (value as { error: unknown }).error

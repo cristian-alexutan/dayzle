@@ -9,7 +9,7 @@ import LogicCell from './LogicCell.vue'
 const props = defineProps<{
   regions: number[][]
   contentOf: (cell: Cell) => CellContent
-  isWrong: (cell: Cell) => boolean
+  isRejected: (cell: Cell) => boolean
   isConflict: (cell: Cell) => boolean
   disabled?: boolean
 }>()
@@ -54,7 +54,7 @@ function label([row, col]: Cell) {
       :region="region"
       :edges="edges"
       :content="contentOf(cell)"
-      :wrong="isWrong(cell)"
+      :rejected="isRejected(cell)"
       :conflict="isConflict(cell)"
       :label="label(cell)"
       :disabled="disabled"

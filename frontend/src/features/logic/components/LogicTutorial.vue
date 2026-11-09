@@ -18,7 +18,7 @@ const RULES = [
 const CONTROLS = [
   { icon: 'pi pi-times', key: 'mark' },
   { icon: 'pi pi-sun', key: 'sun' },
-  { icon: 'pi pi-bolt', key: 'score' },
+  { icon: 'pi pi-stopwatch', key: 'score' },
 ]
 </script>
 

@@ -6,6 +6,6 @@ from . import views
 
 urlpatterns = [
     path("<game_day:day>/", views.game, name="logic-game"),
-    path("<game_day:day>/place/", views.place, name="logic-place"),
-    path("<game_day:day>/marks/", views.marks, name="logic-marks"),
+    path("<game_day:day>/cell/", views.cell, name="logic-cell"),
+    path("<game_day:day>/clear/", views.clear, name="logic-clear"),
 ]
