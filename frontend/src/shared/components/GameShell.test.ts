@@ -13,5 +13,12 @@ describe('GameShell', () => {
 
     expect(wrapper.find('h1').text()).toBe('Joc')
     expect(wrapper.text()).toContain('board')
+    expect(wrapper.classes()).not.toContain('game-shell--wide')
+  })
+
+  it('gives a wide game more room', () => {
+    const wrapper = mountWithPlugins(GameShell, { props: { title: 'Joc', wide: true } })
+
+    expect(wrapper.classes()).toContain('game-shell--wide')
   })
 })

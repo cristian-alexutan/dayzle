@@ -8,6 +8,7 @@ import AppMessage from '@/shared/components/AppMessage.vue'
 import AppSpinner from '@/shared/components/AppSpinner.vue'
 import ErrorState from '@/shared/components/ErrorState.vue'
 import GameShell from '@/shared/components/GameShell.vue'
+import { formatGameDay } from '@/shared/utils/formatGameDay'
 
 import {
   errorCode,
@@ -141,17 +142,10 @@ watch(refusal, (current) => {
   shakeTimer = setTimeout(() => (shake.value = null), SHAKE_MS)
 })
 
-/** "sâmbătă, 7 noiembrie": the puzzle's day, in the player's language. */
-const subtitle = computed(() => {
-  if (!game.value) return ''
-  const [year, month, day] = game.value.date.split('-').map(Number) as [number, number, number]
-  const date = new Intl.DateTimeFormat(locale.value, {
-    weekday: 'long',
-    day: 'numeric',
-    month: 'long',
-  }).format(new Date(year, month - 1, day))
-  return t('math.subtitle', { date })
-})
+/** "Puzzle-ul zilei · sâmbătă, 7 noiembrie": the puzzle's day, in the player's language. */
+const subtitle = computed(() =>
+  game.value ? t('math.subtitle', { date: formatGameDay(game.value.date, locale.value) }) : '',
+)
 
 // The result opens by itself when the game ends, or right away when a finished game loads.
 // The step that ends the game may also play an easter egg: the result waits for it to finish.
