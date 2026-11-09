@@ -39,7 +39,6 @@
     "round": "Runda {round} din {rounds}",
     "score": "{score} / {max} puncte",
     "seeResult": "Vezi rezultatul",
-    "subtitle": "{region} · {date}",
     "title": "GeoGuesser"
   },
   "header": {

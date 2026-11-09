@@ -8,7 +8,6 @@ import AppMessage from '@/shared/components/AppMessage.vue'
 import AppSpinner from '@/shared/components/AppSpinner.vue'
 import ErrorState from '@/shared/components/ErrorState.vue'
 import GameShell from '@/shared/components/GameShell.vue'
-import { formatGameDay } from '@/shared/utils/formatGameDay'
 
 import {
   errorCode,
@@ -33,7 +32,7 @@ const STALE_CODES = new Set(['already_answered', 'already_played', 'region_locke
 /** A guess closer than this to the real spot is celebrated with confetti. */
 const CONFETTI_UNDER_M = 100
 
-const { t, locale } = useI18n()
+const { t } = useI18n()
 const formatDistance = useDistanceFormat()
 
 /** The region played: the backend's default one, unless the player continues in another. */
@@ -154,19 +153,25 @@ const hint = computed(() => {
   return null
 })
 
-/** "Cluj-Napoca · duminică, 8 noiembrie": the region and the day, in the player's language. */
-const subtitle = computed(() =>
-  game.value
-    ? t('geo.subtitle', {
-        region: game.value.region.name,
-        date: formatGameDay(game.value.date, locale.value),
-      })
-    : '',
-)
+/** The title around its first "o", which is drawn as a globe: "Ge", "Guesser". */
+const titleParts = computed(() => {
+  const title = t('geo.title')
+  const at = title.indexOf('o')
+  return at < 0 ? null : [title.slice(0, at), title.slice(at + 1)]
+})
 </script>
 
 <template>
   <GameShell :title="t('geo.title')" wide>
+    <template #title>
+      <span v-if="titleParts" class="geo-title" data-test="title">
+        <span class="geo-title__label">{{ t('geo.title') }}</span>
+        <span aria-hidden="true">
+          {{ titleParts[0] }}<i class="pi pi-globe geo-title__globe" />{{ titleParts[1] }}
+        </span>
+      </span>
+      <template v-else>{{ t('geo.title') }}</template>
+    </template>
     <AppSpinner v-if="query.isPending.value" :aria-label="t('geo.loading')" />
     <AppMessage v-else-if="noPuzzle" severity="info" data-test="no-puzzle">
       {{ t('geo.noPuzzle') }}
@@ -190,8 +195,6 @@ const subtitle = computed(() =>
       @retry="query.refetch()"
     />
     <template v-else-if="game">
-      <p class="geo-game__subtitle" data-test="subtitle">{{ subtitle }}</p>
-
       <template v-if="phase === 'guess' && game.panorama_id">
         <div class="geo-game__status">
           <span data-test="round">
@@ -292,10 +295,21 @@ const subtitle = computed(() =>
 </template>
 
 <style scoped>
-.geo-game__subtitle {
-  margin: -0.5rem 0 0;
-  color: var(--dz-text-muted);
-  font-size: 0.875rem;
+/* The visible title is drawn with a globe; this text is what screen readers read. */
+.geo-title__label {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+
+.geo-title__globe {
+  margin: 0 0.04em;
+  color: var(--dz-primary-strong);
+  font-size: 0.78em;
+  vertical-align: 0.04em;
 }
 
 .geo-game__locked {

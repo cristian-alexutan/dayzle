@@ -92,13 +92,22 @@ describe('GeoGameView', () => {
     wrapper.unmount()
   })
 
-  it('shows the region, the day, the round and the score so far', async () => {
+  it('draws the title with a globe for the "o", read out as GeoGuesser', async () => {
     const wrapper = await mountView(jsonResponse(200, afterFirstGuess))
 
-    expect(wrapper.find('h1').text()).toBe('GeoGuesser')
-    expect(wrapper.find('[data-test="subtitle"]').text()).toBe(
-      'Cluj-Napoca · duminică, 8 noiembrie',
-    )
+    const title = wrapper.find('h1 [data-test="title"]')
+    expect(title.find('.geo-title__label').text()).toBe('GeoGuesser')
+    const visible = title.find('[aria-hidden="true"]')
+    expect(visible.text().replace(/\s+/g, '')).toBe('GeGuesser')
+    expect(visible.find('i.pi-globe').exists()).toBe(true)
+    wrapper.unmount()
+  })
+
+  it('shows the round and the score so far, without a subtitle', async () => {
+    const wrapper = await mountView(jsonResponse(200, afterFirstGuess))
+
+    expect(wrapper.find('[data-test="subtitle"]').exists()).toBe(false)
+    expect(wrapper.text()).not.toContain('Cluj-Napoca ·')
     expect(wrapper.find('[data-test="round"]').text()).toBe('Runda 2 din 5')
     expect(wrapper.find('[data-test="score"]').text()).toBe('594 / 5000 puncte')
     expect(wrapper.findComponent(StreetViewPanorama).props('panoramaId')).toBe('pano-2')

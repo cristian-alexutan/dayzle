@@ -1,12 +1,17 @@
 <!-- GameShell: Common frame around every game: its title and a centered content column. -->
 <script setup lang="ts">
-/** `wide` gives games built around a large picture (the GeoGuesser) more room. */
+/**
+ * `wide` gives games built around a large picture (the GeoGuesser) more room. The `title` slot
+ * replaces how the title is drawn (a logo-like title); `title` stays its text.
+ */
 defineProps<{ title: string; wide?: boolean }>()
 </script>
 
 <template>
   <main class="game-shell" :class="{ 'game-shell--wide': wide }">
-    <h1 class="game-shell__title">{{ title }}</h1>
+    <h1 class="game-shell__title">
+      <slot name="title">{{ title }}</slot>
+    </h1>
     <slot />
   </main>
 </template>
