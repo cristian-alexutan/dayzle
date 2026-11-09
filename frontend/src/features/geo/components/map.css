@@ -1,0 +1,33 @@
+/*
+ * The frame around the GeoGuesser's panorama and maps: Google draws inside .geo-frame__view, and
+ * .geo-frame__overlay covers it while loading or when Google can't be used.
+ */
+.geo-frame {
+  position: relative;
+  width: 100%;
+  height: 18rem;
+  overflow: hidden;
+  border: 1px solid var(--dz-border);
+  border-radius: 0.75rem;
+  background: var(--dz-surface);
+}
+
+/* The game's main window: the panorama, or the map in its place. */
+.geo-frame--stage {
+  height: min(65vh, 36rem);
+  min-height: 18rem;
+}
+
+.geo-frame__view {
+  position: absolute;
+  inset: 0;
+}
+
+.geo-frame__overlay {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1rem;
+}

@@ -4,16 +4,41 @@
     "time": "Timp"
   },
   "geo": {
+    "backToPanorama": "Înapoi la imagine",
+    "continueIn": "Continuă în {region}",
+    "distance": "la {distance} de locul real",
     "errors": {
       "generic": "Ceva nu a mers. Încearcă din nou.",
-      "noRegion": "GeoGuesser nu este disponibil acum. Încearcă mai târziu."
+      "noRegion": "GeoGuesser nu este disponibil acum. Încearcă mai târziu.",
+      "outside": "Alege un punct din {region}.",
+      "stale": "Jocul s-a schimbat între timp, așa că l-am reîncărcat."
     },
-    "finished": "Ai terminat! Scor: {score} din {max}",
+    "guess": "Confirmă locul",
     "loading": "Se încarcă jocul",
+    "map": {
+      "guess": "Harta pe care alegi locul",
+      "reveal": "Harta cu locul real"
+    },
+    "maps": {
+      "loading": "Se încarcă harta",
+      "unavailable": "Harta nu poate fi afișată acum."
+    },
+    "next": "Runda următoare",
     "noPuzzle": "Nu există un joc pentru astăzi. Revino mâine!",
-    "regionLocked": "Ai început jocul de azi în altă regiune ({region}). Revino mâine!",
+    "openMap": "Ghicește pe hartă",
+    "panorama": "Imaginea Street View a rundei",
+    "placePin": "Apasă pe hartă unde crezi că este locul.",
+    "points": "{score} puncte",
+    "regionLocked": "Ai început deja jocul de azi în {region}. Îl poți termina acolo.",
+    "result": {
+      "lost": "Mai încearcă mâine!",
+      "round": "Runda {round}",
+      "rounds": "Rundele jocului",
+      "won": "Bravo!"
+    },
     "round": "Runda {round} din {rounds}",
     "score": "{score} / {max} puncte",
+    "seeResult": "Vezi rezultatul",
     "subtitle": "{region} · {date}",
     "title": "GeoGuesser"
   },

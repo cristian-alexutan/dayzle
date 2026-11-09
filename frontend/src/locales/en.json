@@ -4,16 +4,41 @@
     "time": "Time"
   },
   "geo": {
+    "backToPanorama": "Back to the image",
+    "continueIn": "Continue in {region}",
+    "distance": "{distance} from the real spot",
     "errors": {
       "generic": "Something went wrong. Please try again.",
-      "noRegion": "The GeoGuesser isn't available right now. Please try again later."
+      "noRegion": "The GeoGuesser isn't available right now. Please try again later.",
+      "outside": "Pick a point inside {region}.",
+      "stale": "The game changed in the meantime, so it was reloaded."
     },
-    "finished": "Finished! Score: {score} out of {max}",
+    "guess": "Confirm the spot",
     "loading": "Loading the game",
+    "map": {
+      "guess": "Map to pick the place on",
+      "reveal": "Map with the real spot"
+    },
+    "maps": {
+      "loading": "Loading the map",
+      "unavailable": "The map can't be shown right now."
+    },
+    "next": "Next round",
     "noPuzzle": "There is no game for today. Come back tomorrow!",
-    "regionLocked": "You started today's game in another region ({region}). Come back tomorrow!",
+    "openMap": "Guess on the map",
+    "panorama": "The round's Street View image",
+    "placePin": "Tap the map where you think this place is.",
+    "points": "{score} points",
+    "regionLocked": "You already started today's game in {region}. You can finish it there.",
+    "result": {
+      "lost": "Try again tomorrow!",
+      "round": "Round {round}",
+      "rounds": "The game's rounds",
+      "won": "Well done!"
+    },
     "round": "Round {round} of {rounds}",
     "score": "{score} / {max} points",
+    "seeResult": "See the result",
     "subtitle": "{region} · {date}",
     "title": "GeoGuesser"
   },

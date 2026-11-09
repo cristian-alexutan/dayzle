@@ -1,6 +1,6 @@
 // TanStack Query hooks for the GeoGuesser feature.
 import { useMutation, useQuery, useQueryClient } from '@tanstack/vue-query'
-import type { MaybeRefOrGetter } from 'vue'
+import { computed, toValue, type MaybeRefOrGetter } from 'vue'
 
 import { useHeartbeat } from '@/shared/composables/useHeartbeat'
 
@@ -11,12 +11,21 @@ const gameKey = (day: GameDay, region: RegionKey) => ['geo', 'game', day, region
 
 export { errorCode, errorDetails } from '@/api/http'
 
-export function useRegionsQuery() {
-  return useQuery({ queryKey: ['geo', 'regions'], queryFn: fetchRegions })
+/** The regions players can choose, loaded only while `enabled`. */
+export function useRegionsQuery(enabled: MaybeRefOrGetter<boolean> = true) {
+  return useQuery({
+    queryKey: ['geo', 'regions'],
+    queryFn: fetchRegions,
+    enabled: computed(() => toValue(enabled)),
+  })
 }
 
-export function useGeoGameQuery(day: GameDay, region?: RegionKey) {
-  return useQuery({ queryKey: gameKey(day, region), queryFn: () => fetchGame(day, region) })
+/** The player's game in `region` (the default region when undefined); reloads when it changes. */
+export function useGeoGameQuery(day: GameDay, region?: MaybeRefOrGetter<RegionKey>) {
+  return useQuery({
+    queryKey: computed(() => gameKey(day, toValue(region))),
+    queryFn: () => fetchGame(day, toValue(region)),
+  })
 }
 
 /**
@@ -28,15 +37,19 @@ export function useGeoGameQuery(day: GameDay, region?: RegionKey) {
  * is cancelled: finishing afterwards, it would bring back the round just guessed, and the next
  * guess would be refused.
  */
-export function useGuessMutation(day: GameDay, region?: RegionKey) {
+export function useGuessMutation(day: GameDay, region?: MaybeRefOrGetter<RegionKey>) {
   const queryClient = useQueryClient()
-  const cancelReloads = () => queryClient.cancelQueries({ queryKey: gameKey(day, region) })
   return useMutation({
-    mutationFn: (input: GuessInput) => sendGuess(day, input, region),
-    onMutate: cancelReloads,
-    onSuccess: async (game) => {
-      await cancelReloads()
-      queryClient.setQueryData(gameKey(day, region), game)
+    mutationFn: (input: GuessInput) => sendGuess(day, input, toValue(region)),
+    onMutate: () => {
+      const key = gameKey(day, toValue(region))
+      return queryClient.cancelQueries({ queryKey: key }).then(() => ({ key }))
+    },
+    onSuccess: async (game, _input, context) => {
+      // The key the guess was sent with, even if the region changed meanwhile.
+      const key = context?.key ?? gameKey(day, toValue(region))
+      await queryClient.cancelQueries({ queryKey: key })
+      queryClient.setQueryData(key, game)
     },
   })
 }

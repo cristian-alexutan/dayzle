@@ -134,8 +134,15 @@ To proxy to a different backend address, set `API_PROXY_TARGET` before starting 
   docker compose and Django. `GOOGLE_MAPS_SERVER_KEY` is the GeoGuesser's server key: in the
   Google Cloud project, enable the Street View Static API and restrict the key to it. It never
   reaches the browser. After changing `.env`, run `docker compose up -d backend` to reload it.
-- **`frontend/.env`** (copied from `frontend/.env.example`): `VITE_API_BASE_URL` and
-  `VITE_GOOGLE_CLIENT_ID`. Only variables prefixed with `VITE_` reach the browser.
+- **`frontend/.env`** (copied from `frontend/.env.example`): `VITE_API_BASE_URL`,
+  `VITE_GOOGLE_CLIENT_ID` and `VITE_GOOGLE_MAPS_BROWSER_KEY`. Only variables prefixed with
+  `VITE_` reach the browser. `VITE_GOOGLE_MAPS_BROWSER_KEY` shows the GeoGuesser's Street View
+  panoramas and its maps: a second key, separate from the server key, with the Maps JavaScript
+  API enabled and restricted to the site's address (`http://localhost:5173/*` in development).
+  Google's terms don't allow Street View next to a non-Google map, so the GeoGuesser uses Google
+  Maps rather than Leaflet. Dynamic Street View and map loads are billed. Without the key, the
+  page shows a message in place of the panorama and the maps. After changing it, restart the
+  frontend (`docker compose restart frontend`).
 - **Django settings** live in `backend/config/settings/`, split into `base.py` (shared), `dev.py`
   and `prod.py`. Choose one with `DJANGO_SETTINGS_MODULE`. Secrets and environment-specific
   values always come from environment variables.
