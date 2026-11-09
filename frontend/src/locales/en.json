@@ -13,10 +13,14 @@
   },
   "math": {
     "closest": "Closest so far: {value}",
+    "eggs": {
+      "notFound": "404 · Number not found"
+    },
     "errors": {
+      "finish": "The game couldn't be finished. Please try again.",
       "generic": "Something went wrong. Please try again."
     },
-    "finished": "Finished! Score: {score}",
+    "finish": "Finish with the closest number",
     "history": {
       "count": "{count} of {max} steps",
       "empty": "No steps yet. Tap a number, then an operation and a second number.",
@@ -38,6 +42,21 @@
       "server": "That step can't be played. Try another one."
     },
     "reset": "Reset",
+    "result": {
+      "close": "{result}, {distance} away from {target}",
+      "difficulty": {
+        "easy": "Easy",
+        "hard": "Hard",
+        "medium": "Medium"
+      },
+      "difficultyLabel": "Difficulty",
+      "exact": "You hit {target}!",
+      "outOf": "points out of {max}",
+      "see": "See result",
+      "solution": "One possible solution",
+      "steps": "{count} step · fewest {min} | {count} steps · fewest {min}",
+      "stepsLabel": "Steps"
+    },
     "subtitle": "Puzzle of the day · {date}",
     "target": "Target",
     "targetLabel": "Target: {target}",

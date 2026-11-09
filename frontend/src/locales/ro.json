@@ -13,10 +13,14 @@
   },
   "math": {
     "closest": "Cel mai aproape până acum: {value}",
+    "eggs": {
+      "notFound": "404 · Număr negăsit"
+    },
     "errors": {
+      "finish": "Jocul nu a putut fi terminat. Încearcă din nou.",
       "generic": "Ceva nu a mers. Încearcă din nou."
     },
-    "finished": "Ai terminat! Scor: {score}",
+    "finish": "Termină cu cel mai apropiat număr",
     "history": {
       "count": "{count} din {max} pași",
       "empty": "Încă niciun pas. Atinge un număr, apoi o operație și un al doilea număr.",
@@ -38,6 +42,21 @@
       "server": "Pasul nu a putut fi jucat. Încearcă altul."
     },
     "reset": "Resetează",
+    "result": {
+      "close": "{result} — la {distance} de {target}",
+      "difficulty": {
+        "easy": "Ușor",
+        "hard": "Greu",
+        "medium": "Mediu"
+      },
+      "difficultyLabel": "Dificultate",
+      "exact": "Ai nimerit {target}!",
+      "outOf": "puncte din {max}",
+      "see": "Vezi rezultatul",
+      "solution": "O soluție posibilă",
+      "steps": "{count} pas · minimul {min} | {count} pași · minimul {min}",
+      "stepsLabel": "Pași"
+    },
     "subtitle": "Puzzle-ul zilei · {date}",
     "target": "Ținta",
     "targetLabel": "Ținta: {target}",

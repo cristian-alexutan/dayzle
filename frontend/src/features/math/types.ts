@@ -15,5 +15,8 @@ export type Operator = components['schemas']['OpEnum']
 /** How each operator is shown: the API uses `*` and `/`, players see × and ÷. */
 export const OPERATOR_SYMBOLS: Record<Operator, string> = { '+': '+', '-': '−', '*': '×', '/': '÷' }
 
+/** The score of an exact finish, the most a game can get (the backend's `rules.score`). */
+export const MAX_SCORE = 1000
+
 /** The day in the URL: `today` or a date such as `2026-11-07`. */
 export type GameDay = string

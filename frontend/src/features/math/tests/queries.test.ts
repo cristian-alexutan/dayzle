@@ -139,6 +139,23 @@ describe('math queries', () => {
     expect(game.data.value?.solution).toEqual(solvedSteps)
   })
 
+  it('keeps a saved board when an older reload comes back after it', async () => {
+    const { game, save } = await mountLoaded()
+    let answerReload!: (response: Response) => void
+    fetchMock.mockImplementationOnce(() => new Promise((resolve) => (answerReload = resolve)))
+    void game.refetch()
+    await flushPromises()
+    const saved = { ...newGame, steps: [solvedSteps[0]!] }
+    fetchMock.mockResolvedValueOnce(jsonResponse(200, saved))
+
+    await save.mutateAsync([solvedSteps[0]!])
+    // The reload started before the save, so it still has the board without the step.
+    answerReload(jsonResponse(200, newGame))
+    await flushPromises()
+
+    expect(game.data.value?.steps).toEqual(saved.steps)
+  })
+
   it('keeps the cached board when a step is refused', async () => {
     const { game, save } = await mountLoaded()
     const refused = { error: { code: 'invalid_step', message: 'No', details: { step: 0 } } }
