@@ -168,6 +168,25 @@ describe('math queries', () => {
     expect(errorCode(error)).toBe('invalid_step')
     expect(game.data.value).toEqual(newGame)
   })
+
+  it('does not let a reload started during a step bring back the old board', async () => {
+    const { game, save } = await mountLoaded()
+    let finishSave!: (response: Response) => void
+    let finishReload!: (response: Response) => void
+    fetchMock.mockReturnValueOnce(new Promise<Response>((resolve) => (finishSave = resolve)))
+    fetchMock.mockReturnValueOnce(new Promise<Response>((resolve) => (finishReload = resolve)))
+    const saved = { ...newGame, steps: [solvedSteps[0]!] }
+
+    const saving = save.mutateAsync([solvedSteps[0]!])
+    await flushPromises()
+    void game.refetch()
+    finishSave(jsonResponse(200, saved))
+    await saving
+    finishReload(jsonResponse(200, newGame))
+    await flushPromises()
+
+    expect(game.data.value?.steps).toEqual(saved.steps)
+  })
 })
 
 describe('errorCode', () => {

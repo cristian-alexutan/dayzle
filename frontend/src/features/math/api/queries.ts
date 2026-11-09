@@ -18,17 +18,22 @@ export function useMathGameQuery(day: GameDay) {
 /**
  * Every response is the whole updated board, so it replaces the cached one. A reload already on
  * its way is cancelled first: it started before this change, so its answer would bring back
- * the older board after this one is saved.
+ * the older board after this one is saved. One that starts while the steps are on their way is
+ * cancelled too, before the answer is saved.
  */
 function useBoardMutation(
   day: GameDay,
   send: (day: GameDay, steps: StepInput[]) => Promise<MathGame>,
 ) {
   const queryClient = useQueryClient()
+  const cancelReloads = () => queryClient.cancelQueries({ queryKey: gameKey(day) })
   return useMutation({
     mutationFn: (steps: StepInput[]) => send(day, steps),
-    onMutate: () => queryClient.cancelQueries({ queryKey: gameKey(day) }),
-    onSuccess: (game) => queryClient.setQueryData(gameKey(day), game),
+    onMutate: cancelReloads,
+    onSuccess: async (game) => {
+      await cancelReloads()
+      queryClient.setQueryData(gameKey(day), game)
+    },
   })
 }
 

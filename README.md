@@ -6,7 +6,7 @@ a "Make the Target" math game, a 5-question trivia quiz and a GeoGuesser for Clu
 - `backend/`: REST API under `/api/v1/` (Python 3.14, Django 6.1, Django REST Framework,
   drf-spectacular, PostgreSQL 16)
 - `frontend/`: Vue 3 single-page app (Vite, TypeScript, Vue Router, Pinia, TanStack Query,
-  PrimeVue, Leaflet, vue-i18n)
+  PrimeVue, Google Maps JavaScript API, vue-i18n)
 
 > **First demo (MVP): the five games only.** Everyone plays anonymously; login, subscriptions,
 > archive, leaderboards, stats and friends come after the demo. See [MVP scope](#mvp-scope).
@@ -134,8 +134,22 @@ To proxy to a different backend address, set `API_PROXY_TARGET` before starting 
   docker compose and Django. `GOOGLE_MAPS_SERVER_KEY` is the GeoGuesser's server key: in the
   Google Cloud project, enable the Street View Static API and restrict the key to it. It never
   reaches the browser. After changing `.env`, run `docker compose up -d backend` to reload it.
-- **`frontend/.env`** (copied from `frontend/.env.example`): `VITE_API_BASE_URL` and
-  `VITE_GOOGLE_CLIENT_ID`. Only variables prefixed with `VITE_` reach the browser.
+- **`frontend/.env`** (copied from `frontend/.env.example`): `VITE_API_BASE_URL`,
+  `VITE_GOOGLE_CLIENT_ID` and `VITE_GOOGLE_MAPS_BROWSER_KEY`. Only variables prefixed with
+  `VITE_` reach the browser. `VITE_GOOGLE_MAPS_BROWSER_KEY` shows the GeoGuesser's Street View
+  panoramas and its maps: a second key, separate from the server key, with the Maps JavaScript
+  API enabled and restricted to the site's address (`http://localhost:5173/*` in development).
+  Google's terms don't allow Street View next to a non-Google map, so the GeoGuesser uses Google
+  Maps for its maps too. Dynamic Street View and map loads are billed; a game loads one
+  panorama and one map, plus one map for the end screen. Without the key, the page shows a
+  message in place of the panorama and the maps. After changing it, restart the frontend
+  (`docker compose restart frontend`).
+
+  The API never sends a location's coordinates before its round is guessed, but once the browser
+  shows a panorama, Google tells the browser where it is (the developer console, or the
+  panorama's "Report a problem" link). Every client-side Street View game has this. The backend
+  scores every guess, so a score can't be faked, but don't treat the location as secret in the
+  browser.
 - **Django settings** live in `backend/config/settings/`, split into `base.py` (shared), `dev.py`
   and `prod.py`. Choose one with `DJANGO_SETTINGS_MODULE`. Secrets and environment-specific
   values always come from environment variables.
