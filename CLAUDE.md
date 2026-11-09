@@ -6,7 +6,7 @@ logic game, a "Make the Target" math game, a 5-question trivia quiz, a GeoGuesse
 - `backend/`: REST API. Python 3.14, Django 6.1, Django REST Framework, PostgreSQL 16,
   drf-spectacular.
 - `frontend/`: Vue 3 SPA. Vite, TypeScript, Vue Router, Pinia, TanStack Query, PrimeVue (Aura
-  theme), PrimeIcons, Leaflet, vue-i18n. Node 24, npm, exact pins.
+  theme), PrimeIcons, Google Maps JavaScript API (GeoGuesser), vue-i18n. Node 24, npm, exact pins.
 
 ## MVP scope
 
@@ -48,7 +48,10 @@ configuration first. See README "Running without Docker".
 
 `seed_dev` runs only with `DEBUG` on. It creates the admin login `admin` / `admin` and fills the
 next 7 days for every game with a seed hook. Geo needs `GOOGLE_MAPS_SERVER_KEY` in `.env` to
-generate its location bank (nothing from Google is committed); without it, Geo is skipped.
+generate its location bank (nothing from Google is committed); without it, Geo is skipped. To
+play Geo in the browser, `frontend/.env` also needs `VITE_GOOGLE_MAPS_BROWSER_KEY`, a separate
+key for the Maps JavaScript API (Street View and maps). Google's terms don't allow Street View
+next to a non-Google map, so Geo uses Google Maps, not Leaflet.
 
 URLs: frontend http://localhost:5173 (the game is at `/games/word`), API
 http://localhost:8000/api/v1/, OpenAPI docs http://localhost:8000/api/docs/, admin

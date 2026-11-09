@@ -7,7 +7,7 @@ import ResultCard from '@/shared/components/ResultCard.vue'
 
 import { useDistanceFormat } from '../composables/useDistanceFormat'
 import type { GeoGame } from '../types'
-import RevealMap from './RevealMap.vue'
+import GeoMap from './GeoMap.vue'
 
 const props = defineProps<{ game: GeoGame }>()
 
@@ -22,7 +22,7 @@ const title = computed(() => t(props.game.solved ? 'geo.result.won' : 'geo.resul
   <section class="geo-result" data-test="result">
     <h2 class="geo-result__title">{{ title }}</h2>
     <ResultCard :result="result" :duration-ms="game.duration_ms" />
-    <RevealMap :bounds="game.region.bounds" :results="game.results" numbered />
+    <GeoMap :bounds="game.region.bounds" :results="game.results" numbered />
     <ol class="geo-result__rounds" :aria-label="t('geo.result.rounds')">
       <li v-for="round in game.results" :key="round.round" data-test="result-round">
         <span class="geo-result__round">{{ t('geo.result.round', { round: round.round }) }}</span>

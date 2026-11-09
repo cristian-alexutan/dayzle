@@ -6,7 +6,6 @@ import { mountWithPlugins } from '@/tests/utils'
 import ConfettiBurst from '../components/ConfettiBurst.vue'
 import GeoMap from '../components/GeoMap.vue'
 import GeoResult from '../components/GeoResult.vue'
-import RevealMap from '../components/RevealMap.vue'
 import StreetViewPanorama from '../components/StreetViewPanorama.vue'
 import type { GeoGame } from '../types'
 import GeoGameView from '../views/GeoGameView.vue'
@@ -22,7 +21,7 @@ import {
 const fetchMock = vi.fn()
 
 /** Google's panorama and maps are replaced by stubs; maps.test.ts covers them. */
-const stubs = { GeoMap: true, RevealMap: true, StreetViewPanorama: true }
+const stubs = { GeoMap: true, StreetViewPanorama: true }
 
 const inside = { lat: 46.77, lng: 23.6 }
 
@@ -177,8 +176,12 @@ describe('GeoGameView', () => {
     const reveal = wrapper.find('[data-test="reveal"]')
     expect(reveal.find('strong').text()).toBe('594 puncte')
     expect(reveal.find('span').text()).toBe('la 780 m de locul real')
-    expect(wrapper.findComponent(RevealMap).props('results')).toEqual(afterFirstGuess.results)
-    expect(wrapper.findComponent(StreetViewPanorama).exists()).toBe(false)
+    // The reveal is drawn on the guess map, which the main window shows.
+    const map = wrapper.findComponent(GeoMap)
+    expect(map.props('results')).toEqual(afterFirstGuess.results)
+    expect(map.props('pin')).toBeNull()
+    expect(isHidden(wrapper, GeoMap)).toBe(false)
+    expect(isHidden(wrapper, StreetViewPanorama)).toBe(true)
     expect(wrapper.findComponent(ConfettiBurst).exists()).toBe(false)
     wrapper.unmount()
   })
@@ -216,10 +219,29 @@ describe('GeoGameView', () => {
     expect(wrapper.find('[data-test="round"]').text()).toBe('Runda 2 din 5')
     expect(wrapper.findComponent(StreetViewPanorama).props('panoramaId')).toBe('pano-2')
     expect(isHidden(wrapper, StreetViewPanorama)).toBe(false)
-    expect(wrapper.findComponent(GeoMap).exists()).toBe(false)
+    expect(isHidden(wrapper, GeoMap)).toBe(true)
 
     await openMap(wrapper)
     expect(wrapper.findComponent(GeoMap).props('pin')).toBeNull()
+    expect(wrapper.findComponent(GeoMap).props('results')).toEqual([])
+    wrapper.unmount()
+  })
+
+  it('keeps one panorama and one map for the whole game', async () => {
+    const wrapper = await mountView(jsonResponse(200, newGame))
+    await openMap(wrapper)
+    const panorama = wrapper.findComponent(StreetViewPanorama).vm
+    const map = wrapper.findComponent(GeoMap).vm
+
+    await guess(wrapper, jsonResponse(200, afterFirstGuess))
+    await click(wrapper, '[data-test="next"]')
+    await guess(wrapper, jsonResponse(200, gameAfter(2)))
+    await click(wrapper, '[data-test="next"]')
+
+    expect(wrapper.find('[data-test="round"]').text()).toBe('Runda 3 din 5')
+    expect(wrapper.findComponent(StreetViewPanorama).vm).toBe(panorama)
+    expect(wrapper.findComponent(GeoMap).vm).toBe(map)
+    expect(wrapper.findComponent(StreetViewPanorama).props('panoramaId')).toBe('pano-3')
     wrapper.unmount()
   })
 
@@ -234,7 +256,7 @@ describe('GeoGameView', () => {
     expect(result.find('h2').text()).toBe('Bravo!')
     expect(result.text()).toContain('2970/5000')
     expect(result.findAll('[data-test="result-round"]')).toHaveLength(5)
-    expect(result.findComponent(RevealMap).props('numbered')).toBe(true)
+    expect(result.findComponent(GeoMap).props('numbered')).toBe(true)
     wrapper.unmount()
   })
 

@@ -1,10 +1,10 @@
 import { flushPromises } from '@vue/test-utils'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
+import { useThemeStore } from '@/shared/stores/theme'
 import { mountWithPlugins } from '@/tests/utils'
 
 import GeoMap from '../components/GeoMap.vue'
-import RevealMap from '../components/RevealMap.vue'
 import StreetViewPanorama from '../components/StreetViewPanorama.vue'
 import { finishedGame, cluj, afterFirstGuess } from './fixtures'
 import {
@@ -53,7 +53,7 @@ describe('StreetViewPanorama', () => {
     await flushPromises()
 
     expect(wrapper.find('[data-test="maps-unavailable"]').text()).toBe(
-      'Harta nu poate fi afișată acum.',
+      'Imaginea și harta nu pot fi afișate acum.',
     )
     expect(fake.panoramas).toHaveLength(0)
     wrapper.unmount()
@@ -126,12 +126,12 @@ describe('GeoMap', () => {
   })
 })
 
-describe('RevealMap', () => {
+describe('GeoMap with guessed rounds', () => {
   const positions = (shapes: FakeShape[]) => shapes.map((shape) => shape.options.position)
 
   it('shows the guess, the real spot and a line between, zoomed to them', async () => {
     const result = afterFirstGuess.results[0]!
-    const wrapper = mountWithPlugins(RevealMap, {
+    const wrapper = mountWithPlugins(GeoMap, {
       props: { bounds: cluj.bounds, results: [result] },
     })
     await flushPromises()
@@ -147,7 +147,7 @@ describe('RevealMap', () => {
   })
 
   it('does not zoom closer than street level for a very close guess', async () => {
-    const wrapper = mountWithPlugins(RevealMap, {
+    const wrapper = mountWithPlugins(GeoMap, {
       props: { bounds: cluj.bounds, results: afterFirstGuess.results },
     })
     await flushPromises()
@@ -161,7 +161,7 @@ describe('RevealMap', () => {
   })
 
   it('numbers the real spots on the end map', async () => {
-    const wrapper = mountWithPlugins(RevealMap, {
+    const wrapper = mountWithPlugins(GeoMap, {
       props: { bounds: cluj.bounds, results: finishedGame.results, numbered: true },
     })
     await flushPromises()
@@ -171,6 +171,45 @@ describe('RevealMap', () => {
       .filter(Boolean)
     expect(labels).toEqual(['1', '2', '3', '4', '5'])
     expect(shapesOnMap('polyline')).toHaveLength(5)
+    wrapper.unmount()
+  })
+
+  it('reuses one map: reveals a round, then goes back to the region with no clicks lost', async () => {
+    const result = afterFirstGuess.results[0]!
+    const wrapper = mountWithPlugins(GeoMap, { props: { bounds: cluj.bounds, pin: null } })
+    await flushPromises()
+    const map = fake.maps[0]!
+
+    await wrapper.setProps({ results: [result] })
+    expect(shapesOnMap('polyline')).toHaveLength(1)
+    map.click({ lat: 46.77, lng: 23.6 })
+    expect(wrapper.emitted('place')).toBeUndefined()
+
+    await wrapper.setProps({ results: [] })
+    expect(shapesOnMap('polyline')).toHaveLength(0)
+    expect(shapesOnMap('marker')).toHaveLength(0)
+    expect(map.fitBounds).toHaveBeenLastCalledWith(cluj.bounds, 0)
+    map.click({ lat: 46.77, lng: 23.6 })
+    expect(wrapper.emitted('place')).toEqual([[{ lat: 46.77, lng: 23.6 }]])
+    expect(fake.maps).toHaveLength(1)
+    wrapper.unmount()
+  })
+
+  it('redraws pins, lines and the frame in the new colors when the theme changes', async () => {
+    const wrapper = mountWithPlugins(GeoMap, {
+      props: { bounds: cluj.bounds, pin: null, results: afterFirstGuess.results },
+    })
+    await flushPromises()
+    const before = new Set(shapesOnMap('marker'))
+    const theme = useThemeStore()
+
+    theme.mode = theme.isDark ? 'light' : 'dark'
+    await flushPromises()
+
+    expect(shapesOnMap('marker')).toHaveLength(2)
+    expect(shapesOnMap('marker').some((marker) => before.has(marker))).toBe(false)
+    expect(shapesOnMap('rectangle')).toHaveLength(1)
+    expect(shapesOnMap('polyline')).toHaveLength(1)
     wrapper.unmount()
   })
 })

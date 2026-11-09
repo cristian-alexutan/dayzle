@@ -1,8 +1,19 @@
 // useRegionMap: a Google map of the region being played, and helpers to draw the rounds on it.
-import { toValue, type MaybeRefOrGetter, type Ref } from 'vue'
+import { toValue, watch, type MaybeRefOrGetter, type Ref } from 'vue'
+
+import { useThemeStore } from '@/shared/stores/theme'
 
 import type { Bounds, Point } from '../types'
 import { useGoogleMaps } from './useGoogleMaps'
+
+/**
+ * Call `redraw` after the player switches between light and dark mode: Google keeps the colors
+ * it was given, so pins and lines are drawn again with the new theme's values.
+ */
+export function onThemeChange(redraw: () => void) {
+  const theme = useThemeStore()
+  watch(() => theme.isDark, redraw, { flush: 'post' })
+}
 
 /** How far past the region the player may pan, as a share of its size. */
 const PAN_MARGIN = 0.25

@@ -21,7 +21,7 @@
     },
     "maps": {
       "loading": "Se încarcă harta",
-      "unavailable": "Harta nu poate fi afișată acum."
+      "unavailable": "Imaginea și harta nu pot fi afișate acum."
     },
     "next": "Runda următoare",
     "noPuzzle": "Nu există un joc pentru astăzi. Revino mâine!",

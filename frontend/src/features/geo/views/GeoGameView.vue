@@ -20,7 +20,6 @@ import {
 import GeoMap from '../components/GeoMap.vue'
 import ConfettiBurst from '../components/ConfettiBurst.vue'
 import GeoResult from '../components/GeoResult.vue'
-import RevealMap from '../components/RevealMap.vue'
 import StreetViewPanorama from '../components/StreetViewPanorama.vue'
 import { useDistanceFormat } from '../composables/useDistanceFormat'
 import { usePinPlacement } from '../composables/usePinPlacement'
@@ -88,8 +87,17 @@ const phase = computed(() => {
  * stay mounted once opened, so switching keeps where the player looked and the pin.
  */
 const view = ref<'panorama' | 'map'>('panorama')
-/** The map is made the first time it's opened, when its window has a size to fit the region. */
+/**
+ * The map is made the first time it's opened, when its window has a size to fit the region, and
+ * then kept for the rest of the game: it also shows each round's reveal.
+ */
 const mapOpened = ref(false)
+/** The reveal is drawn on the guess map, so the main window shows the map then. */
+const shown = computed(() => (phase.value === 'reveal' ? 'map' : view.value))
+/** The round being revealed, kept in one array so the map only redraws when it changes. */
+const mapResults = computed(() =>
+  phase.value === 'reveal' && revealed.value ? [revealed.value] : [],
+)
 
 function openMap() {
   view.value = 'map'
@@ -100,12 +108,11 @@ function backToPanorama() {
   view.value = 'panorama'
 }
 
-// Every round starts on its panorama, with a fresh map.
+// Every round starts on its panorama.
 watch(
   () => game.value?.current_round,
   () => {
     view.value = 'panorama'
-    mapOpened.value = false
   },
 )
 
@@ -144,7 +151,6 @@ function nextRound() {
   revealed.value = null
   guessError.value = null
   view.value = 'panorama'
-  mapOpened.value = false
 }
 
 const hint = computed(() => {
@@ -195,101 +201,98 @@ const titleParts = computed(() => {
       @retry="query.refetch()"
     />
     <template v-else-if="game">
-      <template v-if="phase === 'guess' && game.panorama_id">
+      <template v-if="phase !== 'result'">
+        <ConfettiBurst
+          v-if="revealed && revealed.distance_m < CONFETTI_UNDER_M"
+          :key="revealed.round"
+        />
         <div class="geo-game__status">
           <span data-test="round">
-            {{ t('geo.round', { round: game.current_round, rounds: game.rounds }) }}
+            {{
+              t('geo.round', { round: revealed?.round ?? game.current_round, rounds: game.rounds })
+            }}
           </span>
           <span data-test="score">
             {{ t('geo.score', { score: game.total_score, max: game.max_score }) }}
           </span>
         </div>
-        <!-- Both layers keep their size while hidden, so Google never draws into a 0×0 box. -->
-        <div class="geo-game__stage geo-frame--stage" :data-view="view" data-test="stage">
+        <!--
+          One panorama and one map serve the whole game (each new one is a billed Google load).
+          Both layers keep their size while hidden, so Google never draws into a 0×0 box.
+        -->
+        <div class="geo-game__stage geo-frame--stage" :data-view="shown" data-test="stage">
           <StreetViewPanorama
+            v-if="game.panorama_id"
             class="geo-game__layer"
-            :class="{ 'geo-game__layer--hidden': view !== 'panorama' }"
+            :class="{ 'geo-game__layer--hidden': shown !== 'panorama' }"
             :panorama-id="game.panorama_id"
           />
           <GeoMap
             v-if="mapOpened"
             class="geo-game__layer"
-            :class="{ 'geo-game__layer--hidden': view !== 'map' }"
+            :class="{ 'geo-game__layer--hidden': shown !== 'map' }"
             :bounds="game.region.bounds"
-            :pin="pin"
+            :pin="phase === 'guess' ? pin : null"
+            :results="mapResults"
             :disabled="guess.isPending.value"
-            :aria-label="t('geo.map.guess')"
+            :aria-label="t(phase === 'reveal' ? 'geo.map.reveal' : 'geo.map.guess')"
             @place="place"
           />
         </div>
 
-        <p v-if="hint" class="geo-game__error" role="alert" data-test="guess-error">
-          <i class="pi pi-exclamation-circle" aria-hidden="true" />
-          <span>{{ hint }}</span>
-        </p>
-        <template v-if="view === 'panorama'">
+        <template v-if="phase === 'guess'">
+          <p v-if="hint" class="geo-game__error" role="alert" data-test="guess-error">
+            <i class="pi pi-exclamation-circle" aria-hidden="true" />
+            <span>{{ hint }}</span>
+          </p>
           <AppButton
+            v-if="view === 'panorama'"
             class="geo-game__action"
             :label="t('geo.openMap')"
             icon="pi pi-map"
             data-test="open-map"
             @click="openMap"
           />
+          <template v-else>
+            <p v-if="!hint" class="geo-game__help">{{ t('geo.placePin') }}</p>
+            <div class="geo-game__actions">
+              <AppButton
+                :label="t('geo.backToPanorama')"
+                icon="pi pi-image"
+                severity="secondary"
+                outlined
+                data-test="back-to-panorama"
+                @click="backToPanorama"
+              />
+              <AppButton
+                :label="t('geo.guess')"
+                icon="pi pi-map-marker"
+                :disabled="!pin || guess.isPending.value"
+                :loading="guess.isPending.value"
+                data-test="guess"
+                @click="sendGuess"
+              />
+            </div>
+          </template>
         </template>
-        <template v-else>
-          <p v-if="!hint" class="geo-game__help">{{ t('geo.placePin') }}</p>
-          <div class="geo-game__actions">
-            <AppButton
-              :label="t('geo.backToPanorama')"
-              icon="pi pi-image"
-              severity="secondary"
-              outlined
-              data-test="back-to-panorama"
-              @click="backToPanorama"
-            />
-            <AppButton
-              :label="t('geo.guess')"
-              icon="pi pi-map-marker"
-              :disabled="!pin || guess.isPending.value"
-              :loading="guess.isPending.value"
-              data-test="guess"
-              @click="sendGuess"
-            />
-          </div>
+
+        <template v-else-if="revealed">
+          <p class="geo-game__reveal" data-test="reveal">
+            <strong>{{ t('geo.points', { score: revealed.score }) }}</strong>
+            <span>{{ t('geo.distance', { distance: formatDistance(revealed.distance_m) }) }}</span>
+          </p>
+          <AppButton
+            class="geo-game__action"
+            :label="t(inProgress ? 'geo.next' : 'geo.seeResult')"
+            icon="pi pi-arrow-right"
+            icon-pos="right"
+            data-test="next"
+            @click="nextRound"
+          />
         </template>
       </template>
 
-      <template v-else-if="phase === 'reveal' && revealed">
-        <ConfettiBurst v-if="revealed.distance_m < CONFETTI_UNDER_M" :key="revealed.round" />
-        <div class="geo-game__status">
-          <span data-test="round">
-            {{ t('geo.round', { round: revealed.round, rounds: game.rounds }) }}
-          </span>
-          <span data-test="score">
-            {{ t('geo.score', { score: game.total_score, max: game.max_score }) }}
-          </span>
-        </div>
-        <RevealMap
-          class="geo-frame--stage"
-          :bounds="game.region.bounds"
-          :results="[revealed]"
-          :aria-label="t('geo.map.reveal')"
-        />
-        <p class="geo-game__reveal" data-test="reveal">
-          <strong>{{ t('geo.points', { score: revealed.score }) }}</strong>
-          <span>{{ t('geo.distance', { distance: formatDistance(revealed.distance_m) }) }}</span>
-        </p>
-        <AppButton
-          class="geo-game__action"
-          :label="t(inProgress ? 'geo.next' : 'geo.seeResult')"
-          icon="pi pi-arrow-right"
-          icon-pos="right"
-          data-test="next"
-          @click="nextRound"
-        />
-      </template>
-
-      <GeoResult v-else-if="phase === 'result'" :game="game" />
+      <GeoResult v-else :game="game" />
     </template>
   </GameShell>
 </template>

@@ -16,7 +16,7 @@ const { t } = useI18n()
 <template>
   <div v-if="status !== 'ready'" class="geo-frame__overlay">
     <AppSpinner v-if="status === 'loading'" :aria-label="t('geo.maps.loading')" />
-    <AppMessage v-else severity="warn" data-test="maps-unavailable">
+    <AppMessage v-else severity="info" data-test="maps-unavailable">
       {{ t('geo.maps.unavailable') }}
     </AppMessage>
   </div>

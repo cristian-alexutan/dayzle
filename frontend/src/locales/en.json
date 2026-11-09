@@ -21,7 +21,7 @@
     },
     "maps": {
       "loading": "Loading the map",
-      "unavailable": "The map can't be shown right now."
+      "unavailable": "The image and the map can't be shown right now."
     },
     "next": "Next round",
     "noPuzzle": "There is no game for today. Come back tomorrow!",
