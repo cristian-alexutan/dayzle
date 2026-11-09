@@ -3,6 +3,44 @@
     "retry": "Încearcă din nou",
     "time": "Timp"
   },
+  "geo": {
+    "backToPanorama": "Înapoi la imagine",
+    "continueIn": "Continuă în {region}",
+    "distance": "la {distance} de locul real",
+    "errors": {
+      "generic": "Ceva nu a mers. Încearcă din nou.",
+      "noRegion": "GeoGuesser nu este disponibil acum. Încearcă mai târziu.",
+      "outside": "Alege un punct din {region}.",
+      "stale": "Jocul s-a schimbat între timp, așa că l-am reîncărcat."
+    },
+    "guess": "Confirmă locul",
+    "loading": "Se încarcă jocul",
+    "map": {
+      "guess": "Harta pe care alegi locul",
+      "reveal": "Harta cu locul real"
+    },
+    "maps": {
+      "loading": "Se încarcă harta",
+      "unavailable": "Imaginea și harta nu pot fi afișate acum."
+    },
+    "next": "Runda următoare",
+    "noPuzzle": "Nu există un joc pentru astăzi. Revino mâine!",
+    "openMap": "Ghicește pe hartă",
+    "panorama": "Imaginea Street View a rundei",
+    "placePin": "Apasă pe hartă unde crezi că este locul.",
+    "points": "{score} puncte",
+    "regionLocked": "Ai început deja jocul de azi în {region}. Îl poți termina acolo.",
+    "result": {
+      "lost": "Mai încearcă mâine!",
+      "round": "Runda {round}",
+      "rounds": "Rundele jocului",
+      "won": "Bravo!"
+    },
+    "round": "Runda {round} din {rounds}",
+    "score": "{score} / {max} puncte",
+    "seeResult": "Vezi rezultatul",
+    "title": "GeoGuesser"
+  },
   "header": {
     "language": "Limbă",
     "theme": {
@@ -51,6 +89,65 @@
       },
       "start": "Am înțeles"
     }
+  },
+  "math": {
+    "closest": "Cel mai aproape până acum: {value}",
+    "eggs": {
+      "notFound": "404 · Număr negăsit"
+    },
+    "errors": {
+      "finish": "Jocul nu a putut fi terminat. Încearcă din nou.",
+      "generic": "Ceva nu a mers. Încearcă din nou."
+    },
+    "finish": "Termină cu cel mai apropiat număr",
+    "history": {
+      "count": "{count} din {max} pași",
+      "empty": "Încă niciun pas. Atinge un număr, apoi o operație și un al doilea număr.",
+      "title": "Pașii tăi"
+    },
+    "loading": "Se încarcă jocul",
+    "noPuzzle": "Nu există un joc pentru astăzi. Revino mâine!",
+    "numbers": "Numere disponibile",
+    "operators": {
+      "add": "Adunare",
+      "divide": "Împărțire",
+      "label": "Operații",
+      "multiply": "Înmulțire",
+      "subtract": "Scădere"
+    },
+    "refused": {
+      "not_positive": "Scăderea trebuie să dea un număr pozitiv: {step} nu se poate.",
+      "not_whole": "Împărțirea trebuie să fie exactă: {step} nu dă un număr întreg.",
+      "server": "Pasul nu a putut fi jucat. Încearcă altul."
+    },
+    "reset": "Resetează",
+    "result": {
+      "close": "{result} — la {distance} de {target}",
+      "difficulty": {
+        "easy": "Ușor",
+        "hard": "Greu",
+        "medium": "Mediu"
+      },
+      "difficultyLabel": "Dificultate",
+      "exact": "Ai nimerit {target}!",
+      "outOf": "puncte din {max}",
+      "see": "Vezi rezultatul",
+      "solution": "O soluție posibilă",
+      "steps": "{count} pas · minimul {min} | {count} pași · minimul {min}",
+      "stepsLabel": "Pași"
+    },
+    "subtitle": "Puzzle-ul zilei · {date}",
+    "target": "Ținta",
+    "targetLabel": "Ținta: {target}",
+    "tile": {
+      "computed": "rezultat calculat",
+      "labelPart": "{label}, {part}",
+      "new": "NOU",
+      "refused": "pas refuzat",
+      "selected": "selectat"
+    },
+    "title": "Numărăl",
+    "undo": "Anulează pasul"
   },
   "word": {
     "backspace": "Șterge litera",

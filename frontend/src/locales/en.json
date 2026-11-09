@@ -3,6 +3,44 @@
     "retry": "Try again",
     "time": "Time"
   },
+  "geo": {
+    "backToPanorama": "Back to the image",
+    "continueIn": "Continue in {region}",
+    "distance": "{distance} from the real spot",
+    "errors": {
+      "generic": "Something went wrong. Please try again.",
+      "noRegion": "The GeoGuesser isn't available right now. Please try again later.",
+      "outside": "Pick a point inside {region}.",
+      "stale": "The game changed in the meantime, so it was reloaded."
+    },
+    "guess": "Confirm the spot",
+    "loading": "Loading the game",
+    "map": {
+      "guess": "Map to pick the place on",
+      "reveal": "Map with the real spot"
+    },
+    "maps": {
+      "loading": "Loading the map",
+      "unavailable": "The image and the map can't be shown right now."
+    },
+    "next": "Next round",
+    "noPuzzle": "There is no game for today. Come back tomorrow!",
+    "openMap": "Guess on the map",
+    "panorama": "The round's Street View image",
+    "placePin": "Tap the map where you think this place is.",
+    "points": "{score} points",
+    "regionLocked": "You already started today's game in {region}. You can finish it there.",
+    "result": {
+      "lost": "Try again tomorrow!",
+      "round": "Round {round}",
+      "rounds": "The game's rounds",
+      "won": "Well done!"
+    },
+    "round": "Round {round} of {rounds}",
+    "score": "{score} / {max} points",
+    "seeResult": "See the result",
+    "title": "GeoGuesser"
+  },
   "header": {
     "language": "Language",
     "theme": {
@@ -51,6 +89,65 @@
       },
       "start": "Got it"
     }
+  },
+  "math": {
+    "closest": "Closest so far: {value}",
+    "eggs": {
+      "notFound": "404 · Number not found"
+    },
+    "errors": {
+      "finish": "The game couldn't be finished. Please try again.",
+      "generic": "Something went wrong. Please try again."
+    },
+    "finish": "Finish with the closest number",
+    "history": {
+      "count": "{count} of {max} steps",
+      "empty": "No steps yet. Tap a number, then an operation and a second number.",
+      "title": "Your steps"
+    },
+    "loading": "Loading the game",
+    "noPuzzle": "There is no game for today. Come back tomorrow!",
+    "numbers": "Available numbers",
+    "operators": {
+      "add": "Addition",
+      "divide": "Division",
+      "label": "Operations",
+      "multiply": "Multiplication",
+      "subtract": "Subtraction"
+    },
+    "refused": {
+      "not_positive": "Subtraction must give a positive number: {step} isn't allowed.",
+      "not_whole": "Division must be exact: {step} isn't a whole number.",
+      "server": "That step can't be played. Try another one."
+    },
+    "reset": "Reset",
+    "result": {
+      "close": "{result}, {distance} away from {target}",
+      "difficulty": {
+        "easy": "Easy",
+        "hard": "Hard",
+        "medium": "Medium"
+      },
+      "difficultyLabel": "Difficulty",
+      "exact": "You hit {target}!",
+      "outOf": "points out of {max}",
+      "see": "See result",
+      "solution": "One possible solution",
+      "steps": "{count} step · fewest {min} | {count} steps · fewest {min}",
+      "stepsLabel": "Steps"
+    },
+    "subtitle": "Puzzle of the day · {date}",
+    "target": "Target",
+    "targetLabel": "Target: {target}",
+    "tile": {
+      "computed": "computed result",
+      "labelPart": "{label}, {part}",
+      "new": "NEW",
+      "refused": "step refused",
+      "selected": "selected"
+    },
+    "title": "Numărăl",
+    "undo": "Undo step"
   },
   "word": {
     "backspace": "Delete letter",

@@ -27,3 +27,17 @@ class InvalidStepError(DomainError):
         self.index = index
         message = None if index is None else f"Step {index + 1} can't be played ({reason})."
         super().__init__(message, details={"step": index, "reason": reason})
+
+
+class GenerationFailedError(DomainError):
+    """The generator found no puzzle of the wanted difficulty. Rare: drawing again usually works."""
+
+    status_code = 503
+    code = "generation_failed"
+    default_message = "No puzzle of this difficulty was found. Try again."
+
+
+class NoStepsError(DomainError):
+    status_code = 400
+    code = "invalid"
+    default_message = "Make at least one step before submitting."

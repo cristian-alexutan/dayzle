@@ -4,6 +4,57 @@
  */
 
 export interface paths {
+    "/api/v1/games/geo/{day}/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** @description The current round's panorama and the guessed rounds. The first open starts the clock. */
+        get: operations["v1_games_geo_retrieve"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/games/geo/{day}/guess/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** @description Guess the current round; the game comes back with its location and the next panorama. */
+        post: operations["v1_games_geo_guess_create"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/games/geo/regions/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** @description The regions a player can choose, the default one first. */
+        get: operations["v1_games_geo_regions_list"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/games/logic/{day}/": {
         parameters: {
             query?: never;
@@ -21,7 +72,58 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/v1/games/logic/{day}/cell/": {
+    "/api/v1/games/logic/{day}/marks/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** @description Save the player's X marks, so a refresh restores them. */
+        post: operations["v1_games_logic_marks_create"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/games/logic/{day}/place/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** @description Place a sun. The server says whether it is correct; the last correct sun ends the game. */
+        post: operations["v1_games_logic_place_create"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/games/math/{day}/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** @description The player's board for the day. Opening it the first time starts the clock. */
+        get: operations["v1_games_math_retrieve"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/games/math/{day}/progress/": {
         parameters: {
             query?: never;
             header?: never;
@@ -31,17 +133,19 @@ export interface paths {
         get?: never;
         put?: never;
         /**
-         * @description Set a cell to empty, an X or a sun. A sun that breaks a rule is rejected as a mistake;
-         *     the last sun ends the game.
+         * @description Save the board after a step, undo or reset. The server replays every step.
+         *
+         *     A step that reaches the target finishes the game: the board comes back completed, with the
+         *     score and the example solution, as from submit.
          */
-        post: operations["v1_games_logic_cell_create"];
+        post: operations["v1_games_math_progress_create"];
         delete?: never;
         options?: never;
         head?: never;
         patch?: never;
         trace?: never;
     };
-    "/api/v1/games/logic/{day}/clear/": {
+    "/api/v1/games/math/{day}/submit/": {
         parameters: {
             query?: never;
             header?: never;
@@ -50,8 +154,42 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        /** @description Remove every sun and X from the board. Mistakes and time are kept. */
-        post: operations["v1_games_logic_clear_create"];
+        /** @description Finish the game; the board comes back with the score and the example solution. */
+        post: operations["v1_games_math_submit_create"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/games/trivia/{day}/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** @description The day's 5 questions and the player's answers so far. The first open starts the clock. */
+        get: operations["v1_games_trivia_retrieve"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/games/trivia/{day}/answer/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** @description Answer the next question; the quiz comes back with that question's correct choice. */
+        post: operations["v1_games_trivia_answer_create"];
         delete?: never;
         options?: never;
         head?: never;
@@ -113,30 +251,81 @@ export interface paths {
 export type webhooks = Record<string, never>;
 export interface components {
     schemas: {
-        CellInput: {
-            row: number;
-            col: number;
-            content: components["schemas"]["ContentEnum"];
+        /** @description An answer the player gave, with the correct choice revealed. */
+        Answer: {
+            question: number;
+            choice: number;
+            correct_choice: number;
+            is_correct: boolean;
         };
-        /** @description Whether a new sun was rejected, the suns it conflicts with, and the updated board. */
-        CellResult: {
-            rejected: boolean;
-            conflicts: number[][];
-            game: components["schemas"]["LogicGame"];
+        AnswerInput: {
+            question: number;
+            choice: number;
+        };
+        Bounds: {
+            /** Format: double */
+            south: number;
+            /** Format: double */
+            west: number;
+            /** Format: double */
+            north: number;
+            /** Format: double */
+            east: number;
         };
         /**
-         * @description * `empty` - empty
-         *     * `mark` - mark
-         *     * `sun` - sun
+         * @description * `history` - History
+         *     * `geography` - Geography
+         *     * `science` - Science
+         *     * `culture` - Culture
+         *     * `sports` - Sports
+         *     * `general` - General knowledge
          * @enum {string}
          */
-        ContentEnum: "empty" | "mark" | "sun";
+        CategoryEnum: "history" | "geography" | "science" | "culture" | "sports" | "general";
+        Choice: {
+            id: number;
+            text: string;
+        };
+        /**
+         * @description * `easy` - Easy
+         *     * `medium` - Medium
+         *     * `hard` - Hard
+         * @enum {string}
+         */
+        DifficultyEnum: "easy" | "medium" | "hard";
+        /**
+         * @description The player's game. Only the current round's panorama is sent, never its coordinates.
+         *
+         *     A location's coordinates appear only in ``results``, after its round is guessed. ``solved``
+         *     and ``duration_ms`` stay null until the fifth guess.
+         */
+        GeoGame: {
+            /** Format: date */
+            date: string;
+            region: components["schemas"]["Region"];
+            status: components["schemas"]["StatusEnum"];
+            readonly rounds: number;
+            readonly current_round: number | null;
+            readonly panorama_id: string | null;
+            readonly results: components["schemas"]["RoundResult"][];
+            readonly total_score: number;
+            readonly max_score: number;
+            readonly solved: boolean | null;
+            readonly duration_ms: number | null;
+        };
+        GeoGuessInput: {
+            round: number;
+            /** Format: double */
+            lat: number;
+            /** Format: double */
+            lng: number;
+        };
         GuessInput: {
             guess: string;
         };
         /**
-         * @description The player's board. ``solved``, ``score`` and ``duration_ms`` stay null until the game
-         *     ends. ``elapsed_ms`` is only for display. The solution is never sent.
+         * @description The player's board. The solution is never included; ``solved``, ``score`` and
+         *     ``duration_ms`` stay null until the game ends.
          */
         LogicGame: {
             /** Format: date */
@@ -147,11 +336,90 @@ export interface components {
             readonly suns: number[][];
             readonly marks: number[][];
             readonly mistakes: number;
+            readonly streak: number;
             readonly solved: boolean | null;
             readonly score: number | null;
             readonly duration_ms: number | null;
-            /** @description Active play time so far, so the on-screen timer continues after a refresh. */
-            readonly elapsed_ms: number;
+        };
+        MarksInput: {
+            marks: number[][];
+        };
+        /**
+         * @description The player's board. Results and the puzzle's secrets stay null until the game ends.
+         *
+         *     ``solution``, ``min_operations`` and ``difficulty`` are secret while playing, since they
+         *     hint at the answer.
+         */
+        MathGame: {
+            /** Format: date */
+            date: string;
+            status: components["schemas"]["StatusEnum"];
+            target: number;
+            numbers: number[];
+            readonly max_steps: number;
+            readonly steps: components["schemas"]["PlayedStep"][];
+            readonly final_result: number | null;
+            readonly distance: number | null;
+            readonly operations: number | null;
+            readonly solved: boolean | null;
+            readonly score: number | null;
+            readonly duration_ms: number | null;
+            readonly solution: components["schemas"]["PlayedStep"][] | null;
+            readonly min_operations: number | null;
+            readonly difficulty: (components["schemas"]["DifficultyEnum"] | components["schemas"]["NullEnum"]) | null;
+        };
+        /** @enum {unknown} */
+        NullEnum: null;
+        /**
+         * @description * `+` - +
+         *     * `-` - -
+         *     * `*` - *
+         *     * `/` - /
+         * @enum {string}
+         */
+        OpEnum: "+" | "-" | "*" | "/";
+        PlaceInput: {
+            row: number;
+            col: number;
+        };
+        /** @description Whether the sun was correct, the suns it conflicts with, and the updated board. */
+        PlaceResult: {
+            correct: boolean;
+            conflicts: number[][];
+            game: components["schemas"]["LogicGame"];
+        };
+        PlayedStep: {
+            left: number;
+            op: components["schemas"]["OpEnum"];
+            right: number;
+            result: number;
+        };
+        Point: {
+            /** Format: double */
+            lat: number;
+            /** Format: double */
+            lng: number;
+        };
+        /** @description A question as the player sees it: which choice is correct is never included. */
+        Question: {
+            id: number;
+            category: components["schemas"]["CategoryEnum"];
+            text: string;
+            choices: components["schemas"]["Choice"][];
+        };
+        /** @description A region the player can choose. Its bounds limit the guess map; they aren't secret. */
+        Region: {
+            key: string;
+            name: string;
+            bounds: components["schemas"]["Bounds"];
+        };
+        /** @description A guessed round: the player's point and, now that it's guessed, the real one. */
+        RoundResult: {
+            round: number;
+            guess: components["schemas"]["Point"];
+            location: components["schemas"]["Point"];
+            distance_m: number;
+            score: number;
         };
         /**
          * @description * `in_progress` - In progress
@@ -159,6 +427,35 @@ export interface components {
          * @enum {string}
          */
         StatusEnum: "in_progress" | "completed";
+        StepInput: {
+            left: number;
+            op: components["schemas"]["OpEnum"];
+            right: number;
+        };
+        /** @description The whole board's steps, from the start. Anything the browser computed is ignored. */
+        StepsInput: {
+            steps: components["schemas"]["StepInput"][];
+        };
+        /** @description The whole board's steps, from the start. Anything the browser computed is ignored. */
+        SubmitInput: {
+            steps: components["schemas"]["StepInput"][];
+        };
+        /**
+         * @description The player's quiz. The correct choice of a question is revealed only once it's answered.
+         *
+         *     ``score``, ``solved`` and ``duration_ms`` stay null until the fifth answer.
+         */
+        TriviaGame: {
+            /** Format: date */
+            date: string;
+            status: components["schemas"]["StatusEnum"];
+            questions: components["schemas"]["Question"][];
+            readonly answers: components["schemas"]["Answer"][];
+            readonly score: number | null;
+            readonly max_score: number;
+            readonly solved: boolean | null;
+            readonly duration_ms: number | null;
+        };
         /** @description The player's board. ``answer``, ``solved`` and ``score`` stay null until the game ends. */
         WordGame: {
             /** Format: date */
@@ -183,6 +480,79 @@ export interface components {
 }
 export type $defs = Record<string, never>;
 export interface operations {
+    v1_games_geo_retrieve: {
+        parameters: {
+            query?: {
+                /** @description The region's key. Defaults to the default region. */
+                region?: string;
+            };
+            header?: never;
+            path: {
+                day: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["GeoGame"];
+                };
+            };
+        };
+    };
+    v1_games_geo_guess_create: {
+        parameters: {
+            query?: {
+                /** @description The region's key. Defaults to the default region. */
+                region?: string;
+            };
+            header?: never;
+            path: {
+                day: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["GeoGuessInput"];
+                "application/x-www-form-urlencoded": components["schemas"]["GeoGuessInput"];
+                "multipart/form-data": components["schemas"]["GeoGuessInput"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["GeoGame"];
+                };
+            };
+        };
+    };
+    v1_games_geo_regions_list: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Region"][];
+                };
+            };
+        };
+    };
     v1_games_logic_retrieve: {
         parameters: {
             query?: never;
@@ -204,7 +574,7 @@ export interface operations {
             };
         };
     };
-    v1_games_logic_cell_create: {
+    v1_games_logic_marks_create: {
         parameters: {
             query?: never;
             header?: never;
@@ -215,9 +585,9 @@ export interface operations {
         };
         requestBody: {
             content: {
-                "application/json": components["schemas"]["CellInput"];
-                "application/x-www-form-urlencoded": components["schemas"]["CellInput"];
-                "multipart/form-data": components["schemas"]["CellInput"];
+                "application/json": components["schemas"]["MarksInput"];
+                "application/x-www-form-urlencoded": components["schemas"]["MarksInput"];
+                "multipart/form-data": components["schemas"]["MarksInput"];
             };
         };
         responses: {
@@ -226,12 +596,39 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["CellResult"];
+                    "application/json": components["schemas"]["LogicGame"];
                 };
             };
         };
     };
-    v1_games_logic_clear_create: {
+    v1_games_logic_place_create: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                day: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PlaceInput"];
+                "application/x-www-form-urlencoded": components["schemas"]["PlaceInput"];
+                "multipart/form-data": components["schemas"]["PlaceInput"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PlaceResult"];
+                };
+            };
+        };
+    };
+    v1_games_math_retrieve: {
         parameters: {
             query?: never;
             header?: never;
@@ -247,7 +644,109 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["LogicGame"];
+                    "application/json": components["schemas"]["MathGame"];
+                };
+            };
+        };
+    };
+    v1_games_math_progress_create: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                day: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["StepsInput"];
+                "application/x-www-form-urlencoded": components["schemas"]["StepsInput"];
+                "multipart/form-data": components["schemas"]["StepsInput"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MathGame"];
+                };
+            };
+        };
+    };
+    v1_games_math_submit_create: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                day: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SubmitInput"];
+                "application/x-www-form-urlencoded": components["schemas"]["SubmitInput"];
+                "multipart/form-data": components["schemas"]["SubmitInput"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MathGame"];
+                };
+            };
+        };
+    };
+    v1_games_trivia_retrieve: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                day: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TriviaGame"];
+                };
+            };
+        };
+    };
+    v1_games_trivia_answer_create: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                day: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AnswerInput"];
+                "application/x-www-form-urlencoded": components["schemas"]["AnswerInput"];
+                "multipart/form-data": components["schemas"]["AnswerInput"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TriviaGame"];
                 };
             };
         };

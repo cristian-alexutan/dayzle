@@ -157,7 +157,8 @@ on the shared pieces described in the README (Shared building blocks for games).
 
 ### Backend
 
-1. **Content model** in `models.py`, linked one-to-one to the calendar entry. Secret fields
+1. **Content model** in `models.py`, linked one-to-one to the calendar entry by a field named
+   `daily_puzzle` (`seed_dev` uses that name to find days left without content). Secret fields
    (answer, solution, coordinates) live here:
    ```python
    class WordPuzzle(TimeStampedModel):
@@ -175,7 +176,10 @@ on the shared pieces described in the README (Shared building blocks for games).
    ```
    `seed(daily_puzzle)` creates sample content for `manage.py seed_dev`.
 3. **Django admin** (`admin.py`): register the content model so admins can author puzzles. They
-   first add a Daily puzzle (game + date), then its content.
+   first add a Daily puzzle (game + date), then its content. A game that makes its own daily
+   content instead (like the GeoGuesser, from random locations) passes
+   `scheduled_by_admin=False` to `register_game`, so the admin doesn't warn about its missing
+   days, and needs no authoring admin.
 4. **Services** (`services.py`) hold the game rules. Every action follows the same steps:
    ```python
    puzzle = get_playable_puzzle("word", day)       # access rules for the day

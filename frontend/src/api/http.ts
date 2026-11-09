@@ -29,6 +29,15 @@ export function errorCode(error: unknown): string | null {
   return error instanceof ApiError ? error.code : null
 }
 
+/** The backend error's `details` when they are an object, such as `{ region }`, or null. */
+export function errorDetails(error: unknown): Record<string, unknown> | null {
+  if (!(error instanceof ApiError)) return null
+  const { details } = error
+  return typeof details === 'object' && details !== null
+    ? (details as Record<string, unknown>)
+    : null
+}
+
 function isErrorBody(value: unknown): value is ErrorBody {
   if (typeof value !== 'object' || value === null || !('error' in value)) return false
   const error = (value as { error: unknown }).error

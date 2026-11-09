@@ -9,7 +9,7 @@ from collections.abc import Iterable, Sequence
 from dataclasses import dataclass
 from enum import StrEnum
 
-from .exceptions import InvalidNumbersError, InvalidStepError
+from .exceptions import GenerationFailedError, InvalidNumbersError, InvalidStepError
 
 NUMBER_COUNT = 6
 MAX_STEPS = NUMBER_COUNT - 1
@@ -277,7 +277,8 @@ def generate(
     """A random solvable puzzle whose shortest solution matches the difficulty.
 
     Draws numbers and picks a target among those whose fewest operations fit the difficulty,
-    drawing again when none fit. Pass a seeded ``rng`` for repeatable puzzles.
+    drawing again when none fit. Pass a seeded ``rng`` for repeatable puzzles. Raises
+    ``GenerationFailedError`` if no draw fits in ``attempts`` tries.
     """
     rng = rng or random.Random()
     for _ in range(attempts):
@@ -291,4 +292,4 @@ def generate(
         if targets:
             target = rng.choice(targets)
             return GeneratedPuzzle(numbers, target, solutions[target], difficulty)
-    raise RuntimeError(f"No {difficulty} puzzle found in {attempts} attempts.")
+    raise GenerationFailedError(f"No {difficulty} puzzle found in {attempts} attempts.")

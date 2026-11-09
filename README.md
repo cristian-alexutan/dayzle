@@ -6,7 +6,7 @@ a "Make the Target" math game, a 5-question trivia quiz and a GeoGuesser for Clu
 - `backend/`: REST API under `/api/v1/` (Python 3.14, Django 6.1, Django REST Framework,
   drf-spectacular, PostgreSQL 16)
 - `frontend/`: Vue 3 single-page app (Vite, TypeScript, Vue Router, Pinia, TanStack Query,
-  PrimeVue, Leaflet, vue-i18n)
+  PrimeVue, Google Maps JavaScript API, vue-i18n)
 
 > **First demo (MVP): the five games only.** Everyone plays anonymously; login, subscriptions,
 > archive, leaderboards, stats and friends come after the demo. See [MVP scope](#mvp-scope).
@@ -42,6 +42,20 @@ The Word game's word lists live in `backend/apps/games/word/data/` (`guesses.txt
 form of the official Romanian word list, LOC 5.0 from [dexonline](https://dexonline.ro/scrabble);
 `answers.txt`: hand-checked common words). `seed_dev` loads them into an empty
 database; after editing the files, run `python manage.py import_words` again.
+
+The Trivia question bank lives in `backend/apps/games/trivia/data/questions.json` (Romanian
+questions in six categories, each with 4 choices and the index of the correct one). `seed_dev`
+loads it when the bank is too small; after adding questions, run
+`python manage.py import_questions` (existing questions are kept as they are).
+
+The GeoGuesser plays random Google Street View panoramas, so nothing from Google is committed:
+each developer's location bank lives only in their database. Put a server key in `.env`
+(`GOOGLE_MAPS_SERVER_KEY`, see [Configuration](#configuration)) and `seed_dev` generates a
+week's worth for Cluj-Napoca; without a key, Geo is skipped. Related commands:
+`python manage.py generate_locations [--region cluj-napoca] [--count 50]` adds random panoramas,
+`check_panoramas [--days 7 | --all]` refreshes their coordinates from Google and deactivates
+removed ones (Google allows storing panorama IDs, but coordinates only as a cache, so run it
+regularly), and `prepare_geo_days [--days 7]` makes the coming days' games in advance.
 
 > **Set up before the backend foundation (PR #2) was merged?** The custom user model requires a
 > one-time database reset: `docker compose down -v`, then steps 3 and 4 again.
@@ -117,9 +131,25 @@ To proxy to a different backend address, set `API_PROXY_TARGET` before starting 
 ## Configuration
 
 - **Root `.env`** (copied from `.env.example`): backend and database settings, read by
-  docker compose and Django.
-- **`frontend/.env`** (copied from `frontend/.env.example`): `VITE_API_BASE_URL` and
-  `VITE_GOOGLE_CLIENT_ID`. Only variables prefixed with `VITE_` reach the browser.
+  docker compose and Django. `GOOGLE_MAPS_SERVER_KEY` is the GeoGuesser's server key: in the
+  Google Cloud project, enable the Street View Static API and restrict the key to it. It never
+  reaches the browser. After changing `.env`, run `docker compose up -d backend` to reload it.
+- **`frontend/.env`** (copied from `frontend/.env.example`): `VITE_API_BASE_URL`,
+  `VITE_GOOGLE_CLIENT_ID` and `VITE_GOOGLE_MAPS_BROWSER_KEY`. Only variables prefixed with
+  `VITE_` reach the browser. `VITE_GOOGLE_MAPS_BROWSER_KEY` shows the GeoGuesser's Street View
+  panoramas and its maps: a second key, separate from the server key, with the Maps JavaScript
+  API enabled and restricted to the site's address (`http://localhost:5173/*` in development).
+  Google's terms don't allow Street View next to a non-Google map, so the GeoGuesser uses Google
+  Maps for its maps too. Dynamic Street View and map loads are billed; a game loads one
+  panorama and one map, plus one map for the end screen. Without the key, the page shows a
+  message in place of the panorama and the maps. After changing it, restart the frontend
+  (`docker compose restart frontend`).
+
+  The API never sends a location's coordinates before its round is guessed, but once the browser
+  shows a panorama, Google tells the browser where it is (the developer console, or the
+  panorama's "Report a problem" link). Every client-side Street View game has this. The backend
+  scores every guess, so a score can't be faked, but don't treat the location as secret in the
+  browser.
 - **Django settings** live in `backend/config/settings/`, split into `base.py` (shared), `dev.py`
   and `prod.py`. Choose one with `DJANGO_SETTINGS_MODULE`. Secrets and environment-specific
   values always come from environment variables.
@@ -177,6 +207,9 @@ The first demo only needs the five games playable. Decisions for the MVP:
   `DailyPuzzle` row is the calendar entry (game + date, no content); each game stores its
   content in its own model linked to that row. The admin warns about games with no puzzle in
   the next 7 days. A day without a puzzle shows "no puzzle today".
+  **Exception: the GeoGuesser** is made automatically. Each day's 5 locations are picked at random
+  from a bank of generated Street View panoramas the first time anyone opens the day, so it has
+  no authoring admin (`register_game(..., scheduled_by_admin=False)`).
 - **Only today's puzzle is playable.** URLs already take a date (`today` or `YYYY-MM-DD`), so
   the archive can be added later without changing them.
 - **One `GameResult` per player and puzzle**, shared by all games: created when the player
@@ -240,7 +273,7 @@ Every app has the same layout:
 | `common/players.py` | `get_guest_id(request)`: the player's id, created in the session on first use |
 | `common/exceptions.py` | `DomainError`: base class for errors raised by services; the API turns them into the error format below |
 | `puzzles/models.py` | `Game` choices and `DailyPuzzle(game, date)` |
-| `puzzles/registry.py` | `register_game(key, name, content_model, seed=None)`, called from each game's `AppConfig.ready()` |
+| `puzzles/registry.py` | `register_game(key, name, content_model, seed=None, scheduled_by_admin=True)`, called from each game's `AppConfig.ready()`; `scheduled_by_admin=False` for a game that makes its own daily content |
 | `puzzles/selectors.py` | `get_playable_puzzle(game, day)`: today's puzzle, or `NoPuzzleError` (404) / `ArchiveUnavailableError` (403) |
 | `results/services.py` | `start_or_resume`, `save_progress`, `complete` (raises `AlreadyPlayedError`, 409); `save_progress` and `complete` also count active time |
 | `results/api/` | `POST /api/v1/results/<game>/<game_day:day>/heartbeat/`: shared by all games, keeps the clock running while the game is visible |
@@ -253,6 +286,9 @@ Every app has the same layout:
   GET  /api/v1/games/<game>/<game_day:day>/            the puzzle (without secrets) and the player's state
   POST /api/v1/games/<game>/<game_day:day>/<action>/   e.g. guess/, submit/
   ```
+  A game with variants takes them as a query parameter, so the paths stay the same: the
+  GeoGuesser's `?region=<key>` (the default region when left out), with the regions listed at
+  `GET /api/v1/games/geo/regions/`.
 - Every error has the same shape, whatever its cause:
   ```json
   {"error": {"code": "already_played", "message": "This puzzle has already been played.", "details": null}}
