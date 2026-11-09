@@ -3,6 +3,20 @@
     "retry": "Încearcă din nou",
     "time": "Timp"
   },
+  "geo": {
+    "errors": {
+      "generic": "Ceva nu a mers. Încearcă din nou.",
+      "noRegion": "GeoGuesser nu este disponibil acum. Încearcă mai târziu."
+    },
+    "finished": "Ai terminat! Scor: {score} din {max}",
+    "loading": "Se încarcă jocul",
+    "noPuzzle": "Nu există un joc pentru astăzi. Revino mâine!",
+    "regionLocked": "Ai început jocul de azi în altă regiune ({region}). Revino mâine!",
+    "round": "Runda {round} din {rounds}",
+    "score": "{score} / {max} puncte",
+    "subtitle": "{region} · {date}",
+    "title": "GeoGuesser"
+  },
   "header": {
     "language": "Limbă",
     "theme": {
