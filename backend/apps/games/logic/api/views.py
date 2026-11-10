@@ -10,12 +10,7 @@ from rest_framework.response import Response
 from apps.common.players import get_guest_id
 
 from .. import services
-from .serializers import (
-    LogicGameSerializer,
-    MarksInputSerializer,
-    PlaceInputSerializer,
-    PlaceResultSerializer,
-)
+from .serializers import CellInputSerializer, CellResultSerializer, LogicGameSerializer
 
 
 @extend_schema(responses=LogicGameSerializer)
@@ -26,24 +21,26 @@ def game(request: Request, day: date) -> Response:
     return Response(LogicGameSerializer(logic_game).data)
 
 
-@extend_schema(request=PlaceInputSerializer, responses=PlaceResultSerializer)
+@extend_schema(request=CellInputSerializer, responses=CellResultSerializer)
 @api_view(["POST"])
-def place(request: Request, day: date) -> Response:
-    """Place a sun. The server says whether it is correct; the last correct sun ends the game."""
-    data = PlaceInputSerializer(data=request.data)
+def cell(request: Request, day: date) -> Response:
+    """Set a cell to empty, an X or a sun. A sun that breaks a rule is rejected as a mistake;
+    the last sun ends the game."""
+    data = CellInputSerializer(data=request.data)
     data.is_valid(raise_exception=True)
-    outcome = services.place_sun(
-        get_guest_id(request), day, data.validated_data["row"], data.validated_data["col"]
+    outcome = services.set_cell(
+        get_guest_id(request),
+        day,
+        data.validated_data["row"],
+        data.validated_data["col"],
+        services.CellContent(data.validated_data["content"]),
     )
-    return Response(PlaceResultSerializer(outcome).data)
+    return Response(CellResultSerializer(outcome).data)
 
 
-@extend_schema(request=MarksInputSerializer, responses=LogicGameSerializer)
+@extend_schema(request=None, responses=LogicGameSerializer)
 @api_view(["POST"])
-def marks(request: Request, day: date) -> Response:
-    """Save the player's X marks, so a refresh restores them."""
-    data = MarksInputSerializer(data=request.data)
-    data.is_valid(raise_exception=True)
-    cells = [(row, col) for row, col in data.validated_data["marks"]]
-    logic_game = services.save_marks(get_guest_id(request), day, cells)
+def clear(request: Request, day: date) -> Response:
+    """Remove every sun and X from the board. Mistakes and time are kept."""
+    logic_game = services.clear_board(get_guest_id(request), day)
     return Response(LogicGameSerializer(logic_game).data)

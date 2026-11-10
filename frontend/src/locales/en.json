@@ -49,6 +49,47 @@
       "light": "Theme: light"
     }
   },
+  "logic": {
+    "board": "Game grid",
+    "cell": {
+      "empty": "Row {row}, column {col}: empty",
+      "mark": "Row {row}, column {col}: X",
+      "sun": "Row {row}, column {col}: sun"
+    },
+    "errors": {
+      "generic": "Something went wrong. Please try again."
+    },
+    "loading": "Loading the game",
+    "mistakes": "Mistakes",
+    "noPuzzle": "There is no puzzle for today. Come back tomorrow!",
+    "result": {
+      "mistakes": "No mistakes | 1 mistake | {count} mistakes",
+      "see": "See result",
+      "title": "Congratulations!"
+    },
+    "title": "Sunspots",
+    "toolbar": {
+      "undo": "Undo",
+      "clear": "Clear board",
+      "help": "Rules"
+    },
+    "tutorial": {
+      "title": "How to play",
+      "rulesHeading": "Rules",
+      "controlsHeading": "How you play",
+      "rules": {
+        "oneSun": "Place exactly one sun in every row and every column.",
+        "regions": "Every colored region also gets exactly one sun.",
+        "noTouching": "No two suns can touch, not even diagonally."
+      },
+      "controls": {
+        "mark": "Tap a cell once to put an X where you know there's no sun. X marks are just your notes.",
+        "sun": "Tap it again for a sun, and once more to empty it. A sun that breaks a rule is rejected and counts as a mistake.",
+        "score": "Your score starts at 1000 and goes down with time, and each mistake costs 50 points. Once every sun is placed, the puzzle is solved."
+      },
+      "start": "Got it"
+    }
+  },
   "math": {
     "closest": "Closest so far: {value}",
     "eggs": {

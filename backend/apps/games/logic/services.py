@@ -2,15 +2,20 @@
 
 The player's progress lives in ``GameResult.details``:
 
-- ``suns``: the correct suns on the board, as ``[row, col]`` pairs, in the order placed.
-- ``marks``: the X marks, as ``[row, col]`` pairs. They are only notes and are never checked.
-- ``moves``: every sun the player placed, in order: ``true`` if correct, ``false`` if a mistake.
-  The number of mistakes, the current streak and the score are all computed from it.
+- ``suns``: the suns on the board, as ``[row, col]`` pairs. Only suns that break no rule are kept.
+- ``marks``: the X marks, as ``[row, col]`` pairs. They are the player's notes and are never
+  checked.
+- ``mistakes``: how many suns were rejected for breaking a rule.
+
+Nothing is checked against the solution while playing, so the game never tells the player where
+a sun belongs. Every puzzle has exactly one solution, so a full board with no rule broken is that
+solution and finishes the game.
 """
 
 import uuid
 from dataclasses import dataclass
 from datetime import date
+from enum import StrEnum
 
 from django.db import transaction
 
@@ -25,6 +30,12 @@ from .models import LogicPuzzle
 from .selectors import get_playable_logic_puzzle
 
 
+class CellContent(StrEnum):
+    EMPTY = "empty"
+    MARK = "mark"
+    SUN = "sun"
+
+
 @dataclass(frozen=True)
 class LogicGame:
     """A player's daily game: their result and the day's grid (its solution stays secret)."""
@@ -34,12 +45,12 @@ class LogicGame:
 
 
 @dataclass(frozen=True)
-class PlaceOutcome:
-    """The game after placing a sun, and what the server said about that sun."""
+class CellOutcome:
+    """The game after changing a cell, and whether a new sun was rejected."""
 
     game: LogicGame
-    correct: bool
-    # The suns the new sun broke a rule with, so the frontend can show why it was wrong.
+    rejected: bool
+    # The suns a rejected sun broke a rule with, so the frontend can show why.
     conflicts: list[rules.Cell]
 
 
@@ -53,6 +64,14 @@ def _cells(details: dict, key: str) -> list[rules.Cell]:
     return [(row, col) for row, col in details.get(key, [])]
 
 
+def _details(suns: list[rules.Cell], marks: list[rules.Cell], mistakes: int) -> dict:
+    return {
+        "suns": [list(sun) for sun in suns],
+        "marks": [list(mark) for mark in marks],
+        "mistakes": mistakes,
+    }
+
+
 def _lock(result: GameResult) -> GameResult:
     """Lock the result so two requests at the same time can't both change it."""
     locked = GameResult.objects.select_for_update().get(pk=result.pk)
@@ -61,12 +80,14 @@ def _lock(result: GameResult) -> GameResult:
     return locked
 
 
-def place_sun(guest_id: uuid.UUID, day: date, row: int, col: int) -> PlaceOutcome:
-    """Check one sun against the solution.
+def set_cell(
+    guest_id: uuid.UUID, day: date, row: int, col: int, content: CellContent
+) -> CellOutcome:
+    """Make a cell empty, put an X on it, or place a sun.
 
-    A correct sun stays on the board for good; a wrong one is not kept and counts as a mistake.
-    Either way the cell loses its X mark. The last correct sun finishes the game, scored with
-    ``rules.score``.
+    A new sun that breaks a rule with a sun already on the board is rejected: it isn't kept,
+    the cell stays as it was, and it counts as a mistake. A sun that breaks no rule replaces the
+    cell's X. Placing the last sun finishes the game, scored with ``rules.score``.
     """
     game = open_game(guest_id, day)
     puzzle = game.puzzle
@@ -77,48 +98,46 @@ def place_sun(guest_id: uuid.UUID, day: date, row: int, col: int) -> PlaceOutcom
     with transaction.atomic():
         result = _lock(game.result)
         suns = _cells(result.details, "suns")
-        if cell in suns:
-            raise InvalidCellError()
+        marks = _cells(result.details, "marks")
+        mistakes = result.details.get("mistakes", 0)
+        others = [sun for sun in suns if sun != cell]
+        conflicts: list[rules.Cell] = []
 
-        correct = rules.is_correct(cell, puzzle.solution)
-        conflicts = [] if correct else rules.conflicts(cell, suns, puzzle.regions)
-        if correct:
-            suns.append(cell)
-        marks = [mark for mark in _cells(result.details, "marks") if mark != cell]
-        moves = [*result.details.get("moves", []), correct]
-        details = {
-            "suns": [list(sun) for sun in suns],
-            "marks": [list(mark) for mark in marks],
-            "moves": moves,
-        }
+        if content == CellContent.SUN and cell not in suns:
+            conflicts = rules.conflicts(cell, suns, puzzle.regions)
+            if conflicts:
+                mistakes += 1
+            else:
+                suns = [*suns, cell]
+                marks = [mark for mark in marks if mark != cell]
+        elif content == CellContent.MARK:
+            suns = others
+            if cell not in marks:
+                marks = [*marks, cell]
+        elif content == CellContent.EMPTY:
+            suns = others
+            marks = [mark for mark in marks if mark != cell]
 
-        if rules.is_solved(suns, puzzle.solution):
+        details = _details(suns, marks, mistakes)
+        if rules.is_full(suns, puzzle.size):
             # ``complete`` measures the duration, and the score needs it, so the score is set
             # right after, in the same transaction: nobody can see the result in between.
             result = complete(result, solved=True, score=0, details=details)
-            result.score = rules.score(moves, puzzle.size, result.duration_ms)
+            result.score = rules.score(puzzle.size, result.duration_ms, mistakes)
             result.save(update_fields=["score", "updated_at"])
         else:
             result = save_progress(result, details)
 
-    return PlaceOutcome(LogicGame(result, puzzle), correct, conflicts)
+    return CellOutcome(LogicGame(result, puzzle), rejected=bool(conflicts), conflicts=conflicts)
 
 
-def save_marks(guest_id: uuid.UUID, day: date, marks: list[rules.Cell]) -> LogicGame:
-    """Replace the player's X marks, so a refresh restores them. Marks are never checked.
-
-    Duplicates are dropped, and so are marks on cells that already hold a sun.
-    """
+def clear_board(guest_id: uuid.UUID, day: date) -> LogicGame:
+    """Remove every sun and X, to start the grid again. Mistakes and time are kept."""
     game = open_game(guest_id, day)
-    if any(not rules.is_in_grid(mark, game.puzzle.size) for mark in marks):
-        raise InvalidCellError()
-
     with transaction.atomic():
         result = _lock(game.result)
-        suns = _cells(result.details, "suns")
-        kept = list(dict.fromkeys(mark for mark in marks if mark not in suns))
-        details = {**result.details, "marks": [list(mark) for mark in kept]}
-        result = save_progress(result, details)
+        mistakes = result.details.get("mistakes", 0)
+        result = save_progress(result, _details([], [], mistakes))
     return LogicGame(result, game.puzzle)
 
 

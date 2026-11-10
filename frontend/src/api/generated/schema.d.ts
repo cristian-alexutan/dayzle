@@ -72,7 +72,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/v1/games/logic/{day}/marks/": {
+    "/api/v1/games/logic/{day}/cell/": {
         parameters: {
             query?: never;
             header?: never;
@@ -81,15 +81,18 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        /** @description Save the player's X marks, so a refresh restores them. */
-        post: operations["v1_games_logic_marks_create"];
+        /**
+         * @description Set a cell to empty, an X or a sun. A sun that breaks a rule is rejected as a mistake;
+         *     the last sun ends the game.
+         */
+        post: operations["v1_games_logic_cell_create"];
         delete?: never;
         options?: never;
         head?: never;
         patch?: never;
         trace?: never;
     };
-    "/api/v1/games/logic/{day}/place/": {
+    "/api/v1/games/logic/{day}/clear/": {
         parameters: {
             query?: never;
             header?: never;
@@ -98,8 +101,8 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        /** @description Place a sun. The server says whether it is correct; the last correct sun ends the game. */
-        post: operations["v1_games_logic_place_create"];
+        /** @description Remove every sun and X from the board. Mistakes and time are kept. */
+        post: operations["v1_games_logic_clear_create"];
         delete?: never;
         options?: never;
         head?: never;
@@ -282,10 +285,28 @@ export interface components {
          * @enum {string}
          */
         CategoryEnum: "history" | "geography" | "science" | "culture" | "sports" | "general";
+        CellInput: {
+            row: number;
+            col: number;
+            content: components["schemas"]["ContentEnum"];
+        };
+        /** @description Whether a new sun was rejected, the suns it conflicts with, and the updated board. */
+        CellResult: {
+            rejected: boolean;
+            conflicts: number[][];
+            game: components["schemas"]["LogicGame"];
+        };
         Choice: {
             id: number;
             text: string;
         };
+        /**
+         * @description * `empty` - empty
+         *     * `mark` - mark
+         *     * `sun` - sun
+         * @enum {string}
+         */
+        ContentEnum: "empty" | "mark" | "sun";
         /**
          * @description * `easy` - Easy
          *     * `medium` - Medium
@@ -324,8 +345,8 @@ export interface components {
             guess: string;
         };
         /**
-         * @description The player's board. The solution is never included; ``solved``, ``score`` and
-         *     ``duration_ms`` stay null until the game ends.
+         * @description The player's board. ``solved``, ``score`` and ``duration_ms`` stay null until the game
+         *     ends. ``elapsed_ms`` is only for display. The solution is never sent.
          */
         LogicGame: {
             /** Format: date */
@@ -336,13 +357,11 @@ export interface components {
             readonly suns: number[][];
             readonly marks: number[][];
             readonly mistakes: number;
-            readonly streak: number;
             readonly solved: boolean | null;
             readonly score: number | null;
             readonly duration_ms: number | null;
-        };
-        MarksInput: {
-            marks: number[][];
+            /** @description Active play time so far, so the on-screen timer continues after a refresh. */
+            readonly elapsed_ms: number;
         };
         /**
          * @description The player's board. Results and the puzzle's secrets stay null until the game ends.
@@ -378,16 +397,6 @@ export interface components {
          * @enum {string}
          */
         OpEnum: "+" | "-" | "*" | "/";
-        PlaceInput: {
-            row: number;
-            col: number;
-        };
-        /** @description Whether the sun was correct, the suns it conflicts with, and the updated board. */
-        PlaceResult: {
-            correct: boolean;
-            conflicts: number[][];
-            game: components["schemas"]["LogicGame"];
-        };
         PlayedStep: {
             left: number;
             op: components["schemas"]["OpEnum"];
@@ -574,7 +583,7 @@ export interface operations {
             };
         };
     };
-    v1_games_logic_marks_create: {
+    v1_games_logic_cell_create: {
         parameters: {
             query?: never;
             header?: never;
@@ -585,11 +594,32 @@ export interface operations {
         };
         requestBody: {
             content: {
-                "application/json": components["schemas"]["MarksInput"];
-                "application/x-www-form-urlencoded": components["schemas"]["MarksInput"];
-                "multipart/form-data": components["schemas"]["MarksInput"];
+                "application/json": components["schemas"]["CellInput"];
+                "application/x-www-form-urlencoded": components["schemas"]["CellInput"];
+                "multipart/form-data": components["schemas"]["CellInput"];
             };
         };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CellResult"];
+                };
+            };
+        };
+    };
+    v1_games_logic_clear_create: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                day: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
         responses: {
             200: {
                 headers: {
@@ -597,33 +627,6 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["LogicGame"];
-                };
-            };
-        };
-    };
-    v1_games_logic_place_create: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                day: string;
-            };
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["PlaceInput"];
-                "application/x-www-form-urlencoded": components["schemas"]["PlaceInput"];
-                "multipart/form-data": components["schemas"]["PlaceInput"];
-            };
-        };
-        responses: {
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["PlaceResult"];
                 };
             };
         };
