@@ -5,6 +5,7 @@
   },
   "geo": {
     "backToPanorama": "Înapoi la imagine",
+    "backToStart": "Înapoi la start",
     "continueIn": "Continuă în {region}",
     "distance": "la {distance} de locul real",
     "errors": {

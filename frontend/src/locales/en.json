@@ -5,6 +5,7 @@
   },
   "geo": {
     "backToPanorama": "Back to the image",
+    "backToStart": "Back to start",
     "continueIn": "Continue in {region}",
     "distance": "{distance} from the real spot",
     "errors": {

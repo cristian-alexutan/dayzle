@@ -82,10 +82,14 @@ class FakeLatLngBounds {
   }
 }
 
+export const CONTROL_POSITION = { LEFT_TOP: 1 } as const
+
 export class FakePanorama {
   readonly setPano = vi.fn()
   readonly setPov = vi.fn()
   readonly setZoom = vi.fn()
+  /** Elements added as Google controls, by `ControlPosition`. */
+  readonly controls: Record<number, HTMLElement[]> = { [CONTROL_POSITION.LEFT_TOP]: [] }
 
   constructor(
     readonly element: HTMLElement,
@@ -98,7 +102,11 @@ export class FakePanorama {
 const libraries: Record<string, unknown> = {
   maps: { Map: FakeMap, Polyline: FakePolyline, Rectangle: FakeRectangle },
   marker: { Marker: FakeMarker },
-  core: { LatLngBounds: FakeLatLngBounds, SymbolPath: { CIRCLE: 0 } },
+  core: {
+    LatLngBounds: FakeLatLngBounds,
+    SymbolPath: { CIRCLE: 0 },
+    ControlPosition: CONTROL_POSITION,
+  },
   streetView: { StreetViewPanorama: FakePanorama },
 }
 
