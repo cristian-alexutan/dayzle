@@ -8,6 +8,7 @@ import GeoMap from '../components/GeoMap.vue'
 import StreetViewPanorama from '../components/StreetViewPanorama.vue'
 import { finishedGame, cluj, afterFirstGuess } from './fixtures'
 import {
+  CONTROL_POSITION,
   fake,
   installFakeGoogleMaps,
   shapesOnMap,
@@ -45,6 +46,44 @@ describe('StreetViewPanorama', () => {
     wrapper.unmount()
   })
 
+  it('puts the back to start button on the panorama as a Google control', async () => {
+    const wrapper = mountWithPlugins(StreetViewPanorama, { props: { panoramaId: 'pano-1' } })
+    await flushPromises()
+
+    const button = wrapper.find('[data-test="back-to-start"]')
+    expect(button.text()).toBe('Înapoi la start')
+    const [control] = fake.panoramas[0]!.controls[CONTROL_POSITION.LEFT_TOP]!
+    expect(control?.contains(button.element)).toBe(true)
+    expect(button.isVisible()).toBe(true)
+    wrapper.unmount()
+  })
+
+  it('goes back to the round’s panorama, facing north and unzoomed', async () => {
+    const wrapper = mountWithPlugins(StreetViewPanorama, { props: { panoramaId: 'pano-1' } })
+    await flushPromises()
+    const panorama = fake.panoramas[0]!
+
+    await wrapper.find('[data-test="back-to-start"]').trigger('click')
+
+    expect(panorama.setPano).toHaveBeenCalledWith('pano-1')
+    expect(panorama.setPov).toHaveBeenCalledWith({ heading: 0, pitch: 0 })
+    expect(panorama.setZoom).toHaveBeenCalledWith(0)
+    wrapper.unmount()
+  })
+
+  it('goes back to the new round’s panorama after a round change', async () => {
+    const wrapper = mountWithPlugins(StreetViewPanorama, { props: { panoramaId: 'pano-1' } })
+    await flushPromises()
+    await wrapper.setProps({ panoramaId: 'pano-2' })
+    const panorama = fake.panoramas[0]!
+    panorama.setPano.mockClear()
+
+    await wrapper.find('[data-test="back-to-start"]').trigger('click')
+
+    expect(panorama.setPano).toHaveBeenCalledWith('pano-2')
+    wrapper.unmount()
+  })
+
   it('says so when no browser key is configured', async () => {
     vi.stubEnv('VITE_GOOGLE_MAPS_BROWSER_KEY', '')
     vi.spyOn(console, 'warn').mockImplementation(() => {})
@@ -56,6 +95,7 @@ describe('StreetViewPanorama', () => {
       'Imaginea și harta nu pot fi afișate acum.',
     )
     expect(fake.panoramas).toHaveLength(0)
+    expect(wrapper.find('[data-test="back-to-start"]').isVisible()).toBe(false)
     wrapper.unmount()
   })
 
