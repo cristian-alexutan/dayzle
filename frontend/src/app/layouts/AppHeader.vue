@@ -1,4 +1,4 @@
-<!-- AppHeader: Top bar with the theme and language controls. -->
+<!-- AppHeader: Top navigation bar with brand logo, home link, login link, theme and language controls. -->
 <script setup lang="ts">
 import { computed, watchEffect } from 'vue'
 import { useI18n } from 'vue-i18n'
@@ -28,32 +28,132 @@ function toggleLocale() {
 
 <template>
   <header class="app-header">
-    <AppButton
-      :icon="THEME_ICONS[theme.mode]"
-      :aria-label="themeLabel"
-      :title="themeLabel"
-      text
-      severity="secondary"
-      data-test="theme"
-      @click="theme.cycle()"
-    />
-    <AppButton
-      :label="locale.toUpperCase()"
-      :aria-label="t('header.language')"
-      :title="t('header.language')"
-      text
-      severity="secondary"
-      data-test="language"
-      @click="toggleLocale"
-    />
+    <nav class="app-header__nav" :aria-label="t('header.nav')">
+      <div class="app-header__left">
+        <RouterLink to="/" class="app-header__brand" data-test="brand-link">
+          <i class="pi pi-sparkles app-header__brand-icon" aria-hidden="true" />
+          <span>Dayzle</span>
+        </RouterLink>
+        <RouterLink
+          to="/"
+          class="app-header__link"
+          :aria-label="t('header.home')"
+          data-test="home-link"
+        >
+          <i class="pi pi-home" aria-hidden="true" />
+          <span class="app-header__link-label">{{ t('header.home') }}</span>
+        </RouterLink>
+      </div>
+
+      <div class="app-header__actions">
+        <RouterLink
+          to="/login"
+          class="app-header__link"
+          :aria-label="t('header.login')"
+          data-test="login-link"
+        >
+          <i class="pi pi-user" aria-hidden="true" />
+          <span class="app-header__link-label">{{ t('header.login') }}</span>
+        </RouterLink>
+        <AppButton
+          :icon="THEME_ICONS[theme.mode]"
+          :aria-label="themeLabel"
+          :title="themeLabel"
+          text
+          severity="secondary"
+          data-test="theme"
+          @click="theme.cycle()"
+        />
+        <AppButton
+          :label="locale.toUpperCase()"
+          :aria-label="t('header.language')"
+          :title="t('header.language')"
+          text
+          severity="secondary"
+          data-test="language"
+          @click="toggleLocale"
+        />
+      </div>
+    </nav>
   </header>
 </template>
 
 <style scoped>
 .app-header {
+  border-bottom: 1px solid var(--dz-border);
+  background: var(--dz-surface);
+}
+
+.app-header__nav {
   display: flex;
-  justify-content: flex-end;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  max-width: 64rem;
+  margin: 0 auto;
+  padding: 0.5rem 1rem;
+}
+
+.app-header__left {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+.app-header__brand {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  font-size: 1.25rem;
+  font-weight: 800;
+  letter-spacing: 0.02em;
+  color: var(--dz-text);
+  text-decoration: none;
+}
+
+.app-header__brand-icon {
+  color: var(--dz-primary-strong);
+}
+
+.app-header__link {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.35rem 0.65rem;
+  border-radius: 0.5rem;
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: var(--dz-text-muted);
+  text-decoration: none;
+  transition:
+    color 0.15s ease,
+    background-color 0.15s ease;
+}
+
+.app-header__link:hover,
+.app-header__link.router-link-exact-active {
+  color: var(--dz-text);
+  background: var(--dz-page);
+}
+
+.app-header__actions {
+  display: flex;
+  align-items: center;
   gap: 0.25rem;
-  padding: 0.5rem;
+}
+
+@media (max-width: 30rem) {
+  .app-header__nav {
+    gap: 0.5rem;
+    padding: 0.5rem 0.75rem;
+  }
+
+  .app-header__left {
+    gap: 0.5rem;
+  }
+
+  .app-header__link-label {
+    display: none;
+  }
 }
 </style>
