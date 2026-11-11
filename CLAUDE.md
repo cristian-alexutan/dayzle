@@ -11,7 +11,8 @@ logic game, a "Make the Target" math game, a 5-question trivia quiz, a GeoGuesse
 ## MVP scope
 
 The first demo is the five games only; README "MVP scope" lists the decisions. Key points:
-everyone is anonymous (`guest_id` in the Django session, play-once per guest); puzzles are
+players are guests (`guest_id` in the Django session) or signed in with Google (the account's
+`player_id`, the same everywhere), play-once per player; puzzles are
 hand-authored in Django admin as a `DailyPuzzle(game, date)` calendar row plus a per-game
 content model (except Geo, whose day is made from random locations on first open); only
 today's puzzle is playable; one `GameResult` per player and puzzle holds progress and the final
@@ -108,7 +109,8 @@ Each app's `api/urls.py` is mounted by `config/urls.py` under `/api/v1/<app>/` (
 
 ### Shared building blocks for games
 
-- `common`: `today_in_romania()` (only source of the game day), `get_guest_id(request)`,
+- `common`: `today_in_romania()` (only source of the game day), `get_guest_id(request)` (the
+  signed-in user's `player_id`, else the session's guest id),
   `DomainError` + `exception_handler` (errors as `{"error": {"code", "message", "details"}}`),
   `TimeStampedModel`.
 - `puzzles`: `DailyPuzzle`, `register_game(...)` in each game's `AppConfig.ready()`

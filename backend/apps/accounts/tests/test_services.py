@@ -133,7 +133,7 @@ def test_get_or_create_google_user_disambiguates_colliding_usernames():
     assert user.username == "andrei_1"
 
 
-def test_claim_guest_results_links_unclaimed_results_and_skips_duplicates():
+def test_claim_guest_results_moves_guest_results_onto_the_account():
     user = User.objects.create_user(username="andrei", email="andrei@example.com")
     puzzle_1 = DailyPuzzleFactory(game="word")
     puzzle_2 = DailyPuzzleFactory(game="math")
@@ -141,15 +141,29 @@ def test_claim_guest_results_links_unclaimed_results_and_skips_duplicates():
     guest_result_1 = GameResultFactory(daily_puzzle=puzzle_1, user=None)
     guest_id = guest_result_1.guest_id
     guest_result_2 = GameResultFactory(daily_puzzle=puzzle_2, guest_id=guest_id, user=None)
-    # User already completed puzzle_2 on another device
-    GameResultFactory(daily_puzzle=puzzle_2, guest_id=None, user=user)
+    # The account already played puzzle_2, signed in on another device.
+    GameResultFactory(daily_puzzle=puzzle_2, guest_id=user.player_id, user=user)
 
     claimed = claim_guest_results(guest_id, user)
 
     assert claimed == 1
     guest_result_1.refresh_from_db()
     guest_result_2.refresh_from_db()
-    assert guest_result_1.user == user
-    assert guest_result_1.guest_id == guest_id
-    assert guest_result_2.user is None
+    assert (guest_result_1.user, guest_result_1.guest_id) == (user, user.player_id)
+    assert (guest_result_2.user, guest_result_2.guest_id) == (None, guest_id)
     assert GameResult.objects.filter(user=user).count() == 2
+
+
+def test_claim_guest_results_skips_puzzles_played_signed_in_but_not_yet_linked():
+    user = User.objects.create_user(username="andrei", email="andrei@example.com")
+    puzzle = DailyPuzzleFactory(game="word")
+    played_signed_in = GameResultFactory(daily_puzzle=puzzle, guest_id=user.player_id, user=None)
+    guest_result = GameResultFactory(daily_puzzle=puzzle, user=None)
+
+    claimed = claim_guest_results(guest_result.guest_id, user)
+
+    assert claimed == 0
+    played_signed_in.refresh_from_db()
+    guest_result.refresh_from_db()
+    assert played_signed_in.user == user
+    assert guest_result.user is None

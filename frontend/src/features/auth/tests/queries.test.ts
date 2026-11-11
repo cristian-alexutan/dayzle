@@ -1,3 +1,4 @@
+import { useQueryClient, type QueryClient } from '@tanstack/vue-query'
 import { flushPromises } from '@vue/test-utils'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { defineComponent } from 'vue'
@@ -78,6 +79,41 @@ describe('auth queries and route guards', () => {
     await flushPromises()
     expect(state?.data.value).toEqual(GUEST_SESSION)
     expect(sessionKey).toEqual(['auth', 'session'])
+    wrapper.unmount()
+  })
+
+  it.each([
+    ['signing in', (login: () => void) => login],
+    ['signing out', (_login: () => void, logout: () => void) => logout],
+  ])('drops the previous player’s cached games after %s', async (_name, pick) => {
+    vi.stubGlobal(
+      'fetch',
+      vi.fn().mockImplementation(async () => jsonResponse(200, USER_SESSION)),
+    )
+    let queryClient: QueryClient | undefined
+    let login: ReturnType<typeof useGoogleLoginMutation> | undefined
+    let logout: ReturnType<typeof useLogoutMutation> | undefined
+
+    const Harness = defineComponent({
+      setup() {
+        queryClient = useQueryClient()
+        login = useGoogleLoginMutation()
+        logout = useLogoutMutation()
+        return () => null
+      },
+    })
+    const wrapper = mountWithPlugins(Harness)
+    const gameKey = ['geo', 'game', 'today', 'default']
+    queryClient!.setQueryData(gameKey, { status: 'completed' })
+
+    pick(
+      () => login!.mutate('google-jwt-token'),
+      () => logout!.mutate(),
+    )()
+    await flushPromises()
+
+    expect(queryClient!.getQueryData(gameKey)).toBeUndefined()
+    expect(queryClient!.getQueryData(sessionKey)).toEqual(USER_SESSION)
     wrapper.unmount()
   })
 

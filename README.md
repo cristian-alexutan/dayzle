@@ -200,9 +200,12 @@ docker run -p 8080:80 dayzle-frontend
 
 The first demo only needs the five games playable. Decisions for the MVP:
 
-- **Everyone is anonymous.** Each visitor gets a `guest_id` stored in their Django session.
-  Play-once is per guest (clearing cookies resets it; it becomes strict once login exists).
-  Admins log in to Django admin only.
+- **Play as a guest or with Google.** Each visitor gets a `guest_id` stored in their Django
+  session, and play-once is per guest (clearing cookies resets it). A player signed in with
+  Google plays as their account's `player_id` instead, the same in every session and on every
+  device, so play-once is strict for accounts: signing out and back in doesn't allow a second
+  game. Signing in moves the games played as a guest in that session onto the account, except
+  for puzzles the account has already played.
 - **Puzzles are hand-authored by admins in Django admin** (http://localhost:8000/admin/). A
   `DailyPuzzle` row is the calendar entry (game + date, no content); each game stores its
   content in its own model linked to that row. The admin warns about games with no puzzle in
@@ -270,7 +273,7 @@ Every app has the same layout:
 | Where | What |
 |---|---|
 | `common/time.py` | `today_in_romania()`: the only way to get the current game day (resets at midnight in Romania) |
-| `common/players.py` | `get_guest_id(request)`: the player's id, created in the session on first use |
+| `common/players.py` | `get_guest_id(request)`: the player's id: the account's `player_id` when signed in, otherwise a guest id created in the session on first use |
 | `common/exceptions.py` | `DomainError`: base class for errors raised by services; the API turns them into the error format below |
 | `puzzles/models.py` | `Game` choices and `DailyPuzzle(game, date)` |
 | `puzzles/registry.py` | `register_game(key, name, content_model, seed=None, scheduled_by_admin=True)`, called from each game's `AppConfig.ready()`; `scheduled_by_admin=False` for a game that makes its own daily content |
