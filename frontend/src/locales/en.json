@@ -1,4 +1,20 @@
 {
+  "auth": {
+    "backHome": "Back to games",
+    "continueAsGuest": "Continue as guest",
+    "errors": {
+      "generic": "Sign-in failed. Please try again.",
+      "invalidToken": "The Google sign-in token is invalid or has expired.",
+      "notConfigured": "Google sign-in is not configured on this server."
+    },
+    "guestInfo": "Playing as a guest. Today's progress is saved in your session.",
+    "loading": "Checking session",
+    "logout": "Log out",
+    "signedInAs": "Signed in as {name}.",
+    "subtitle": "Sign in with Google to keep your results, daily streaks and leaderboard rankings.",
+    "title": "Your account",
+    "unconfigured": "Set VITE_GOOGLE_CLIENT_ID in frontend/.env to enable the Google Sign-In button. You can continue playing as a guest."
+  },
   "common": {
     "retry": "Try again",
     "time": "Time"
@@ -46,6 +62,7 @@
     "home": "Home",
     "language": "Language",
     "login": "Sign in",
+    "logout": "Log out",
     "nav": "Main navigation",
     "theme": {
       "auto": "Theme: automatic",
@@ -124,10 +141,7 @@
     }
   },
   "login": {
-    "backHome": "Back to games",
-    "comingSoon": "Google sign-in will be enabled soon. In the meantime, you can play every game as a guest.",
-    "subtitle": "Sign in to save your daily streaks and compete on leaderboards.",
-    "title": "Sign in"
+    "backHome": "Back to games"
   },
   "math": {
     "closest": "Closest so far: {value}",
