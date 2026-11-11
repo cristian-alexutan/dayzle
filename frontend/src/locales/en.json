@@ -71,8 +71,6 @@
     }
   },
   "home": {
-    "backHome": "Back to games",
-    "comingSoon": "This game will be available soon.",
     "games": {
       "geo": {
         "description": "Spot 5 locations across Cluj-Napoca from photos and drop your pin as close as possible.",
@@ -201,6 +199,46 @@
     },
     "title": "Numărăl",
     "undo": "Undo step"
+  },
+  "trivia": {
+    "categories": {
+      "culture": "Culture",
+      "general": "General knowledge",
+      "geography": "Geography",
+      "history": "History",
+      "science": "Science",
+      "sports": "Sports"
+    },
+    "errors": {
+      "answer": "Your answer could not be sent. Please try again.",
+      "generic": "Something went wrong. Please try again."
+    },
+    "feedback": {
+      "right": "Correct!",
+      "wrong": "Wrong. The correct answer: {answer}"
+    },
+    "loading": "Loading the quiz",
+    "next": "Next question",
+    "noPuzzle": "There is no quiz for today. Come back tomorrow!",
+    "option": {
+      "correct": "Correct answer",
+      "wrong": "Wrong answer"
+    },
+    "outcome": {
+      "correct": "Question {number}: correct",
+      "pending": "Question {number}: not answered",
+      "wrong": "Question {number}: wrong"
+    },
+    "progress": "Question {current}/{total}",
+    "progressDots": "Your answers",
+    "result": {
+      "comeback": "Come back tomorrow for a new quiz!",
+      "done": "Quiz complete!",
+      "none": "Try again tomorrow!",
+      "perfect": "Perfect! Every answer right!"
+    },
+    "seeResult": "See result",
+    "title": "Trivia"
   },
   "word": {
     "backspace": "Delete letter",

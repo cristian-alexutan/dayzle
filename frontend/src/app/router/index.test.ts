@@ -60,7 +60,7 @@ describe('app router and layout', () => {
     ])
   })
 
-  it('renders the header and navigates between home, login, and game placeholders', async () => {
+  it('renders the header and navigates between home, login, and a game', async () => {
     const router = createAppRouter(createMemoryHistory(), () => guestSession)
     await router.push('/')
     await router.isReady()
@@ -79,9 +79,12 @@ describe('app router and layout', () => {
     await flushPromises()
     expect(router.currentRoute.value.path).toBe('/')
 
+    // The game's first request never settles here: only the page itself is checked.
+    const fetchSpy = vi.spyOn(globalThis, 'fetch').mockReturnValue(new Promise(() => {}))
     await router.push('/games/trivia')
     await flushPromises()
-    expect(wrapper.find('[data-test="game-coming-soon"]').exists()).toBe(true)
+    expect(wrapper.find('[data-test="trivia-game"]').exists()).toBe(true)
+    fetchSpy.mockRestore()
   })
 
   it('enforces guest-only and auth-required route guards in the router', async () => {
