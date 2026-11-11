@@ -60,4 +60,46 @@ describe('trivia queries', () => {
     expect(game.data.value?.answers).toEqual([answerTo(1, true)])
     expect(fetchMock).toHaveBeenCalledTimes(2)
   })
+
+  it('keeps the answer when a reload started before it finishes after it', async () => {
+    fetchMock.mockResolvedValueOnce(jsonResponse(200, makeGame()))
+    const { game, answer } = mountHooks()
+    await flushPromises()
+
+    // A reload (window focus) is on its way with the quiz as it was before the answer.
+    let finishReload!: (response: Response) => void
+    fetchMock.mockReturnValueOnce(new Promise<Response>((resolve) => (finishReload = resolve)))
+    void game.refetch()
+    await flushPromises()
+
+    fetchMock.mockResolvedValueOnce(jsonResponse(200, makeGame({ answers: [answerTo(1, true)] })))
+    await answer.mutateAsync({ question: 1, choice: 11 })
+    finishReload(jsonResponse(200, makeGame()))
+    await flushPromises()
+
+    expect(game.data.value?.answers).toEqual([answerTo(1, true)])
+  })
+
+  it('keeps the answer when a reload starts while it is on its way', async () => {
+    fetchMock.mockResolvedValueOnce(jsonResponse(200, makeGame()))
+    const { game, answer } = mountHooks()
+    await flushPromises()
+
+    let finishAnswer!: (response: Response) => void
+    fetchMock.mockReturnValueOnce(new Promise<Response>((resolve) => (finishAnswer = resolve)))
+    const answered = answer.mutateAsync({ question: 1, choice: 11 })
+    await flushPromises()
+
+    let finishReload!: (response: Response) => void
+    fetchMock.mockReturnValueOnce(new Promise<Response>((resolve) => (finishReload = resolve)))
+    void game.refetch()
+    await flushPromises()
+
+    finishAnswer(jsonResponse(200, makeGame({ answers: [answerTo(1, true)] })))
+    await answered
+    finishReload(jsonResponse(200, makeGame()))
+    await flushPromises()
+
+    expect(game.data.value?.answers).toEqual([answerTo(1, true)])
+  })
 })

@@ -21,8 +21,18 @@ import TriviaResult from '../components/TriviaResult.vue'
 import { useQuizProgress } from '../composables/useQuizProgress'
 
 const DAY = 'today'
-/** Errors after which the server knows better than this page: reload the quiz from it. */
-const RESYNC_CODES = new Set(['already_played', 'already_answered', 'out_of_order'])
+/**
+ * Errors after which the server knows better than this page: reload the quiz from it. `invalid`
+ * and `no_puzzle` come back when the day changed while the quiz was open (an answer sent just
+ * after midnight): the reload then shows the new day's quiz, or that there is none.
+ */
+const RESYNC_CODES = new Set([
+  'already_played',
+  'already_answered',
+  'out_of_order',
+  'invalid',
+  'no_puzzle',
+])
 
 const { t } = useI18n()
 

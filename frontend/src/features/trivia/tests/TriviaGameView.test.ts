@@ -135,6 +135,40 @@ describe('TriviaGameView', () => {
     expect(options(wrapper)[0]!.attributes('disabled')).toBeUndefined()
   })
 
+  it('shows the new day after an answer sent past midnight', async () => {
+    const wrapper = await mountView(jsonResponse(200, makeGame()))
+    const nextDay = makeGame({
+      date: '2026-11-12',
+      questions: makeGame().questions.map((question) => ({
+        ...question,
+        text: `Tomorrow ${question.text}`,
+      })),
+    })
+    fetchMock
+      .mockResolvedValueOnce(errorResponse(400, 'invalid'))
+      .mockResolvedValueOnce(jsonResponse(200, nextDay))
+
+    await options(wrapper)[0]!.trigger('click')
+    await flushPromises()
+
+    expect(fetchMock.mock.calls[2]![0]).toBe('/api/v1/games/trivia/today/')
+    expect(wrapper.find('[data-test="question-text"]').text()).toBe('Tomorrow Question 1?')
+    expect(wrapper.find('[data-test="answer-error"]').exists()).toBe(false)
+  })
+
+  it('says there is no quiz when the new day has none', async () => {
+    const wrapper = await mountView(jsonResponse(200, makeGame()))
+    fetchMock
+      .mockResolvedValueOnce(errorResponse(404, 'no_puzzle'))
+      .mockResolvedValueOnce(errorResponse(404, 'no_puzzle'))
+
+    await options(wrapper)[0]!.trigger('click')
+    await flushPromises()
+
+    expect(wrapper.find('[data-test="no-puzzle"]').exists()).toBe(true)
+    expect(wrapper.find('[data-test="question-card"]').exists()).toBe(false)
+  })
+
   it('says when there is no quiz today', async () => {
     const wrapper = await mountView(errorResponse(404, 'no_puzzle'))
     expect(wrapper.find('[data-test="no-puzzle"]').text()).toContain('Nu există quiz pentru azi')
