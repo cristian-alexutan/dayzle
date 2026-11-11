@@ -11,9 +11,10 @@ from django.conf import settings
 from django.contrib.auth import login as auth_login
 from django.contrib.auth import logout as auth_logout
 from django.db import transaction
+from django.db.models import Q
 from django.http import HttpRequest
 
-from apps.common.players import GUEST_ID_SESSION_KEY, get_guest_id
+from apps.common.players import get_guest_id
 from apps.results.models import GameResult
 
 from .exceptions import GoogleAuthNotConfiguredError, InvalidGoogleTokenError
@@ -110,30 +111,41 @@ def get_or_create_google_user(profile: GoogleProfile) -> User:
 
 @transaction.atomic
 def claim_guest_results(guest_id: uuid.UUID, user: User) -> int:
-    """Attach any anonymous GameResults from this session's guest_id to the user.
+    """Move the results this session played as an anonymous guest onto the user's account.
 
-    Keeps ``guest_id`` populated on the row so games that look up results by ``guest_id``
-    continue to see the player's progress seamlessly. If the user already has a result for the
-    same daily puzzle from another session, that row is left untouched.
+    A moved result gets the account's ``player_id``, the id games look results up by while the
+    user is signed in, so the account keeps it after signing out and back in. A puzzle the
+    account already has a result for keeps that one: the guest's stays anonymous, so the same
+    puzzle can't be played a second time through the account.
+
+    Results the account played while signed in before (``guest_id`` already its ``player_id``)
+    are linked to the user too.
     """
-    existing_puzzle_ids = set(
-        GameResult.objects.filter(user=user).values_list("daily_puzzle_id", flat=True)
-    )
-    return (
-        GameResult.objects.filter(guest_id=guest_id, user__isnull=True)
-        .exclude(daily_puzzle_id__in=existing_puzzle_ids)
-        .update(user=user)
-    )
+    if guest_id == user.player_id:
+        claimed = 0
+    else:
+        account = GameResult.objects.filter(Q(user=user) | Q(guest_id=user.player_id))
+        played = set(account.values_list("daily_puzzle_id", flat=True))
+        claimed = (
+            GameResult.objects.filter(guest_id=guest_id, user__isnull=True)
+            .exclude(daily_puzzle_id__in=played)
+            .update(user=user, guest_id=user.player_id)
+        )
+    GameResult.objects.filter(guest_id=user.player_id, user__isnull=True).update(user=user)
+    return claimed
 
 
 def sign_in_with_google(request: HttpRequest, id_token: str) -> SessionState:
-    """Verify a Google ID token, sign the user into the session, and claim guest results."""
+    """Verify a Google ID token, sign the user into the session, and claim guest results.
+
+    From then on ``get_guest_id`` returns the account's ``player_id``, so every game sees the
+    account's results.
+    """
     guest_id = get_guest_id(request)
     profile = verify_google_id_token(id_token)
     user = get_or_create_google_user(profile)
     claim_guest_results(guest_id, user)
     auth_login(request, user, backend="django.contrib.auth.backends.ModelBackend")
-    request.session[GUEST_ID_SESSION_KEY] = str(guest_id)
     return get_session_state(request)
 
 
