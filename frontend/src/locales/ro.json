@@ -71,8 +71,6 @@
     }
   },
   "home": {
-    "backHome": "Înapoi la jocuri",
-    "comingSoon": "Jocul va fi disponibil în curând.",
     "games": {
       "geo": {
         "description": "Recunoaște 5 locuri din Cluj-Napoca după fotografie și plasează pinul cât mai aproape.",
@@ -201,6 +199,46 @@
     },
     "title": "Numărăl",
     "undo": "Anulează pasul"
+  },
+  "trivia": {
+    "categories": {
+      "culture": "Cultură",
+      "general": "Cultură generală",
+      "geography": "Geografie",
+      "history": "Istorie",
+      "science": "Știință",
+      "sports": "Sport"
+    },
+    "errors": {
+      "answer": "Răspunsul nu a putut fi trimis. Încearcă din nou.",
+      "generic": "Ceva nu a mers bine. Încearcă din nou."
+    },
+    "feedback": {
+      "right": "Corect!",
+      "wrong": "Greșit. Răspunsul corect: {answer}"
+    },
+    "loading": "Se încarcă quiz-ul",
+    "next": "Următoarea întrebare",
+    "noPuzzle": "Nu există quiz pentru azi. Revino mâine!",
+    "option": {
+      "correct": "Răspuns corect",
+      "wrong": "Răspuns greșit"
+    },
+    "outcome": {
+      "correct": "Întrebarea {number}: corect",
+      "pending": "Întrebarea {number}: fără răspuns",
+      "wrong": "Întrebarea {number}: greșit"
+    },
+    "progress": "Întrebarea {current}/{total}",
+    "progressDots": "Răspunsurile tale",
+    "result": {
+      "comeback": "Revino mâine pentru un nou quiz!",
+      "done": "Quiz terminat!",
+      "none": "Mai încearcă mâine!",
+      "perfect": "Perfect! Toate răspunsurile corecte!"
+    },
+    "seeResult": "Vezi rezultatul",
+    "title": "Trivia"
   },
   "word": {
     "backspace": "Șterge litera",

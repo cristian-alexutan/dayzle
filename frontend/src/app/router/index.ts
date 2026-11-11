@@ -16,6 +16,7 @@ import {
 import { geoRoutes } from '@/features/geo'
 import { logicRoutes } from '@/features/logic'
 import { mathRoutes } from '@/features/math'
+import { triviaRoutes } from '@/features/trivia'
 import { wordRoutes } from '@/features/word'
 
 import { appQueryClient } from '../queryClient'
@@ -30,12 +31,7 @@ export const appRoutes: RouteRecordRaw[] = [
   ...wordRoutes,
   ...mathRoutes,
   ...logicRoutes,
-  {
-    path: '/games/trivia',
-    name: 'trivia',
-    component: () => import('../views/GamePlaceholderView.vue'),
-    props: { gameKey: 'trivia' },
-  },
+  ...triviaRoutes,
   ...geoRoutes,
 ]
 
