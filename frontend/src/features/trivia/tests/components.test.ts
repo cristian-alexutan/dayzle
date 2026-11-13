@@ -1,3 +1,4 @@
+import { flushPromises } from '@vue/test-utils'
 import { describe, expect, it } from 'vitest'
 
 import { mountWithPlugins } from '@/tests/utils'
@@ -6,6 +7,7 @@ import AnswerOption from '../components/AnswerOption.vue'
 import QuestionCard from '../components/QuestionCard.vue'
 import TriviaProgress from '../components/TriviaProgress.vue'
 import TriviaResult from '../components/TriviaResult.vue'
+import TriviaRules from '../components/TriviaRules.vue'
 import type { ChoiceState } from '../types'
 import { finishedGame, questions } from './fixtures'
 
@@ -112,5 +114,22 @@ describe('TriviaResult', () => {
     })
     expect(wrapper.text()).toContain('5/5')
     expect(wrapper.find('[data-test="result-title"]').text()).toContain('Perfect')
+  })
+})
+
+describe('TriviaRules', () => {
+  it('shows the rules and closes with its button', async () => {
+    const rules = mountWithPlugins(TriviaRules, {
+      props: { visible: true },
+      attachTo: document.body,
+    })
+    await flushPromises()
+
+    const dialog = document.body.querySelector('[data-test="rules"]')
+    expect(dialog?.textContent).toContain('scorul e din 5')
+    ;(document.body.querySelector('[data-test="rules-start"]') as HTMLElement).click()
+    expect(rules.emitted('update:visible')![0]).toEqual([false])
+    rules.unmount()
+    document.body.innerHTML = ''
   })
 })

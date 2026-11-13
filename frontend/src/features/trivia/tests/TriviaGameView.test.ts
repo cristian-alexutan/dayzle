@@ -21,12 +21,20 @@ function options(wrapper: Awaited<ReturnType<typeof mountView>>) {
 
 beforeEach(() => {
   vi.stubGlobal('fetch', fetchMock)
+  // Most tests are about playing, so the first-time rules dialog stays closed.
+  localStorage.setItem('dayzle.trivia.rulesSeen', 'yes')
 })
 
 afterEach(() => {
+  localStorage.clear()
   fetchMock.mockReset()
   vi.unstubAllGlobals()
+  document.body.innerHTML = ''
 })
+
+const rulesDialog = () => document.body.querySelector('[data-test="rules"]')
+const clickRulesStart = () =>
+  (document.body.querySelector('[data-test="rules-start"]') as HTMLElement).click()
 
 describe('TriviaGameView', () => {
   it('shows a spinner while loading', () => {
@@ -182,5 +190,49 @@ describe('TriviaGameView', () => {
     await wrapper.find('[data-test="load-error"] button').trigger('click')
     await flushPromises()
     expect(wrapper.find('[data-test="question-card"]').exists()).toBe(true)
+  })
+
+  it('opens the rules the first time, before the quiz and its clock start', async () => {
+    localStorage.clear()
+    const first = mountWithPlugins(TriviaGameView, { attachTo: document.body })
+    await flushPromises()
+    expect(rulesDialog()).not.toBeNull()
+    expect(rulesDialog()!.textContent).toContain('5 întrebări')
+    expect(fetchMock).not.toHaveBeenCalled()
+
+    fetchMock.mockResolvedValueOnce(jsonResponse(200, makeGame()))
+    clickRulesStart()
+    await flushPromises()
+    expect(fetchMock.mock.calls[0]![0]).toBe('/api/v1/games/trivia/today/')
+    expect(first.find('[data-test="question-card"]').exists()).toBe(true)
+    expect(localStorage.getItem('dayzle.trivia.rulesSeen')).toBe('yes')
+    first.unmount()
+    document.body.innerHTML = ''
+
+    fetchMock.mockResolvedValueOnce(jsonResponse(200, makeGame()))
+    const second = mountWithPlugins(TriviaGameView, { attachTo: document.body })
+    await flushPromises()
+    expect(rulesDialog()).toBeNull()
+    second.unmount()
+  })
+
+  it('opens the rules again from the rules button', async () => {
+    const wrapper = await mountView(jsonResponse(200, makeGame()))
+    expect(rulesDialog()).toBeNull()
+
+    await wrapper.find('[data-test="help"]').trigger('click')
+    await flushPromises()
+    expect(rulesDialog()).not.toBeNull()
+
+    clickRulesStart()
+    await flushPromises()
+    expect(rulesDialog()).toBeNull()
+    expect(fetchMock).toHaveBeenCalledTimes(1)
+    wrapper.unmount()
+  })
+
+  it('keeps the rules button on the result screen', async () => {
+    const wrapper = await mountView(jsonResponse(200, finishedGame([true, true, true, true, true])))
+    expect(wrapper.find('[data-test="help"]').exists()).toBe(true)
   })
 })

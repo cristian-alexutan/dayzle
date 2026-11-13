@@ -1,6 +1,6 @@
 <!-- TriviaGameView: the daily 5-question quiz inside the shared game frame. -->
 <script setup lang="ts">
-import { computed, ref } from 'vue'
+import { computed, ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 
 import AppButton from '@/shared/components/AppButton.vue'
@@ -18,6 +18,7 @@ import {
 import QuestionCard from '../components/QuestionCard.vue'
 import TriviaProgress from '../components/TriviaProgress.vue'
 import TriviaResult from '../components/TriviaResult.vue'
+import TriviaRules from '../components/TriviaRules.vue'
 import { useQuizProgress } from '../composables/useQuizProgress'
 
 const DAY = 'today'
@@ -33,10 +34,38 @@ const RESYNC_CODES = new Set([
   'invalid',
   'no_puzzle',
 ])
+const RULES_SEEN_KEY = 'dayzle.trivia.rulesSeen'
 
 const { t } = useI18n()
 
-const query = useTriviaGameQuery(DAY)
+function rulesSeen(): boolean {
+  try {
+    return localStorage.getItem(RULES_SEEN_KEY) === 'yes'
+  } catch {
+    return true
+  }
+}
+
+function rememberRulesSeen() {
+  try {
+    localStorage.setItem(RULES_SEEN_KEY, 'yes')
+  } catch {
+    // Not remembered, e.g. in a private window: the rules just open again next time.
+  }
+}
+
+// The first time, the rules open before the quiz is loaded: loading it starts the clock, so
+// reading them doesn't count as play time.
+const started = ref(rulesSeen())
+const rulesVisible = ref(!started.value)
+
+watch(rulesVisible, (visible) => {
+  if (visible || started.value) return
+  started.value = true
+  rememberRulesSeen()
+})
+
+const query = useTriviaGameQuery(DAY, started)
 const answer = useAnswerMutation(DAY)
 
 const game = computed(() => query.data.value)
@@ -46,7 +75,11 @@ const noPuzzle = computed(() => errorCode(query.error.value) === 'no_puzzle')
 const progress = useQuizProgress(game)
 const { currentQuestion, currentAnswer, finished } = progress
 
-useTriviaHeartbeat(DAY, inProgress)
+// Reading the rules again in the middle of the quiz pauses the clock too.
+useTriviaHeartbeat(
+  DAY,
+  computed(() => inProgress.value && !rulesVisible.value),
+)
 
 /** The choice being sent, highlighted until the server answers. */
 const selected = ref<number | null>(null)
@@ -95,6 +128,15 @@ function choose(choiceId: number) {
       @retry="query.refetch()"
     />
     <template v-else-if="game">
+      <AppButton
+        icon="pi pi-question-circle"
+        :label="t('trivia.rules.help')"
+        severity="secondary"
+        text
+        size="small"
+        data-test="help"
+        @click="rulesVisible = true"
+      />
       <TriviaResult v-if="finished" :game="game" />
       <template v-else-if="currentQuestion">
         <TriviaProgress
@@ -138,6 +180,7 @@ function choose(choiceId: number) {
         />
       </template>
     </template>
+    <TriviaRules v-model:visible="rulesVisible" />
   </GameShell>
 </template>
 

@@ -1,6 +1,6 @@
 // TanStack Query hooks for the Trivia feature.
 import { useMutation, useQuery, useQueryClient } from '@tanstack/vue-query'
-import type { MaybeRefOrGetter } from 'vue'
+import { computed, toValue, type MaybeRefOrGetter } from 'vue'
 
 import { useHeartbeat } from '@/shared/composables/useHeartbeat'
 
@@ -11,8 +11,13 @@ const gameKey = (day: GameDay) => ['trivia', 'game', day]
 
 export { errorCode } from '@/api/http'
 
-export function useTriviaGameQuery(day: GameDay) {
-  return useQuery({ queryKey: gameKey(day), queryFn: () => fetchGame(day) })
+/** `enabled` holds the first load back: opening the quiz starts its clock. */
+export function useTriviaGameQuery(day: GameDay, enabled: MaybeRefOrGetter<boolean> = true) {
+  return useQuery({
+    queryKey: gameKey(day),
+    queryFn: () => fetchGame(day),
+    enabled: computed(() => toValue(enabled)),
+  })
 }
 
 /**
