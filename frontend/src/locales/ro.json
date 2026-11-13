@@ -238,7 +238,24 @@
       "perfect": "Perfect! Toate răspunsurile corecte!"
     },
     "seeResult": "Vezi rezultatul",
-    "title": "Trivia"
+    "title": "Trivia",
+    "rules": {
+      "title": "Cum se joacă",
+      "rulesHeading": "Reguli",
+      "scoringHeading": "Punctaj",
+      "rules": {
+        "questions": "Primești 5 întrebări pe zi, din domenii diferite și de dificultăți diferite.",
+        "answer": "Alege unul dintre cele 4 răspunsuri. Afli imediat dacă e corect și, dacă nu, care era răspunsul bun.",
+        "final": "Un răspuns ales nu mai poate fi schimbat, iar întrebările vin pe rând, una câte una."
+      },
+      "scoring": {
+        "points": "Fiecare răspuns corect valorează un punct, deci scorul e din 5. Cu 5/5 ai un quiz perfect.",
+        "once": "Quiz-ul zilei se joacă o singură dată. Mâine primești întrebări noi.",
+        "time": "Ceasul merge doar cât joci, iar timpul tău apare la final, lângă scor."
+      },
+      "start": "Am înțeles",
+      "help": "Reguli"
+    }
   },
   "word": {
     "backspace": "Șterge litera",

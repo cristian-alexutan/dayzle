@@ -238,7 +238,24 @@
       "perfect": "Perfect! Every answer right!"
     },
     "seeResult": "See result",
-    "title": "Trivia"
+    "title": "Trivia",
+    "rules": {
+      "title": "How to play",
+      "rulesHeading": "Rules",
+      "scoringHeading": "Scoring",
+      "rules": {
+        "questions": "You get 5 questions a day, from different topics and of different difficulty.",
+        "answer": "Pick one of the 4 answers. You find out right away whether it's right and, if not, which one was.",
+        "final": "Once picked, an answer can't be changed, and the questions come one at a time."
+      },
+      "scoring": {
+        "points": "Each right answer is worth one point, so the score is out of 5. 5/5 is a perfect quiz.",
+        "once": "The daily quiz can be played once. Tomorrow brings new questions.",
+        "time": "The clock only runs while you play, and your time shows at the end, next to your score."
+      },
+      "start": "Got it",
+      "help": "Rules"
+    }
   },
   "word": {
     "backspace": "Delete letter",
