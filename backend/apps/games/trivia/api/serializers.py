@@ -5,6 +5,7 @@ from rest_framework import serializers
 
 from apps.results.models import GameResult
 
+from .. import rules
 from ..models import Category
 
 
@@ -34,18 +35,29 @@ class AnswerSerializer(serializers.Serializer):
     choice = serializers.IntegerField()
     correct_choice = serializers.IntegerField()
     is_correct = serializers.BooleanField()
+    # Whether the question had a hint (worth half a point when correct).
+    hinted = serializers.BooleanField(default=False)
+
+
+class HintSerializer(serializers.Serializer):
+    """A 50/50 on a question: the two wrong choices it removed."""
+
+    question = serializers.IntegerField()
+    removed = serializers.ListField(child=serializers.IntegerField())
 
 
 class TriviaGameSerializer(serializers.Serializer):
     """The player's quiz. The correct choice of a question is revealed only once it's answered.
 
-    ``score``, ``solved`` and ``duration_ms`` stay null until the fifth answer.
+    ``score``, ``solved`` and ``duration_ms`` stay null until the fifth answer. ``score`` goes
+    from 0 to ``max_score`` (5) in halves: a correct answer after a hint is worth half a point.
     """
 
     date = serializers.DateField(source="puzzle.daily_puzzle.date")
     status = serializers.ChoiceField(choices=GameResult.Status.choices, source="result.status")
     questions = QuestionSerializer(many=True)
     answers = serializers.SerializerMethodField()
+    hints = serializers.SerializerMethodField()
     score = serializers.SerializerMethodField()
     max_score = serializers.SerializerMethodField()
     solved = serializers.SerializerMethodField()
@@ -58,8 +70,15 @@ class TriviaGameSerializer(serializers.Serializer):
     def get_answers(self, game) -> list[dict]:
         return AnswerSerializer(game.result.details.get("answers", []), many=True).data
 
-    def get_score(self, game) -> int | None:
-        return game.result.score if self._finished(game) else None
+    @extend_schema_field(HintSerializer(many=True))
+    def get_hints(self, game) -> list[dict]:
+        return HintSerializer(game.result.details.get("hints", []), many=True).data
+
+    def get_score(self, game) -> float | None:
+        # Stored in half points (see ``rules.SCORE_SCALE``), shown from 0 to 5.
+        if not self._finished(game):
+            return None
+        return game.result.score / rules.SCORE_SCALE
 
     def get_max_score(self, game) -> int:
         return len(game.questions)

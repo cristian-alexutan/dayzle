@@ -15,6 +15,7 @@ export function answerTo(question: number, correct: boolean): Answer {
     choice: correct ? correctChoice : correctChoice + 1,
     correct_choice: correctChoice,
     is_correct: correct,
+    hinted: false,
   }
 }
 
@@ -24,6 +25,7 @@ export function makeGame(overrides: Partial<TriviaGame> = {}): TriviaGame {
     status: 'in_progress',
     questions,
     answers: [],
+    hints: [],
     score: null,
     max_score: 5,
     solved: null,

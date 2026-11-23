@@ -230,12 +230,17 @@
       "right": "Corect!",
       "wrong": "Greșit. Răspunsul corect: {answer}"
     },
+    "hint": {
+      "label": "Indiciu",
+      "nothingLeft": "Au rămas doar două variante. Poți s-o faci!"
+    },
     "loading": "Se încarcă quiz-ul",
     "next": "Următoarea întrebare",
     "noPuzzle": "Nu există quiz pentru azi. Revino mâine!",
     "option": {
       "correct": "Răspuns corect",
-      "wrong": "Răspuns greșit"
+      "wrong": "Răspuns greșit",
+      "removed": "eliminată de indiciu"
     },
     "outcome": {
       "correct": "Întrebarea {number}: corect",
@@ -248,7 +253,9 @@
       "comeback": "Revino mâine pentru un nou quiz!",
       "done": "Quiz terminat!",
       "none": "Mai încearcă mâine!",
-      "perfect": "Perfect! Toate răspunsurile corecte!"
+      "perfect": "Perfect! Toate răspunsurile corecte!",
+      "hinted": "cu indiciu",
+      "hints": "Fără indicii | 1 indiciu (jumătate de punct) | {count} indicii (câte jumătate de punct)"
     },
     "seeResult": "Vezi rezultatul",
     "title": "Trivia"

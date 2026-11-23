@@ -270,6 +270,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/games/trivia/{day}/hint/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * @description 50/50 on the current question: two wrong choices are removed (409 ``nothing_to_hint`` if
+         *     it already had its hint). A correct answer to it is then worth half a point.
+         */
+        post: operations["v1_games_trivia_hint_create"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/games/word/{day}/": {
         parameters: {
             query?: never;
@@ -348,6 +368,8 @@ export interface components {
             choice: number;
             correct_choice: number;
             is_correct: boolean;
+            /** @default false */
+            hinted: boolean;
         };
         AnswerInput: {
             question: number;
@@ -434,6 +456,11 @@ export interface components {
         };
         GuessInput: {
             guess: string;
+        };
+        /** @description A 50/50 on a question: the two wrong choices it removed. */
+        Hint: {
+            question: number;
+            removed: number[];
         };
         /**
          * @description The player's board. ``solved``, ``score`` and ``duration_ms`` stay null until the game
@@ -553,7 +580,8 @@ export interface components {
         /**
          * @description The player's quiz. The correct choice of a question is revealed only once it's answered.
          *
-         *     ``score``, ``solved`` and ``duration_ms`` stay null until the fifth answer.
+         *     ``score``, ``solved`` and ``duration_ms`` stay null until the fifth answer. ``score`` goes
+         *     from 0 to ``max_score`` (5) in halves: a correct answer after a hint is worth half a point.
          */
         TriviaGame: {
             /** Format: date */
@@ -561,6 +589,8 @@ export interface components {
             status: components["schemas"]["StatusEnum"];
             questions: components["schemas"]["Question"][];
             readonly answers: components["schemas"]["Answer"][];
+            readonly hints: components["schemas"]["Hint"][];
+            /** Format: double */
             readonly score: number | null;
             readonly max_score: number;
             readonly solved: boolean | null;
@@ -953,6 +983,27 @@ export interface operations {
                 "multipart/form-data": components["schemas"]["AnswerInput"];
             };
         };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TriviaGame"];
+                };
+            };
+        };
+    };
+    v1_games_trivia_hint_create: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                day: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
         responses: {
             200: {
                 headers: {

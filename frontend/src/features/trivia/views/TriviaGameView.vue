@@ -1,17 +1,19 @@
 <!-- TriviaGameView: the daily 5-question quiz inside the shared game frame. -->
 <script setup lang="ts">
-import { computed, ref } from 'vue'
+import { computed, onBeforeUnmount, ref } from 'vue'
 import { useI18n } from 'vue-i18n'
 
 import AppButton from '@/shared/components/AppButton.vue'
 import AppMessage from '@/shared/components/AppMessage.vue'
 import AppSpinner from '@/shared/components/AppSpinner.vue'
 import ErrorState from '@/shared/components/ErrorState.vue'
+import GameActionButton from '@/shared/components/GameActionButton.vue'
 import GameShell from '@/shared/components/GameShell.vue'
 
 import {
   errorCode,
   useAnswerMutation,
+  useHintMutation,
   useTriviaGameQuery,
   useTriviaHeartbeat,
 } from '../api/queries'
@@ -21,6 +23,7 @@ import TriviaResult from '../components/TriviaResult.vue'
 import { useQuizProgress } from '../composables/useQuizProgress'
 
 const DAY = 'today'
+const NOTICE_MS = 3000
 /**
  * Errors after which the server knows better than this page: reload the quiz from it. `invalid`
  * and `no_puzzle` come back when the day changed while the quiz was open (an answer sent just
@@ -38,6 +41,7 @@ const { t } = useI18n()
 
 const query = useTriviaGameQuery(DAY)
 const answer = useAnswerMutation(DAY)
+const hint = useHintMutation(DAY)
 
 const game = computed(() => query.data.value)
 const inProgress = computed(() => game.value?.status === 'in_progress')
@@ -45,6 +49,9 @@ const noPuzzle = computed(() => errorCode(query.error.value) === 'no_puzzle')
 
 const progress = useQuizProgress(game)
 const { currentQuestion, currentAnswer, finished } = progress
+
+/** The hint is for the question waiting for an answer. */
+const canHint = computed(() => inProgress.value && !!currentQuestion.value && !currentAnswer.value)
 
 useTriviaHeartbeat(DAY, inProgress)
 
@@ -57,9 +64,30 @@ const correctText = computed(() => {
   return currentQuestion.value?.choices.find((choice) => choice.id === given?.correct_choice)?.text
 })
 
+/** A friendly message, such as when the question already had its hint. */
+const notice = ref<string | null>(null)
+let noticeTimer: ReturnType<typeof setTimeout> | undefined
+
+function takeHint() {
+  answerError.value = null
+  hint.mutate(undefined, {
+    onError: (error) => {
+      const code = errorCode(error)
+      if (code === 'nothing_to_hint') {
+        notice.value = t('trivia.hint.nothingLeft')
+        clearTimeout(noticeTimer)
+        noticeTimer = setTimeout(() => (notice.value = null), NOTICE_MS)
+      } else if (code !== null && RESYNC_CODES.has(code)) query.refetch()
+      else answerError.value = t('trivia.errors.generic')
+    },
+  })
+}
+
+onBeforeUnmount(() => clearTimeout(noticeTimer))
+
 function choose(choiceId: number) {
   const question = currentQuestion.value
-  if (!question || currentAnswer.value || answer.isPending.value) return
+  if (!question || currentAnswer.value || answer.isPending.value || hint.isPending.value) return
   selected.value = choiceId
   answerError.value = null
   answer.mutate(
@@ -79,6 +107,16 @@ function choose(choiceId: number) {
 
 <template>
   <GameShell :title="t('trivia.title')" data-test="trivia-game">
+    <template v-if="canHint" #actions>
+      <GameActionButton
+        :label="t('trivia.hint.label')"
+        icon="pi pi-lightbulb"
+        :loading="hint.isPending.value"
+        :disabled="answer.isPending.value"
+        data-test="hint"
+        @click="takeHint"
+      />
+    </template>
     <AppSpinner
       v-if="query.isPending.value"
       :aria-label="t('trivia.loading')"
@@ -106,12 +144,15 @@ function choose(choiceId: number) {
           :question="currentQuestion"
           :choice-state="progress.choiceState"
           :selected="selected"
-          :disabled="!!currentAnswer || answer.isPending.value"
+          :disabled="!!currentAnswer || answer.isPending.value || hint.isPending.value"
           @choose="choose"
         />
         <div class="trivia-game__feedback" aria-live="polite">
           <AppMessage v-if="answerError" severity="error" size="small" data-test="answer-error">
             {{ answerError }}
+          </AppMessage>
+          <AppMessage v-else-if="notice" severity="info" size="small" data-test="hint-notice">
+            {{ notice }}
           </AppMessage>
           <p
             v-else-if="currentAnswer"

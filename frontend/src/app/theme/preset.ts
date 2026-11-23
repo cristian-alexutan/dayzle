@@ -41,6 +41,14 @@ const messageColors = {
     color: 'var(--dz-primary-strong)',
     shadow: 'none',
   },
+  // Notices such as "you have every letter" or "no puzzle today": the theme's green, never
+  // Aura's default blue.
+  info: {
+    background: 'transparent',
+    borderColor: 'transparent',
+    color: 'var(--dz-primary-strong)',
+    shadow: 'none',
+  },
 }
 
 /** PrimeVue's Aura theme using the app's colors, which are defined in styles/theme.css. */

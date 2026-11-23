@@ -113,4 +113,19 @@ describe('TriviaResult', () => {
     expect(wrapper.text()).toContain('5/5')
     expect(wrapper.find('[data-test="result-title"]').text()).toContain('Perfect')
   })
+
+  it('shows half points and marks the questions answered with a hint', () => {
+    const finished = finishedGame([true, true, true, true, true])
+    const game = {
+      ...finished,
+      answers: finished.answers.map((answer, index) => ({ ...answer, hinted: index === 0 })),
+      hints: [{ question: 1, removed: [12, 13] }],
+      score: 4.5,
+    }
+    const wrapper = mountWithPlugins(TriviaResult, { props: { game } })
+
+    expect(wrapper.text()).toContain('4,5/5')
+    expect(wrapper.findAll('[data-test="result-hinted"]')).toHaveLength(1)
+    expect(wrapper.find('[data-test="result-hints"]').text()).toContain('1 indiciu')
+  })
 })

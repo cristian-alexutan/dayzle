@@ -8,6 +8,7 @@ pytestmark = pytest.mark.django_db
 
 GAME_URL = "/api/v1/games/trivia/today/"
 ANSWER_URL = "/api/v1/games/trivia/today/answer/"
+HINT_URL = "/api/v1/games/trivia/today/hint/"
 
 
 @pytest.fixture(autouse=True)
@@ -51,6 +52,7 @@ def test_answer_says_if_it_was_right_and_reveals_the_correct_choice(api_client):
             "choice": wrong(first),
             "correct_choice": correct(first),
             "is_correct": False,
+            "hinted": False,
         }
     ]
     assert response.data["score"] is None
@@ -123,3 +125,34 @@ def test_no_quiz_is_no_puzzle(api_client, quiz):
 
     assert response.status_code == 404
     assert response.data["error"]["code"] == "no_puzzle"
+
+
+def test_a_hint_removes_two_wrong_choices_of_the_current_question(api_client):
+    first = api_client.get(GAME_URL).data["questions"][0]["id"]
+
+    response = api_client.post(HINT_URL)
+
+    assert response.status_code == 200
+    [hint] = response.data["hints"]
+    assert hint["question"] == first
+    assert len(hint["removed"]) == 2
+    assert correct(first) not in hint["removed"]
+
+
+def test_a_second_hint_on_the_same_question_is_nothing_to_hint(api_client):
+    api_client.post(HINT_URL)
+
+    response = api_client.post(HINT_URL)
+
+    assert response.status_code == 409
+    assert response.data["error"]["code"] == "nothing_to_hint"
+
+
+def test_a_hinted_correct_answer_is_worth_half_a_point(api_client):
+    questions = [q["id"] for q in api_client.get(GAME_URL).data["questions"]]
+    api_client.post(HINT_URL)
+    for question in questions:
+        response = api_client.post(ANSWER_URL, {"question": question, "choice": correct(question)})
+
+    assert response.data["score"] == 4.5
+    assert response.data["solved"] is True

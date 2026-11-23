@@ -34,3 +34,12 @@ def answer(request: Request, day: date) -> Response:
         data.validated_data["choice"],
     )
     return Response(TriviaGameSerializer(trivia_game).data)
+
+
+@extend_schema(request=None, responses=TriviaGameSerializer)
+@api_view(["POST"])
+def hint(request: Request, day: date) -> Response:
+    """50/50 on the current question: two wrong choices are removed (409 ``nothing_to_hint`` if
+    it already had its hint). A correct answer to it is then worth half a point."""
+    trivia_game = services.hint(get_guest_id(request), day)
+    return Response(TriviaGameSerializer(trivia_game).data)

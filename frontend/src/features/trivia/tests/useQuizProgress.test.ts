@@ -73,4 +73,18 @@ describe('useQuizProgress', () => {
     expect(progress.currentQuestion.value).toBeUndefined()
     expect(progress.outcomes.value).toEqual([])
   })
+
+  it('draws the choices a hint removed, before and after the answer', () => {
+    const hints = [{ question: 1, removed: [12, 13] }]
+    const before = useQuizProgress(makeGame({ hints }))
+    expect(before.currentHinted.value).toBe(true)
+    expect([11, 12, 13, 14].map(before.choiceState)).toEqual(['idle', 'removed', 'removed', 'idle'])
+
+    const after = useQuizProgress(makeGame({ hints, answers: [answerTo(1, false)] }))
+    after.review(1)
+    // answerTo(1, false) picked 12, which a real hint would never allow; 14 stays a dimmed option.
+    expect(after.choiceState(11)).toBe('correct')
+    expect(after.choiceState(13)).toBe('removed')
+    expect(after.choiceState(14)).toBe('dimmed')
+  })
 })

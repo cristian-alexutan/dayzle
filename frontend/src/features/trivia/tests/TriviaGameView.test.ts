@@ -183,4 +183,44 @@ describe('TriviaGameView', () => {
     await flushPromises()
     expect(wrapper.find('[data-test="question-card"]').exists()).toBe(true)
   })
+
+  it('takes a 50/50: two wrong choices are crossed out and cannot be picked', async () => {
+    const wrapper = await mountView(jsonResponse(200, makeGame()))
+    fetchMock.mockResolvedValueOnce(
+      jsonResponse(200, makeGame({ hints: [{ question: 1, removed: [12, 14] }] })),
+    )
+
+    await wrapper.find('[data-test="hint"]').trigger('click')
+    await flushPromises()
+
+    expect(fetchMock.mock.calls[1]![0]).toBe('/api/v1/games/trivia/today/hint/')
+    const [first, second, third, fourth] = options(wrapper)
+    expect(second!.classes()).toContain('answer-option--removed')
+    expect(second!.attributes('disabled')).toBeDefined()
+    expect(fourth!.classes()).toContain('answer-option--removed')
+    expect(first!.attributes('disabled')).toBeUndefined()
+    expect(third!.attributes('disabled')).toBeUndefined()
+  })
+
+  it('says the player has what they need when the question already had its hint', async () => {
+    const wrapper = await mountView(jsonResponse(200, makeGame()))
+    fetchMock.mockResolvedValueOnce(errorResponse(409, 'nothing_to_hint'))
+
+    await wrapper.find('[data-test="hint"]').trigger('click')
+    await flushPromises()
+
+    expect(wrapper.find('[data-test="hint-notice"]').text()).toContain('Poți s-o faci!')
+    expect(wrapper.find('[data-test="answer-error"]').exists()).toBe(false)
+  })
+
+  it('hides the hint while an answer is shown and once the quiz is over', async () => {
+    const answered = await mountView(jsonResponse(200, makeGame({ answers: [answerTo(1, true)] })))
+    expect(answered.find('[data-test="hint"]').exists()).toBe(true) // question 2 is waiting
+    answered.unmount()
+
+    const finished = await mountView(
+      jsonResponse(200, finishedGame([true, true, true, true, true])),
+    )
+    expect(finished.find('[data-test="hint"]').exists()).toBe(false)
+  })
 })
