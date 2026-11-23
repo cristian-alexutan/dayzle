@@ -15,6 +15,11 @@ export function clearBoard(day: GameDay) {
   return http.post<LogicGame>(`/games/logic/${day}/clear/`)
 }
 
+/** Show where a sun goes (409 `nothing_to_hint` when every row has its sun or a hint). */
+export function sendHint(day: GameDay) {
+  return http.post<LogicGame>(`/games/logic/${day}/hint/`)
+}
+
 export function sendHeartbeat(day: GameDay) {
   return http.post<void>(`/results/logic/${day}/heartbeat/`)
 }

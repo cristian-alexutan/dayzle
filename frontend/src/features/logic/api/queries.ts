@@ -6,7 +6,7 @@ import { useHeartbeat } from '@/shared/composables/useHeartbeat'
 
 import { withChange } from '../board'
 import type { Cell, CellChange, GameDay, LogicGame } from '../types'
-import { clearBoard, fetchGame, sendHeartbeat, setCell } from './endpoints'
+import { clearBoard, fetchGame, sendHeartbeat, sendHint, setCell } from './endpoints'
 
 export { errorCode } from '@/api/http'
 
@@ -81,10 +81,22 @@ export function useCellMutation(day: GameDay, callbacks: BoardCallbacks = {}) {
   })
 }
 
-/** Remove every sun and X. Mistakes and time are kept. */
+/** Remove every sun and X. Mistakes, hints and time are kept. */
 export function useClearMutation(day: GameDay, callbacks: BoardCallbacks = {}) {
   return useBoardMutation(day, () => clearBoard(day), {
     optimistic: (game) => ({ ...game, suns: [], marks: [] }),
+    boardOf: (game) => game,
+    onError: callbacks.onError,
+  })
+}
+
+/**
+ * Take a hint: the server picks the cell, so nothing changes until it answers. It goes in the
+ * same queue as the cell changes, so it never overtakes a sun the player just placed.
+ */
+export function useHintMutation(day: GameDay, callbacks: BoardCallbacks = {}) {
+  return useBoardMutation(day, () => sendHint(day), {
+    optimistic: (game) => game,
     boardOf: (game) => game,
     onError: callbacks.onError,
   })

@@ -1,4 +1,7 @@
-<!-- LogicCell: one cell of the grid, colored by its region. It can be empty, hold an X or a sun. -->
+<!--
+  LogicCell: one cell of the grid, colored by its region. It can be empty, hold an X or a sun.
+  A hinted cell (a sun goes there) has a dashed ring; the player places the sun as usual.
+-->
 <script setup lang="ts">
 import { computed } from 'vue'
 
@@ -21,6 +24,8 @@ const props = defineProps<{
   rejected?: boolean
   /** A sun that the rejected one broke a rule with. */
   conflict?: boolean
+  /** A hint showed that a sun of the solution goes here. */
+  hinted?: boolean
   disabled?: boolean
 }>()
 
@@ -36,6 +41,7 @@ const regionColor = computed(() => ({ '--cell-background': `var(--dz-region-${pr
     :class="{
       'logic-cell--rejected': rejected,
       'logic-cell--conflict': conflict,
+      'logic-cell--hinted': hinted,
       'logic-cell--edge-top': edges.top,
       'logic-cell--edge-right': edges.right,
       'logic-cell--edge-bottom': edges.bottom,
@@ -98,6 +104,12 @@ const regionColor = computed(() => ({ '--cell-background': `var(--dz-region-${pr
 .logic-cell__sun {
   color: var(--dz-sun);
   font-size: 1.6rem;
+}
+
+/* The hint: a dashed ring in the sun's color. */
+.logic-cell--hinted {
+  outline: 2px dashed var(--dz-sun);
+  outline-offset: -5px;
 }
 
 .logic-cell__mark {

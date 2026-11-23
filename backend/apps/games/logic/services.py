@@ -6,12 +6,16 @@ The player's progress lives in ``GameResult.details``:
 - ``marks``: the X marks, as ``[row, col]`` pairs. They are the player's notes and are never
   checked.
 - ``mistakes``: how many suns were rejected for breaking a rule.
+- ``hints``: the cells shown by hints, as ``[row, col]`` pairs: where a sun of the solution goes.
+  A hint places nothing; the player puts the sun there (and removes the suns that clash with
+  it). Each hint lowers the final score by ``rules.HINT_PENALTY``.
 
 Nothing is checked against the solution while playing, so the game never tells the player where
-a sun belongs. Every puzzle has exactly one solution, so a full board with no rule broken is that
-solution and finishes the game.
+a sun belongs, unless they pay for a hint. Every puzzle has exactly one solution, so a full board
+with no rule broken is that solution and finishes the game.
 """
 
+import random
 import uuid
 from dataclasses import dataclass
 from datetime import date
@@ -25,7 +29,7 @@ from apps.results.models import GameResult
 from apps.results.services import complete, save_progress, start_or_resume
 
 from . import rules
-from .exceptions import InvalidCellError
+from .exceptions import InvalidCellError, NothingToHintError
 from .models import LogicPuzzle
 from .selectors import get_playable_logic_puzzle
 
@@ -64,11 +68,14 @@ def _cells(details: dict, key: str) -> list[rules.Cell]:
     return [(row, col) for row, col in details.get(key, [])]
 
 
-def _details(suns: list[rules.Cell], marks: list[rules.Cell], mistakes: int) -> dict:
+def _details(
+    suns: list[rules.Cell], marks: list[rules.Cell], mistakes: int, hints: list[rules.Cell]
+) -> dict:
     return {
         "suns": [list(sun) for sun in suns],
         "marks": [list(mark) for mark in marks],
         "mistakes": mistakes,
+        "hints": [list(hint) for hint in hints],
     }
 
 
@@ -86,8 +93,9 @@ def set_cell(
     """Make a cell empty, put an X on it, or place a sun.
 
     A new sun that breaks a rule with a sun already on the board is rejected: it isn't kept,
-    the cell stays as it was, and it counts as a mistake. A sun that breaks no rule replaces the
-    cell's X. Placing the last sun finishes the game, scored with ``rules.score``.
+    the cell stays as it was, and it counts as a mistake, also on a hinted cell. A sun that breaks
+    no rule replaces the cell's X. Placing the last sun finishes the game, scored with
+    ``rules.score`` (hints taken lower it).
     """
     game = open_game(guest_id, day)
     puzzle = game.puzzle
@@ -100,6 +108,7 @@ def set_cell(
         suns = _cells(result.details, "suns")
         marks = _cells(result.details, "marks")
         mistakes = result.details.get("mistakes", 0)
+        hints = _cells(result.details, "hints")
         others = [sun for sun in suns if sun != cell]
         conflicts: list[rules.Cell] = []
 
@@ -118,12 +127,12 @@ def set_cell(
             suns = others
             marks = [mark for mark in marks if mark != cell]
 
-        details = _details(suns, marks, mistakes)
+        details = _details(suns, marks, mistakes, hints)
         if rules.is_full(suns, puzzle.size):
             # ``complete`` measures the duration, and the score needs it, so the score is set
             # right after, in the same transaction: nobody can see the result in between.
             result = complete(result, solved=True, score=0, details=details)
-            result.score = rules.score(puzzle.size, result.duration_ms, mistakes)
+            result.score = rules.score(puzzle.size, result.duration_ms, mistakes, len(hints))
             result.save(update_fields=["score", "updated_at"])
         else:
             result = save_progress(result, details)
@@ -132,12 +141,38 @@ def set_cell(
 
 
 def clear_board(guest_id: uuid.UUID, day: date) -> LogicGame:
-    """Remove every sun and X, to start the grid again. Mistakes and time are kept."""
+    """Remove every sun and X, to start the grid again. Mistakes, hints and time are kept."""
     game = open_game(guest_id, day)
     with transaction.atomic():
         result = _lock(game.result)
         mistakes = result.details.get("mistakes", 0)
-        result = save_progress(result, _details([], [], mistakes))
+        hints = _cells(result.details, "hints")
+        result = save_progress(result, _details([], [], mistakes, hints))
+    return LogicGame(result, game.puzzle)
+
+
+def hint(guest_id: uuid.UUID, day: date) -> LogicGame:
+    """Show the cell of a sun of the solution, on a random row that doesn't have it yet.
+
+    Nothing is placed: the board stays as it is, and the player puts the sun there. Each hint
+    costs ``rules.HINT_PENALTY`` points at the end. ``NothingToHintError`` when every row
+    already has its sun on the board or a hint.
+    """
+    game = open_game(guest_id, day)
+    with transaction.atomic():
+        result = _lock(game.result)
+        suns = _cells(result.details, "suns")
+        hints = _cells(result.details, "hints")
+        candidates = rules.hint_candidates(game.puzzle.solution, suns, hints)
+        if not candidates:
+            raise NothingToHintError()
+        details = _details(
+            suns,
+            _cells(result.details, "marks"),
+            result.details.get("mistakes", 0),
+            [*hints, random.choice(candidates)],
+        )
+        result = save_progress(result, details)
     return LogicGame(result, game.puzzle)
 
 

@@ -23,7 +23,7 @@ const operations = computed(() => props.game.operations ?? props.game.steps.leng
 </script>
 
 <template>
-  <AppDialog v-model:visible="visible" :header="title" :style="{ width: 'min(90vw, 24rem)' }">
+  <AppDialog v-model:visible="visible" :header="title" size="result">
     <ResultCard :result="String(game.score ?? 0)" :duration-ms="game.duration_ms">
       <p class="math-result__out-of" data-test="score-out-of">
         {{ t('math.result.outOf', { max: MAX_SCORE }) }}

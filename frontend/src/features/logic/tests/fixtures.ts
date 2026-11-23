@@ -13,6 +13,8 @@ export function makeGame(overrides: Partial<LogicGame> = {}): LogicGame {
     suns: [],
     marks: [],
     mistakes: 0,
+    hints: [],
+    hint_penalty: 100,
     solved: null,
     score: null,
     duration_ms: null,

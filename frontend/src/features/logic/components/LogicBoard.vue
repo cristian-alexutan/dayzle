@@ -11,6 +11,7 @@ const props = defineProps<{
   contentOf: (cell: Cell) => CellContent
   isRejected: (cell: Cell) => boolean
   isConflict: (cell: Cell) => boolean
+  isHinted: (cell: Cell) => boolean
   disabled?: boolean
 }>()
 
@@ -37,7 +38,8 @@ const cells = computed(() =>
 
 function label([row, col]: Cell) {
   const content = props.contentOf([row, col])
-  return t(`logic.cell.${content}`, { row: row + 1, col: col + 1 })
+  const text = t(`logic.cell.${content}`, { row: row + 1, col: col + 1 })
+  return props.isHinted([row, col]) ? `${text}, ${t('logic.cell.hinted')}` : text
 }
 </script>
 
@@ -56,6 +58,7 @@ function label([row, col]: Cell) {
       :content="contentOf(cell)"
       :rejected="isRejected(cell)"
       :conflict="isConflict(cell)"
+      :hinted="isHinted(cell)"
       :label="label(cell)"
       :disabled="disabled"
       @tap="$emit('tap', cell)"

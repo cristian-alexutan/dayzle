@@ -13,10 +13,14 @@ export interface CellChange {
   content: CellContent
 }
 
-/** The player's game. `solved`, `score` and `duration_ms` are null until it ends. */
-export type LogicGame = Omit<components['schemas']['LogicGame'], 'suns' | 'marks'> & {
+/**
+ * The player's game. `solved`, `score` and `duration_ms` are null until it ends. `hints` are the
+ * cells where hints showed a sun goes; each costs `hint_penalty` points at the end.
+ */
+export type LogicGame = Omit<components['schemas']['LogicGame'], 'suns' | 'marks' | 'hints'> & {
   suns: Cell[]
   marks: Cell[]
+  hints: Cell[]
 }
 
 /** The server's answer to a cell change: whether a new sun was rejected, and the new board. */

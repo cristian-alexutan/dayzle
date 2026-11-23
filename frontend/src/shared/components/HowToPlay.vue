@@ -27,11 +27,7 @@ const { t } = useI18n()
     data-test="how-to-play"
     @click="visible = true"
   />
-  <AppDialog
-    v-model:visible="visible"
-    :header="t('common.howToPlay.title')"
-    :style="{ width: 'min(92vw, 28rem)' }"
-  >
+  <AppDialog v-model:visible="visible" :header="t('common.howToPlay.title')" size="rules">
     <div class="how-to-play" data-test="how-to-play-rules">
       <template v-for="section in sections" :key="section.heading">
         <p class="how-to-play__heading">{{ section.heading }}</p>

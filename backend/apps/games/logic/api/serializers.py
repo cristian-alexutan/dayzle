@@ -4,6 +4,7 @@ from rest_framework import serializers
 
 from apps.results.models import GameResult
 
+from .. import rules
 from ..services import CellContent
 
 
@@ -15,7 +16,8 @@ class CellInputSerializer(serializers.Serializer):
 
 class LogicGameSerializer(serializers.Serializer):
     """The player's board. ``solved``, ``score`` and ``duration_ms`` stay null until the game
-    ends. ``elapsed_ms`` is only for display. The solution is never sent."""
+    ends. ``elapsed_ms`` is only for display. The solution is never sent, except the cells the
+    player paid for: ``hints``, each costing ``hint_penalty`` points."""
 
     date = serializers.DateField(source="puzzle.daily_puzzle.date")
     status = serializers.ChoiceField(choices=GameResult.Status.choices, source="result.status")
@@ -26,6 +28,8 @@ class LogicGameSerializer(serializers.Serializer):
     suns = serializers.SerializerMethodField()
     marks = serializers.SerializerMethodField()
     mistakes = serializers.SerializerMethodField()
+    hints = serializers.SerializerMethodField()
+    hint_penalty = serializers.SerializerMethodField()
     solved = serializers.SerializerMethodField()
     score = serializers.SerializerMethodField()
     duration_ms = serializers.SerializerMethodField()
@@ -42,6 +46,12 @@ class LogicGameSerializer(serializers.Serializer):
 
     def get_mistakes(self, game) -> int:
         return game.result.details.get("mistakes", 0)
+
+    def get_hints(self, game) -> list[list[int]]:
+        return game.result.details.get("hints", [])
+
+    def get_hint_penalty(self, game) -> int:
+        return rules.HINT_PENALTY
 
     def get_solved(self, game) -> bool | None:
         return game.result.solved if self._finished(game) else None

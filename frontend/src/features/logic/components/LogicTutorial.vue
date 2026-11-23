@@ -19,15 +19,12 @@ const CONTROLS = [
   { icon: 'pi pi-times', key: 'mark' },
   { icon: 'pi pi-sun', key: 'sun' },
   { icon: 'pi pi-stopwatch', key: 'score' },
+  { icon: 'pi pi-lightbulb', key: 'hint' },
 ]
 </script>
 
 <template>
-  <AppDialog
-    v-model:visible="visible"
-    :header="t('logic.tutorial.title')"
-    :style="{ width: 'min(92vw, 28rem)' }"
-  >
+  <AppDialog v-model:visible="visible" :header="t('logic.tutorial.title')" size="rules">
     <div class="logic-tutorial" data-test="tutorial">
       <p class="logic-tutorial__heading">{{ t('logic.tutorial.rulesHeading') }}</p>
       <ul class="logic-tutorial__list">
