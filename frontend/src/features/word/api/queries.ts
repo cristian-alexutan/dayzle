@@ -5,7 +5,7 @@ import type { MaybeRefOrGetter } from 'vue'
 import { useHeartbeat } from '@/shared/composables/useHeartbeat'
 
 import type { GameDay } from '../types'
-import { fetchGame, sendGuess, sendHeartbeat } from './endpoints'
+import { fetchGame, sendGuess, sendHeartbeat, sendHint } from './endpoints'
 
 const gameKey = (day: GameDay) => ['word', 'game', day]
 
@@ -20,6 +20,15 @@ export function useGuessMutation(day: GameDay) {
   const queryClient = useQueryClient()
   return useMutation({
     mutationFn: (guess: string) => sendGuess(day, guess),
+    onSuccess: (game) => queryClient.setQueryData(gameKey(day), game),
+  })
+}
+
+/** Take a hint. Like a guess, the response is the whole updated game. */
+export function useHintMutation(day: GameDay) {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: () => sendHint(day),
     onSuccess: (game) => queryClient.setQueryData(gameKey(day), game),
   })
 }

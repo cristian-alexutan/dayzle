@@ -24,6 +24,8 @@ function makeGame(overrides: Partial<WordGame> = {}) {
     word_length: 5,
     max_attempts: 6,
     guesses: [],
+    hints: [],
+    hint_penalty: 2,
     answer: null,
     solved: null,
     score: null,
@@ -46,6 +48,9 @@ const dialogText = () => document.querySelector('[role="dialog"]')?.textContent 
 async function mountView(game: unknown) {
   fetchMock.mockResolvedValueOnce(jsonResponse(game))
   const wrapper = mountWithPlugins(WordGameView, { attachTo: document.body })
+  await flushPromises()
+  // An unfinished game opens with its rules: close them, the result is what these tests check.
+  document.body.querySelector<HTMLElement>('[data-test="how-to-play-close"]')?.click()
   await flushPromises()
   return wrapper
 }
@@ -71,7 +76,9 @@ describe('Word game result', () => {
 
     const text = dialogText()
     expect(text).toContain('Felicitări!')
-    expect(text).toContain('3/6')
+    expect(text).toContain('4/6')
+    expect(text).toContain('3 încercări')
+    expect(text).not.toContain('indicii')
     expect(text).toContain('carte')
     expect(text).toContain('1:05')
     wrapper.unmount()
@@ -120,7 +127,7 @@ describe('Word game result', () => {
 
     vi.advanceTimersByTime(1500)
     await flushPromises()
-    expect(dialogText()).toContain('3/6')
+    expect(dialogText()).toContain('4/6')
     wrapper.unmount()
   })
 
@@ -139,7 +146,21 @@ describe('Word game result', () => {
 
     await wrapper.find('[data-test="see-result"]').trigger('click')
     await flushPromises()
-    expect(dialogText()).toContain('3/6')
+    expect(dialogText()).toContain('4/6')
+    wrapper.unmount()
+  })
+
+  it('shows the score lowered by hints, with the guesses and hints below', async () => {
+    const guesses = [guess, guess, guess, guess] as WordGame['guesses']
+    const wrapper = await mountView({ ...solvedGame, guesses, hints: ['c', 'a', 'r'], score: 1 })
+
+    vi.advanceTimersByTime(0)
+    await flushPromises()
+
+    expect(dialogText()).toContain('1/6')
+    expect(document.body.querySelector('[data-test="summary"]')?.textContent?.trim()).toBe(
+      '4 încercări · 3 indicii',
+    )
     wrapper.unmount()
   })
 })

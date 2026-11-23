@@ -16,6 +16,12 @@
     "unconfigured": "Set VITE_GOOGLE_CLIENT_ID in frontend/.env to enable the Google Sign-In button. You can continue playing as a guest."
   },
   "common": {
+    "howToPlay": {
+      "close": "Got it",
+      "rulesHeading": "Rules",
+      "scoringHeading": "Score",
+      "title": "How to play"
+    },
     "retry": "Try again",
     "time": "Time"
   },
@@ -249,14 +255,27 @@
       "not_a_word": "The word is not in the list",
       "tooShort": "The word must have 5 letters"
     },
+    "hint": {
+      "label": "Hint",
+      "nothingLeft": "You have all the letters. You can do it!",
+      "revealed": "Letters from hints: {letters}"
+    },
     "keyboard": "Keyboard",
     "loading": "Loading the game",
     "noPuzzle": "There is no word for today. Come back tomorrow!",
     "result": {
       "answer": "The word",
+      "guesses": "No guesses | 1 guess | {count} guesses",
+      "hints": "No hints | 1 hint | {count} hints",
       "lost": "Try again tomorrow!",
       "see": "See result",
       "won": "Congratulations!"
+    },
+    "rules": {
+      "colors": "After each guess the letters change color: green is in the word and in the right place, yellow is in the word but elsewhere, gray is not in the word.",
+      "guess": "Guess the 5-letter word in at most 6 tries. Every guess must be a word from the list.",
+      "hint": "Stuck? A hint reveals a letter of the word you haven't found yet. Each hint costs {points} points.",
+      "score": "Solving on the first try is worth 6 points, and each extra guess costs 1. A solved word always gets at least 1 point."
     },
     "title": "Cuvântăl"
   }

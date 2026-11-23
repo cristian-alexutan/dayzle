@@ -13,3 +13,9 @@ class NotAWordError(DomainError):
     status_code = 400
     code = "not_a_word"
     default_message = "This word is not in the word list."
+
+
+class NothingToHintError(DomainError):
+    status_code = 409
+    code = "nothing_to_hint"
+    default_message = "Every letter of the word is already discovered."

@@ -16,6 +16,17 @@ describe('GameShell', () => {
     expect(wrapper.classes()).not.toContain('game-shell--wide')
   })
 
+  it('puts actions next to the title only when a game has some', () => {
+    const withActions = mountWithPlugins(GameShell, {
+      props: { title: 'Joc' },
+      slots: { actions: '<button class="hint">?</button>' },
+    })
+    const without = mountWithPlugins(GameShell, { props: { title: 'Joc' } })
+
+    expect(withActions.find('.game-shell__actions .hint').exists()).toBe(true)
+    expect(without.find('.game-shell__actions').exists()).toBe(false)
+  })
+
   it('lets a game draw its own title', () => {
     const wrapper = mountWithPlugins(GameShell, {
       props: { title: 'Joc' },

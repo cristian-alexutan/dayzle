@@ -122,4 +122,13 @@ describe('useKeyboardState', () => {
     expect(colors.value.â).toBe('correct')
     expect(colors.value.a).toBeUndefined()
   })
+
+  it('shows a hinted letter as yellow, unless it is already green', () => {
+    const colors = useKeyboardState(
+      [{ word: 'carte', colors: ['correct', 'absent', 'absent', 'absent', 'absent'] }],
+      ['c', 'r', 'e'],
+    )
+
+    expect(colors.value).toMatchObject({ c: 'correct', r: 'present', e: 'present', a: 'absent' })
+  })
 })

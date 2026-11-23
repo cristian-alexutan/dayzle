@@ -2,6 +2,7 @@
 
 import unicodedata
 from collections import Counter
+from collections.abc import Iterable
 
 WORD_LENGTH = 5
 MAX_ATTEMPTS = 6
@@ -11,6 +12,9 @@ ALPHABET = frozenset("abcdefghijklmnopqrstuvwxyzăâîșț")
 CORRECT = "correct"  # right letter, right place (green)
 PRESENT = "present"  # in the word, elsewhere (yellow)
 ABSENT = "absent"  # not in the word, or no copies left (gray)
+
+# Points a solved game loses for each hint (a hint is worth two extra guesses).
+HINT_PENALTY = 2
 
 
 def normalize(text: str) -> str:
@@ -44,6 +48,27 @@ def color_guess(guess: str, answer: str) -> list[str]:
     return colors
 
 
-def score(*, solved: bool, attempts: int) -> int:
-    """7 minus the number of attempts when solved (6 on the first try, 1 on the sixth), else 0."""
-    return MAX_ATTEMPTS + 1 - attempts if solved else 0
+def discovered_letters(guesses: Iterable[dict], hints: Iterable[str]) -> set[str]:
+    """Letters the player knows are in the answer: green or yellow in a guess, or hinted."""
+    found = set(hints)
+    for guess in guesses:
+        for letter, color in zip(guess["word"], guess["colors"], strict=True):
+            if color != ABSENT:
+                found.add(letter)
+    return found
+
+
+def undiscovered_letters(answer: str, guesses: Iterable[dict], hints: Iterable[str]) -> list[str]:
+    """The answer's distinct letters the player hasn't found yet, in word order."""
+    found = discovered_letters(guesses, hints)
+    return [letter for letter in dict.fromkeys(answer) if letter not in found]
+
+
+def score(*, solved: bool, attempts: int, hints: int = 0) -> int:
+    """7 minus the attempts when solved (6 on the first try, 1 on the sixth), else 0.
+
+    Each hint costs ``HINT_PENALTY`` points, but a solved game always scores at least 1.
+    """
+    if not solved:
+        return 0
+    return max(1, MAX_ATTEMPTS + 1 - attempts - HINT_PENALTY * hints)

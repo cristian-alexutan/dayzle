@@ -1,5 +1,6 @@
 """Write operations and business rules for the Word game app."""
 
+import random
 import uuid
 from collections.abc import Iterable
 from dataclasses import dataclass
@@ -14,7 +15,7 @@ from apps.results.models import GameResult
 from apps.results.services import complete, save_progress, start_or_resume
 
 from . import rules
-from .exceptions import InvalidGuessError, NotAWordError
+from .exceptions import InvalidGuessError, NotAWordError, NothingToHintError
 from .models import Word, WordPuzzle
 from .selectors import get_playable_word_puzzle, is_known_word, pick_unused_answer
 
@@ -37,10 +38,19 @@ def open_game(guest_id: uuid.UUID, day: date) -> WordGame:
     return WordGame(start_or_resume(guest_id, word_puzzle.daily_puzzle), word_puzzle)
 
 
+def _lock_in_progress(result: GameResult) -> GameResult:
+    """Lock the result so two simultaneous moves can't both build on the same state."""
+    locked = GameResult.objects.select_for_update().get(pk=result.pk)
+    if locked.status == GameResult.Status.COMPLETED:
+        raise AlreadyPlayedError()
+    return locked
+
+
 def guess(guest_id: uuid.UUID, day: date, text: str) -> WordGame:
     """Check and color one guess. Invalid and unknown words don't use up an attempt.
 
-    The sixth guess or a correct one finishes the game, scored with ``rules.score``.
+    The sixth guess or a correct one finishes the game, scored with ``rules.score`` (hints
+    taken lower the score).
     """
     game = open_game(guest_id, day)
     word = rules.normalize(text)
@@ -48,10 +58,7 @@ def guess(guest_id: uuid.UUID, day: date, text: str) -> WordGame:
         raise InvalidGuessError()
 
     with transaction.atomic():
-        # Lock the result so two simultaneous guesses can't both use the same attempt.
-        result = GameResult.objects.select_for_update().get(pk=game.result.pk)
-        if result.status == GameResult.Status.COMPLETED:
-            raise AlreadyPlayedError()
+        result = _lock_in_progress(game.result)
         if not is_known_word(word):
             raise NotAWordError()
 
@@ -60,13 +67,33 @@ def guess(guest_id: uuid.UUID, day: date, text: str) -> WordGame:
             *result.details.get("guesses", []),
             {"word": word, "colors": rules.color_guess(word, answer)},
         ]
-        details = {"guesses": guesses}
+        details = {**result.details, "guesses": guesses}
         solved = word == answer
         if solved or len(guesses) == rules.MAX_ATTEMPTS:
-            score = rules.score(solved=solved, attempts=len(guesses))
+            hints = len(details.get("hints", []))
+            score = rules.score(solved=solved, attempts=len(guesses), hints=hints)
             result = complete(result, solved=solved, score=score, details=details)
         else:
             result = save_progress(result, details)
+    return WordGame(result, game.word_puzzle)
+
+
+def hint(guest_id: uuid.UUID, day: date) -> WordGame:
+    """Reveal a random letter of the answer the player hasn't discovered yet.
+
+    Hints don't use up an attempt but cost points (``rules.HINT_PENALTY``) if the game is
+    solved. ``NothingToHintError`` when every letter is already green, yellow or hinted.
+    """
+    game = open_game(guest_id, day)
+    with transaction.atomic():
+        result = _lock_in_progress(game.result)
+        guesses = result.details.get("guesses", [])
+        hints = result.details.get("hints", [])
+        letters = rules.undiscovered_letters(game.word_puzzle.answer.text, guesses, hints)
+        if not letters:
+            raise NothingToHintError()
+        details = {**result.details, "hints": [*hints, random.choice(letters)]}
+        result = save_progress(result, details)
     return WordGame(result, game.word_puzzle)
 
 

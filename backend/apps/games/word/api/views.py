@@ -29,3 +29,11 @@ def guess(request: Request, day: date) -> Response:
     data.is_valid(raise_exception=True)
     word_game = services.guess(get_guest_id(request), day, data.validated_data["guess"])
     return Response(WordGameSerializer(word_game).data)
+
+
+@extend_schema(request=None, responses=WordGameSerializer)
+@api_view(["POST"])
+def hint(request: Request, day: date) -> Response:
+    """Reveal a letter of the word not discovered yet (409 ``nothing_to_hint`` if none is left)."""
+    word_game = services.hint(get_guest_id(request), day)
+    return Response(WordGameSerializer(word_game).data)

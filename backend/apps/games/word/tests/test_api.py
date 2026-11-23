@@ -77,3 +77,34 @@ def test_each_guest_has_their_own_game(api_client, client):
     other = client.get(GAME_URL)
 
     assert other.json()["status"] == "in_progress"
+
+
+HINT_URL = "/api/v1/games/word/today/hint/"
+
+
+def test_a_new_board_has_no_hints_and_shows_the_penalty(api_client):
+    response = api_client.get(GAME_URL)
+
+    assert response.data["hints"] == []
+    assert response.data["hint_penalty"] == 2
+
+
+def test_hint_returns_the_board_with_one_letter_of_the_word(api_client):
+    response = api_client.post(HINT_URL)
+
+    assert response.status_code == 200
+    assert response.data["status"] == "in_progress"
+    assert response.data["answer"] is None
+    assert len(response.data["hints"]) == 1
+    assert response.data["hints"][0] in "carte"
+    assert api_client.get(GAME_URL).data["hints"] == response.data["hints"]
+
+
+def test_hint_when_every_letter_is_known_is_nothing_to_hint(api_client):
+    for _ in range(5):
+        api_client.post(HINT_URL)
+
+    response = api_client.post(HINT_URL)
+
+    assert response.status_code == 409
+    assert response.data["error"]["code"] == "nothing_to_hint"
