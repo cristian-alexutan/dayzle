@@ -1,4 +1,4 @@
-<!-- WordResult: the end-of-game dialog: the score out of 6 or X/6, the word in tiles, the time. -->
+<!-- WordResult: the end-of-game dialog: 3/6 or X/6, the word in tiles, and the time. -->
 <script setup lang="ts">
 import { computed } from 'vue'
 import { useI18n } from 'vue-i18n'
@@ -14,11 +14,12 @@ const visible = defineModel<boolean>('visible', { required: true })
 
 const { t } = useI18n()
 
-// The score out of the best possible one (6: solved on the first guess without hints), so
-// hints show in the result: 4 guesses and 3 hints is 1/6. A failed game is X/6.
+// The guesses it took, Wordle-style: 3 guesses is 3/6. Each hint counts as `hint_penalty`
+// extra guesses (the points it costs), up to 6: 3 guesses and 1 hint is 5/6. A failed game is X/6.
 const result = computed(() => {
-  const score = props.game.solved ? props.game.score : 'X'
-  return `${score}/${props.game.max_attempts}`
+  const { solved, guesses, hints, hint_penalty, max_attempts } = props.game
+  const attempts = Math.min(guesses.length + hints.length * hint_penalty, max_attempts)
+  return `${solved ? attempts : 'X'}/${max_attempts}`
 })
 const title = computed(() => t(props.game.solved ? 'word.result.won' : 'word.result.lost'))
 const answerLetters = computed(() => Array.from(props.game.answer ?? ''))

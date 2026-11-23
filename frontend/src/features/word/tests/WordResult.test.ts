@@ -76,7 +76,7 @@ describe('Word game result', () => {
 
     const text = dialogText()
     expect(text).toContain('Felicitări!')
-    expect(text).toContain('4/6')
+    expect(text).toContain('3/6')
     expect(text).toContain('3 încercări')
     expect(text).not.toContain('indicii')
     expect(text).toContain('carte')
@@ -127,7 +127,7 @@ describe('Word game result', () => {
 
     vi.advanceTimersByTime(1500)
     await flushPromises()
-    expect(dialogText()).toContain('4/6')
+    expect(dialogText()).toContain('3/6')
     wrapper.unmount()
   })
 
@@ -146,18 +146,31 @@ describe('Word game result', () => {
 
     await wrapper.find('[data-test="see-result"]').trigger('click')
     await flushPromises()
-    expect(dialogText()).toContain('4/6')
+    expect(dialogText()).toContain('3/6')
     wrapper.unmount()
   })
 
-  it('shows the score lowered by hints, with the guesses and hints below', async () => {
+  it('counts each hint as two more guesses, with the guesses and hints below', async () => {
+    const wrapper = await mountView({ ...solvedGame, hints: ['c'], score: 2 })
+
+    vi.advanceTimersByTime(0)
+    await flushPromises()
+
+    expect(dialogText()).toContain('5/6')
+    expect(document.body.querySelector('[data-test="summary"]')?.textContent?.trim()).toBe(
+      '3 încercări · 1 indiciu',
+    )
+    wrapper.unmount()
+  })
+
+  it('never shows more than 6 guesses, however many hints were used', async () => {
     const guesses = [guess, guess, guess, guess] as WordGame['guesses']
     const wrapper = await mountView({ ...solvedGame, guesses, hints: ['c', 'a', 'r'], score: 1 })
 
     vi.advanceTimersByTime(0)
     await flushPromises()
 
-    expect(dialogText()).toContain('1/6')
+    expect(dialogText()).toContain('6/6')
     expect(document.body.querySelector('[data-test="summary"]')?.textContent?.trim()).toBe(
       '4 încercări · 3 indicii',
     )
