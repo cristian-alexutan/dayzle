@@ -10,7 +10,12 @@ from rest_framework.response import Response
 from apps.common.players import get_guest_id
 
 from .. import services
-from .serializers import MathGameSerializer, StepsInputSerializer, SubmitInputSerializer
+from .serializers import (
+    HintResultSerializer,
+    MathGameSerializer,
+    StepsInputSerializer,
+    SubmitInputSerializer,
+)
 
 
 @extend_schema(responses=MathGameSerializer)
@@ -43,3 +48,23 @@ def submit(request: Request, day: date) -> Response:
     data.is_valid(raise_exception=True)
     math_game = services.submit(get_guest_id(request), day, data.to_steps())
     return Response(MathGameSerializer(math_game).data)
+
+
+@extend_schema(request=StepsInputSerializer, responses=HintResultSerializer)
+@api_view(["POST"])
+def hint(request: Request, day: date) -> Response:
+    """Help on from the board these steps make: the two numbers to combine next, or the first
+    step of a solution when the board can no longer reach the target. Each hint costs points."""
+    data = StepsInputSerializer(data=request.data)
+    data.is_valid(raise_exception=True)
+    math_game, given = services.hint(get_guest_id(request), day, data.to_steps())
+    body = {
+        "pair": list(given.pair) if given.pair else None,
+        "restart": (
+            {"left": given.restart.left, "op": given.restart.op.value, "right": given.restart.right}
+            if given.restart
+            else None
+        ),
+        "game": math_game,
+    }
+    return Response(HintResultSerializer(body).data)

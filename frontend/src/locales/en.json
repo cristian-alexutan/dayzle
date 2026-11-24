@@ -164,6 +164,10 @@
       "generic": "Something went wrong. Please try again."
     },
     "finish": "Finish with the closest number",
+    "hint": {
+      "label": "Hint",
+      "restart": "Try starting with: {step}"
+    },
     "history": {
       "count": "{count} of {max} steps",
       "empty": "No steps yet. Tap a number, then an operation and a second number.",
@@ -198,7 +202,9 @@
       "see": "See result",
       "solution": "One possible solution",
       "steps": "{count} step · fewest {min} | {count} steps · fewest {min}",
-      "stepsLabel": "Steps"
+      "stepsLabel": "Steps",
+      "hints": "No hints | 1 hint (−{points} points) | {count} hints (−{points} points)",
+      "hintsLabel": "Hints"
     },
     "subtitle": "Puzzle of the day · {date}",
     "target": "Target",
@@ -208,7 +214,8 @@
       "labelPart": "{label}, {part}",
       "new": "NEW",
       "refused": "step refused",
-      "selected": "selected"
+      "selected": "selected",
+      "hinted": "hint"
     },
     "title": "Numărăl",
     "undo": "Undo step"

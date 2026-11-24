@@ -19,6 +19,8 @@ SMALL_NUMBERS = range(1, 11)
 MAX_SMALL_COPIES = 2
 LARGE_NUMBERS = (25, 50, 75, 100)
 EXACT_SCORE = 1000
+# Points a hint costs at the end, whatever the result.
+HINT_PENALTY = 100
 
 
 class Operator(StrEnum):
@@ -173,15 +175,14 @@ def replay(numbers: Sequence[int], target: int, steps: Sequence[Step]) -> Replay
     )
 
 
-def score(distance: int) -> int:
+def score(distance: int, hints: int = 0) -> int:
     """Points for a final result ``distance`` away from the target. Higher is better.
 
     Exact target: 1000. Otherwise ``max(0, 900 - 20 * distance)``: 1 away is 880, 5 away 800,
-    20 away 500, and 45 or more away 0.
+    20 away 500, and 45 or more away 0. Each hint then takes 100 off, down to 0.
     """
-    if distance == 0:
-        return EXACT_SCORE
-    return max(0, 900 - 20 * distance)
+    points = EXACT_SCORE if distance == 0 else 900 - 20 * distance
+    return max(0, points - HINT_PENALTY * hints)
 
 
 def difficulty_for(operations: int) -> Difficulty:
@@ -217,8 +218,10 @@ def _path(parents: dict[_State, tuple[_State, PlayedStep] | None], state: _State
     return Solution(tuple(reversed(steps)))
 
 
-def _search(numbers: Sequence[int], target: int | None) -> dict[int, Solution]:
-    """Breadth-first search over boards, one level per operation.
+def _search(
+    numbers: Sequence[int], target: int | None, max_steps: int = MAX_STEPS
+) -> dict[int, Solution]:
+    """Breadth-first search over boards, one level per operation, at most ``max_steps`` deep.
 
     A board is a sorted tuple, so boards with the same numbers are explored once. Level k holds
     the boards first reached with k operations, so the first time a valid target appears it
@@ -229,7 +232,7 @@ def _search(numbers: Sequence[int], target: int | None) -> dict[int, Solution]:
     parents: dict[_State, tuple[_State, PlayedStep] | None] = {start: None}
     found: dict[int, _State] = {}
     frontier = [start]
-    for _ in range(MAX_STEPS):
+    for _ in range(max_steps):
         next_frontier = []
         for state in frontier:
             for i in range(1, len(state)):
@@ -252,9 +255,36 @@ def _search(numbers: Sequence[int], target: int | None) -> dict[int, Solution]:
     return {value: _path(parents, state) for value, state in sorted(found.items())}
 
 
-def solve(numbers: Sequence[int], target: int) -> Solution | None:
-    """A solution with the fewest operations, or None if the target can't be reached exactly."""
-    return _search(numbers, target).get(target)
+def solve(numbers: Sequence[int], target: int, max_steps: int = MAX_STEPS) -> Solution | None:
+    """A solution with the fewest operations (at most ``max_steps``), or None if the target
+    can't be reached exactly."""
+    return _search(numbers, target, max_steps).get(target)
+
+
+@dataclass(frozen=True)
+class Hint:
+    """What a hint tells the player. Exactly one of the two is set.
+
+    ``pair``: the two numbers on their board to combine next; the operator stays for them to
+    find. ``restart``: their board can no longer reach the target, so the first step of a
+    solution from the starting numbers, operator included.
+    """
+
+    pair: tuple[int, int] | None = None
+    restart: Step | None = None
+
+
+def hint(numbers: Sequence[int], target: int, steps: Sequence[Step], first_step: Step) -> Hint:
+    """Help the player on from their board: the two numbers of the next step of a shortest way
+    to the target with the steps they have left, or ``first_step`` (of the puzzle's solution)
+    when there is none."""
+    board = replay(numbers, target, steps).board
+    steps_left = MAX_STEPS - len(steps)
+    solution = solve(board, target, steps_left) if steps_left > 0 else None
+    if solution is None:
+        return Hint(restart=first_step)
+    step = solution.steps[0].step
+    return Hint(pair=(step.left, step.right))
 
 
 def reachable(numbers: Sequence[int]) -> dict[int, Solution]:

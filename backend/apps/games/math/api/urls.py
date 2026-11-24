@@ -8,4 +8,5 @@ urlpatterns = [
     path("<game_day:day>/", views.game, name="math-game"),
     path("<game_day:day>/progress/", views.progress, name="math-progress"),
     path("<game_day:day>/submit/", views.submit, name="math-submit"),
+    path("<game_day:day>/hint/", views.hint, name="math-hint"),
 ]

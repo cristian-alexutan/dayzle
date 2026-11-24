@@ -1,7 +1,7 @@
 // Thin wrappers over the HTTP client for the Math feature.
 import { http } from '@/api/http'
 
-import type { GameDay, MathGame, StepInput } from '../types'
+import type { GameDay, HintResult, MathGame, StepInput } from '../types'
 
 /** Only what the player chose is sent: the server replays the steps and computes every result. */
 function toInput(steps: StepInput[]): StepInput[] {
@@ -18,6 +18,11 @@ export function saveProgress(day: GameDay, steps: StepInput[]) {
 
 export function submitGame(day: GameDay, steps: StepInput[]) {
   return http.post<MathGame>(`/games/math/${day}/submit/`, { steps: toInput(steps) })
+}
+
+/** A hint from the board these steps make (the server replays them; nothing is saved). */
+export function requestHint(day: GameDay, steps: StepInput[]) {
+  return http.post<HintResult>(`/games/math/${day}/hint/`, { steps: toInput(steps) })
 }
 
 /** Keeps the server's clock running while the game is visible; see useHeartbeat. */

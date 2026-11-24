@@ -197,6 +197,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/games/math/{day}/hint/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * @description Help on from the board these steps make: the two numbers to combine next, or the first
+         *     step of a solution when the board can no longer reach the target. Each hint costs points.
+         */
+        post: operations["v1_games_math_hint_create"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/games/math/{day}/progress/": {
         parameters: {
             query?: never;
@@ -463,6 +483,18 @@ export interface components {
             removed: number[];
         };
         /**
+         * @description A hint and the updated board. Exactly one of ``pair`` and ``restart`` is set.
+         *
+         *     ``pair``: the two numbers of the board to combine next (the operator stays secret).
+         *     ``restart``: the board can no longer reach the target; the first step of a solution from
+         *     the starting numbers, operator included.
+         */
+        HintResult: {
+            pair: number[] | null;
+            restart: components["schemas"]["Step"] | null;
+            game: components["schemas"]["MathGame"];
+        };
+        /**
          * @description The player's board. ``solved``, ``score`` and ``duration_ms`` stay null until the game
          *     ends. ``elapsed_ms`` is only for display. The solution is never sent, except the cells the
          *     player paid for: ``hints``, each costing ``hint_penalty`` points.
@@ -507,6 +539,9 @@ export interface components {
             readonly solution: components["schemas"]["PlayedStep"][] | null;
             readonly min_operations: number | null;
             readonly difficulty: (components["schemas"]["DifficultyEnum"] | components["schemas"]["NullEnum"]) | null;
+            /** @description How many hints the player took; each costs ``hint_penalty`` points at the end. */
+            readonly hints: number;
+            readonly hint_penalty: number;
         };
         /** @enum {unknown} */
         NullEnum: null;
@@ -564,6 +599,11 @@ export interface components {
          * @enum {string}
          */
         StatusEnum: "in_progress" | "completed";
+        Step: {
+            left: number;
+            op: components["schemas"]["OpEnum"];
+            right: number;
+        };
         StepInput: {
             left: number;
             op: components["schemas"]["OpEnum"];
@@ -888,6 +928,33 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["MathGame"];
+                };
+            };
+        };
+    };
+    v1_games_math_hint_create: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                day: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["StepsInput"];
+                "application/x-www-form-urlencoded": components["schemas"]["StepsInput"];
+                "multipart/form-data": components["schemas"]["StepsInput"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HintResult"];
                 };
             };
         };

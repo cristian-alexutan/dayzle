@@ -286,3 +286,64 @@ def test_generate_gives_up_after_the_attempts():
 
     with pytest.raises(GenerationFailedError):
         rules.generate(Difficulty.EASY, OnlyTinyNumbers(), attempts=3)
+
+
+def test_each_hint_takes_100_points_off_down_to_zero():
+    assert rules.score(0, hints=2) == 800
+    assert rules.score(5, hints=1) == 700
+    assert rules.score(40, hints=1) == 0
+
+
+def _leads_to_target(board, pair, target, steps_left):
+    """Some operator on the pair leaves a board that still reaches the target."""
+    rest = list(board)
+    for number in pair:
+        rest.remove(number)
+    larger, smaller = max(pair), min(pair)
+    for op in rules.Operator:
+        try:
+            value = rules.apply(larger, op, smaller)
+        except Exception:
+            continue
+        if value == target or rules.solve([*rest, value], target, steps_left - 1):
+            return True
+    return False
+
+
+FIRST = rules.Step(100, rules.Operator.MUL, 2)
+
+
+def test_hint_from_the_start_gives_a_pair_that_leads_to_the_target():
+    given = rules.hint([1, 2, 3, 25, 50, 100], 253, [], FIRST)
+
+    assert given.restart is None
+    assert _leads_to_target([1, 2, 3, 25, 50, 100], given.pair, 253, rules.MAX_STEPS)
+
+
+def test_hint_from_a_board_with_steps_works_with_the_steps_left():
+    played = [rules.Step(100, rules.Operator.MUL, 2)]
+
+    given = rules.hint([1, 2, 3, 25, 50, 100], 253, played, FIRST)
+
+    assert _leads_to_target([1, 3, 25, 50, 200], given.pair, 253, rules.MAX_STEPS - 1)
+
+
+def test_hint_suggests_the_first_step_when_the_board_is_a_dead_end():
+    played = [
+        rules.Step(100, rules.Operator.MUL, 50),
+        rules.Step(5000, rules.Operator.MUL, 25),
+    ]
+
+    assert rules.hint([1, 2, 3, 25, 50, 100], 253, played, FIRST) == rules.Hint(restart=FIRST)
+
+
+def test_hint_suggests_the_first_step_when_no_step_is_left():
+    played = [
+        rules.Step(1, rules.Operator.ADD, 2),
+        rules.Step(3, rules.Operator.ADD, 3),
+        rules.Step(25, rules.Operator.ADD, 6),
+        rules.Step(50, rules.Operator.ADD, 31),
+        rules.Step(100, rules.Operator.ADD, 81),
+    ]
+
+    assert rules.hint([1, 2, 3, 25, 50, 100], 253, played, FIRST) == rules.Hint(restart=FIRST)

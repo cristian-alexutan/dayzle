@@ -64,6 +64,15 @@ class MathGameSerializer(serializers.Serializer):
     solution = serializers.SerializerMethodField()
     min_operations = serializers.SerializerMethodField()
     difficulty = serializers.SerializerMethodField()
+    hints = serializers.SerializerMethodField()
+    hint_penalty = serializers.SerializerMethodField()
+
+    def get_hints(self, game) -> int:
+        """How many hints the player took; each costs ``hint_penalty`` points at the end."""
+        return game.result.details.get("hints", 0)
+
+    def get_hint_penalty(self, game) -> int:
+        return rules.HINT_PENALTY
 
     def _finished(self, game) -> bool:
         return game.result.status == GameResult.Status.COMPLETED
@@ -109,3 +118,24 @@ class MathGameSerializer(serializers.Serializer):
     @extend_schema_field(serializers.ChoiceField(choices=DIFFICULTY_CHOICES, allow_null=True))
     def get_difficulty(self, game) -> str | None:
         return game.math_puzzle.difficulty if self._finished(game) else None
+
+
+class StepSerializer(serializers.Serializer):
+    left = serializers.IntegerField()
+    op = serializers.ChoiceField(choices=OPERATORS)
+    right = serializers.IntegerField()
+
+
+class HintResultSerializer(serializers.Serializer):
+    """A hint and the updated board. Exactly one of ``pair`` and ``restart`` is set.
+
+    ``pair``: the two numbers of the board to combine next (the operator stays secret).
+    ``restart``: the board can no longer reach the target; the first step of a solution from
+    the starting numbers, operator included.
+    """
+
+    pair = serializers.ListField(
+        child=serializers.IntegerField(), min_length=2, max_length=2, allow_null=True
+    )
+    restart = StepSerializer(allow_null=True)
+    game = MathGameSerializer()

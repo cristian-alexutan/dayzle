@@ -6,6 +6,8 @@ from collections.abc import Iterable, Sequence
 from dataclasses import dataclass
 from datetime import date
 
+from django.db import transaction
+
 from apps.puzzles.models import DailyPuzzle
 from apps.results.exceptions import AlreadyPlayedError
 from apps.results.models import GameResult
@@ -126,19 +128,32 @@ def _replay_for(game: MathGame, steps: Sequence[rules.Step]) -> rules.Replay:
     return rules.replay(game.math_puzzle.numbers, game.math_puzzle.target, steps)
 
 
-def _finish(game: MathGame, replay: rules.Replay) -> MathGame:
-    """Complete the game, scored with ``rules.score`` on the distance to the target.
+def _lock(game: MathGame) -> GameResult:
+    """Lock the result, so a hint and a step at the same time can't lose each other's change."""
+    locked = GameResult.objects.select_for_update().get(pk=game.result.pk)
+    if locked.status == GameResult.Status.COMPLETED:
+        raise AlreadyPlayedError()
+    return locked
 
-    ``details`` keeps the steps, final result, distance and number of operations.
+
+@transaction.atomic
+def _finish(game: MathGame, replay: rules.Replay) -> MathGame:
+    """Complete the game, scored with ``rules.score`` on the distance to the target and the
+    hints taken.
+
+    ``details`` keeps the steps, final result, distance, number of operations and hints.
     """
+    result = _lock(game)
+    hints = result.details.get("hints", 0)
     details = {
         "steps": steps_to_json(replay.steps),
         "final_result": replay.final_result,
         "distance": replay.distance,
         "operations": len(replay.steps),
+        "hints": hints,
     }
     result = complete(
-        game.result, solved=replay.solved, score=rules.score(replay.distance), details=details
+        result, solved=replay.solved, score=rules.score(replay.distance, hints), details=details
     )
     return MathGame(result, game.math_puzzle)
 
@@ -155,7 +170,10 @@ def save_steps(guest_id: uuid.UUID, day: date, steps: Sequence[rules.Step]) -> M
     replay = _replay_for(game, steps)
     if replay.solved:
         return _finish(game, replay)
-    result = save_progress(game.result, {"steps": steps_to_json(replay.steps)})
+    with transaction.atomic():
+        result = _lock(game)
+        details = {**result.details, "steps": steps_to_json(replay.steps)}
+        result = save_progress(result, details)
     return MathGame(result, game.math_puzzle)
 
 
@@ -169,3 +187,26 @@ def submit(guest_id: uuid.UUID, day: date, steps: Sequence[rules.Step]) -> MathG
     if not steps:
         raise NoStepsError()
     return _finish(game, replay)
+
+
+def hint(
+    guest_id: uuid.UUID, day: date, steps: Sequence[rules.Step]
+) -> tuple[MathGame, rules.Hint]:
+    """Help the player on from the board their ``steps`` make (see ``rules.hint``).
+
+    The steps are only replayed, not saved: saving stays with ``save_steps``. Each hint costs
+    ``rules.HINT_PENALTY`` points at the end.
+    """
+    game = open_game(guest_id, day)
+    puzzle = game.math_puzzle
+    replay = _replay_for(game, steps)
+    first = puzzle.solution[0]
+    first_step = rules.Step(first["left"], rules.Operator(first["op"]), first["right"])
+    given = rules.hint(
+        puzzle.numbers, puzzle.target, [played.step for played in replay.steps], first_step
+    )
+    with transaction.atomic():
+        result = _lock(game)
+        details = {**result.details, "hints": result.details.get("hints", 0) + 1}
+        result = save_progress(result, details)
+    return MathGame(result, puzzle), given

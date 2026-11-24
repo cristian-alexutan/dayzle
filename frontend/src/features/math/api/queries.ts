@@ -5,7 +5,7 @@ import type { MaybeRefOrGetter } from 'vue'
 import { useHeartbeat } from '@/shared/composables/useHeartbeat'
 
 import type { GameDay, MathGame, StepInput } from '../types'
-import { fetchGame, saveProgress, sendHeartbeat, submitGame } from './endpoints'
+import { fetchGame, requestHint, saveProgress, sendHeartbeat, submitGame } from './endpoints'
 
 const gameKey = (day: GameDay) => ['math', 'game', day]
 
@@ -33,6 +33,20 @@ function useBoardMutation(
     onSuccess: async (game) => {
       await cancelReloads()
       queryClient.setQueryData(gameKey(day), game)
+    },
+  })
+}
+
+/** Take a hint for the board these steps make. The response's board counts the hint. */
+export function useHintMutation(day: GameDay) {
+  const queryClient = useQueryClient()
+  const cancelReloads = () => queryClient.cancelQueries({ queryKey: gameKey(day) })
+  return useMutation({
+    mutationFn: (steps: StepInput[]) => requestHint(day, steps),
+    onMutate: cancelReloads,
+    onSuccess: async (hint) => {
+      await cancelReloads()
+      queryClient.setQueryData(gameKey(day), hint.game)
     },
   })
 }
