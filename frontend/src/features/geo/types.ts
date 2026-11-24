@@ -18,6 +18,9 @@ export type Point = components['schemas']['Point']
 /** A guessed round: the player's point, the real one, the distance and the points. */
 export type RoundResult = components['schemas']['RoundResult']
 
+/** A hint: a circle that holds the round's spot, which is never at its center. */
+export type HintCircle = components['schemas']['HintCircle']
+
 /** A guess as the player sends it: the round and a point on the map. The server scores it. */
 export type GuessInput = components['schemas']['GeoGuessInput']
 

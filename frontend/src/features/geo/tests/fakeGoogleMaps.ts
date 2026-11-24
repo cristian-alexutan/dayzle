@@ -73,6 +73,14 @@ class FakeRectangle extends FakeShape {
   readonly kind = 'rectangle'
 }
 
+class FakeCircle extends FakeShape {
+  readonly kind = 'circle'
+
+  getBounds() {
+    return new FakeLatLngBounds()
+  }
+}
+
 class FakeLatLngBounds {
   readonly points: Point[] = []
 
@@ -100,7 +108,7 @@ export class FakePanorama {
 }
 
 const libraries: Record<string, unknown> = {
-  maps: { Map: FakeMap, Polyline: FakePolyline, Rectangle: FakeRectangle },
+  maps: { Map: FakeMap, Polyline: FakePolyline, Rectangle: FakeRectangle, Circle: FakeCircle },
   marker: { Marker: FakeMarker },
   core: {
     LatLngBounds: FakeLatLngBounds,
@@ -118,7 +126,7 @@ export const fake = {
 }
 
 /** The shapes of one kind still on a map. */
-export function shapesOnMap(kind: 'marker' | 'polyline' | 'rectangle') {
+export function shapesOnMap(kind: 'marker' | 'polyline' | 'rectangle' | 'circle') {
   return fake.shapes.filter(
     (shape) => (shape as FakeShape & { kind: string }).kind === kind && shape.map !== null,
   )

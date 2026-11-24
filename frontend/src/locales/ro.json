@@ -37,6 +37,12 @@
       "stale": "Jocul s-a schimbat între timp, așa că l-am reîncărcat."
     },
     "guess": "Confirmă locul",
+    "hint": {
+      "label": "Indiciu",
+      "nothingLeft": "Runda asta are deja indiciul: locul e în cerc.",
+      "inCircle": "Locul e undeva în cerc. Pune pinul acolo.",
+      "used": "Indiciu: −{points} puncte"
+    },
     "loading": "Se încarcă jocul",
     "map": {
       "guess": "Harta pe care alegi locul",

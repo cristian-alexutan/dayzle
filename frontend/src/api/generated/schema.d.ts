@@ -89,6 +89,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/games/geo/{day}/hint/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * @description Draw a circle that holds the current round's spot (409 ``nothing_to_hint`` if the round
+         *     already had its hint). The round then scores ``hint_penalty`` points less.
+         */
+        post: operations["v1_games_geo_hint_create"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/games/geo/regions/": {
         parameters: {
             query?: never;
@@ -461,6 +481,8 @@ export interface components {
             readonly results: components["schemas"]["RoundResult"][];
             readonly total_score: number;
             readonly max_score: number;
+            readonly hints: components["schemas"]["HintCircle"][];
+            readonly hint_penalty: number;
             readonly solved: boolean | null;
             readonly duration_ms: number | null;
         };
@@ -481,6 +503,12 @@ export interface components {
         Hint: {
             question: number;
             removed: number[];
+        };
+        /** @description A hint: a circle that holds the round's spot, which is never at its center. */
+        HintCircle: {
+            round: number;
+            center: components["schemas"]["Point"];
+            radius_m: number;
         };
         /**
          * @description A hint and the updated board. Exactly one of ``pair`` and ``restart`` is set.
@@ -585,6 +613,8 @@ export interface components {
             location: components["schemas"]["Point"];
             distance_m: number;
             score: number;
+            /** @default false */
+            hinted: boolean;
         };
         /** @description Current visitor identity: anonymous guest or signed-in user. */
         SessionState: {
@@ -791,6 +821,30 @@ export interface operations {
                 "multipart/form-data": components["schemas"]["GeoGuessInput"];
             };
         };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["GeoGame"];
+                };
+            };
+        };
+    };
+    v1_games_geo_hint_create: {
+        parameters: {
+            query?: {
+                /** @description The region's key. Defaults to the default region. */
+                region?: string;
+            };
+            header?: never;
+            path: {
+                day: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
         responses: {
             200: {
                 headers: {

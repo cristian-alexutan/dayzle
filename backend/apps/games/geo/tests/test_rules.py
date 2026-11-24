@@ -75,3 +75,53 @@ def test_spacing():
     assert rules.is_spaced([PIATA_UNIRII, PIATA_MUZEULUI], 250)
     assert not rules.is_spaced([PIATA_UNIRII, PIATA_MUZEULUI], 1000)
     assert rules.is_spaced([PIATA_UNIRII], 1000)
+
+
+def test_a_hint_takes_300_points_off_the_round_down_to_zero():
+    assert rules.hinted_round_score(900, hinted=True) == 600
+    assert rules.hinted_round_score(200, hinted=True) == 0
+    assert rules.hinted_round_score(900, hinted=False) == 900
+
+
+CLUJ_BOUNDS = Bounds(south=46.72, west=23.5, north=46.82, east=23.7)
+
+
+def _off_center(center: Point, spot: Point) -> bool:
+    distance = rules.distance_m(center, spot)
+    return 0.25 * rules.HINT_RADIUS_M - 1 <= distance <= 0.75 * rules.HINT_RADIUS_M + 1
+
+
+def test_the_hint_circle_holds_the_spot_but_is_never_centered_on_it():
+    rng = random.Random(7)
+    for _ in range(200):
+        center = rules.hint_circle(PIATA_UNIRII, CLUJ_BOUNDS, rng)
+        assert _off_center(center, PIATA_UNIRII)
+
+
+def test_the_hint_circle_stays_inside_the_region_when_it_can():
+    rng = random.Random(3)
+    # 1.5 km inside the region's south-west corner: only circles leaning north-east fit.
+    near_corner = Point(46.7335, 23.5197)
+    for _ in range(100):
+        center = rules.hint_circle(near_corner, CLUJ_BOUNDS, rng)
+        assert rules.circle_overflow(center, rules.HINT_RADIUS_M, CLUJ_BOUNDS) == 0
+        assert _off_center(center, near_corner)
+
+
+def test_on_the_very_edge_the_hint_circle_leans_inside_as_far_as_it_can():
+    rng = random.Random(5)
+    on_edge = Point(46.72, 23.6)  # on the southern edge: no circle around it fits
+    center = rules.hint_circle(on_edge, CLUJ_BOUNDS, rng)
+
+    assert center.lat > on_edge.lat
+    assert _off_center(center, on_edge)
+    # Close to the best possible: the center 0.75 of the radius inside the edge.
+    assert (
+        rules.circle_overflow(center, rules.HINT_RADIUS_M, CLUJ_BOUNDS) < 0.3 * rules.HINT_RADIUS_M
+    )
+
+
+def test_circle_overflow_is_zero_inside_and_counts_each_side():
+    middle = Point(46.77, 23.6)
+    assert rules.circle_overflow(middle, 2500, CLUJ_BOUNDS) == 0
+    assert rules.circle_overflow(Point(46.72, 23.6), 2500, CLUJ_BOUNDS) == 2500

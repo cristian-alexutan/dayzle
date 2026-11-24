@@ -37,3 +37,9 @@ class StreetViewError(DomainError):
 
 class TemporaryStreetViewError(StreetViewError):
     """A failure worth retrying: a network problem or Google's own ``UNKNOWN_ERROR``."""
+
+
+class NothingToHintError(DomainError):
+    status_code = 409
+    code = "nothing_to_hint"
+    default_message = "This round already had its hint."

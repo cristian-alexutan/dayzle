@@ -58,3 +58,12 @@ def guess(request: Request, day: date) -> Response:
         data.validated_data["lng"],
     )
     return Response(GeoGameSerializer(geo_game).data)
+
+
+@extend_schema(parameters=[RegionQuerySerializer], request=None, responses=GeoGameSerializer)
+@api_view(["POST"])
+def hint(request: Request, day: date) -> Response:
+    """Draw a circle that holds the current round's spot (409 ``nothing_to_hint`` if the round
+    already had its hint). The round then scores ``hint_penalty`` points less."""
+    geo_game = services.hint(get_guest_id(request), _region_key(request), day)
+    return Response(GeoGameSerializer(geo_game).data)

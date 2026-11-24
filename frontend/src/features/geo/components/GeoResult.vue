@@ -27,7 +27,16 @@ const title = computed(() => t(props.game.solved ? 'geo.result.won' : 'geo.resul
       <li v-for="round in game.results" :key="round.round" data-test="result-round">
         <span class="geo-result__round">{{ t('geo.result.round', { round: round.round }) }}</span>
         <span>{{ formatDistance(round.distance_m) }}</span>
-        <span class="geo-result__score">{{ t('geo.points', { score: round.score }) }}</span>
+        <span class="geo-result__score">
+          {{ t('geo.points', { score: round.score }) }}
+          <i
+            v-if="round.hinted"
+            class="pi pi-lightbulb"
+            :title="t('geo.hint.used', { points: game.hint_penalty })"
+            :aria-label="t('geo.hint.used', { points: game.hint_penalty })"
+            data-test="result-hinted"
+          />
+        </span>
       </li>
     </ol>
   </section>

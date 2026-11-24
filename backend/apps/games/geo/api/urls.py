@@ -8,4 +8,5 @@ urlpatterns = [
     path("regions/", views.regions, name="geo-regions"),
     path("<game_day:day>/", views.game, name="geo-game"),
     path("<game_day:day>/guess/", views.guess, name="geo-guess"),
+    path("<game_day:day>/hint/", views.hint, name="geo-hint"),
 ]

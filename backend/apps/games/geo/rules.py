@@ -14,6 +14,17 @@ FULL_SCORE_RADIUS_M = 25
 SOLVED_AT = MAX_SCORE // 2
 
 EARTH_RADIUS_M = 6_371_000
+METRES_PER_DEGREE = 111_320
+
+# A hint draws a circle around the round's spot, 5 km wide (2.5 km radius), and takes this many
+# points off the round, down to 0. One hint per round.
+HINT_RADIUS_M = 2500
+HINT_PENALTY = 300
+# How far the circle's center is from the spot, as a share of the radius: never in the center,
+# never on the edge.
+HINT_OFFSET = (0.25, 0.75)
+# Random circles hint_circle tries, looking for one that stays inside the region.
+HINT_TRIES = 500
 
 
 @dataclass(frozen=True)
@@ -56,6 +67,52 @@ def round_score(distance: float, scale_m: float) -> int:
     if distance <= FULL_SCORE_RADIUS_M:
         return MAX_ROUND_SCORE
     return round(MAX_ROUND_SCORE * math.exp(-distance / scale_m))
+
+
+def hinted_round_score(score: int, hinted: bool) -> int:
+    """A round's points after its hint, if it had one: ``HINT_PENALTY`` less, down to 0."""
+    return max(0, score - HINT_PENALTY) if hinted else score
+
+
+def _offset(spot: Point, distance: float, bearing: float) -> Point:
+    """The point ``distance`` metres from ``spot`` in direction ``bearing`` (0 is north)."""
+    d_lat = distance * math.cos(bearing) / METRES_PER_DEGREE
+    d_lng = distance * math.sin(bearing) / (METRES_PER_DEGREE * math.cos(math.radians(spot.lat)))
+    return Point(spot.lat + d_lat, spot.lng + d_lng)
+
+
+def circle_overflow(center: Point, radius_m: float, bounds: Bounds) -> float:
+    """How far, in metres summed over the four sides, a circle sticks out of ``bounds`` (0 when
+    it lies inside)."""
+    lng_metres = METRES_PER_DEGREE * math.cos(math.radians(center.lat))
+    room = (
+        (bounds.north - center.lat) * METRES_PER_DEGREE,
+        (center.lat - bounds.south) * METRES_PER_DEGREE,
+        (bounds.east - center.lng) * lng_metres,
+        (center.lng - bounds.west) * lng_metres,
+    )
+    return sum(max(0.0, radius_m - side) for side in room)
+
+
+def hint_circle(spot: Point, bounds: Bounds, rng: random.Random) -> Point:
+    """The center of a hint circle of ``HINT_RADIUS_M`` that holds ``spot``, off its center.
+
+    The center is a random distance (``HINT_OFFSET`` of the radius) in a random direction from
+    the spot, so the spot is always inside but never in the middle. Of ``HINT_TRIES`` such
+    circles, the first that lies inside ``bounds`` is used, so none of it covers ground no spot
+    can be on; near the region's edge, where none fits, the one that sticks out least.
+    """
+    best, best_overflow = None, math.inf
+    for _ in range(HINT_TRIES):
+        center = _offset(
+            spot, rng.uniform(*HINT_OFFSET) * HINT_RADIUS_M, rng.uniform(0, 2 * math.pi)
+        )
+        overflow = circle_overflow(center, HINT_RADIUS_M, bounds)
+        if overflow == 0:
+            return center
+        if overflow < best_overflow:
+            best, best_overflow = center, overflow
+    return best
 
 
 def total_score(round_scores: Iterable[int]) -> int:

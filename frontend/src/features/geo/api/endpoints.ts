@@ -21,6 +21,11 @@ export function sendGuess(day: GameDay, { round, lat, lng }: GuessInput, region?
   return http.post<GeoGame>(`/games/geo/${day}/guess/${regionQuery(region)}`, { round, lat, lng })
 }
 
+/** A circle around the current round's spot (409 `nothing_to_hint` after the first one). */
+export function sendHint(day: GameDay, region?: RegionKey) {
+  return http.post<GeoGame>(`/games/geo/${day}/hint/${regionQuery(region)}`)
+}
+
 /** Keeps the server's clock running while the game is visible; see useHeartbeat. */
 export function sendHeartbeat(day: GameDay) {
   return http.post<void>(`/results/geo/${day}/heartbeat/`)

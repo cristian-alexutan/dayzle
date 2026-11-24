@@ -5,7 +5,7 @@ import { computed, toValue, type MaybeRefOrGetter } from 'vue'
 import { useHeartbeat } from '@/shared/composables/useHeartbeat'
 
 import type { GameDay, GuessInput, RegionKey } from '../types'
-import { fetchGame, fetchRegions, sendGuess, sendHeartbeat } from './endpoints'
+import { fetchGame, fetchRegions, sendGuess, sendHeartbeat, sendHint } from './endpoints'
 
 const gameKey = (day: GameDay, region: RegionKey) => ['geo', 'game', day, region ?? 'default']
 
@@ -37,6 +37,23 @@ export function useGeoGameQuery(day: GameDay, region?: MaybeRefOrGetter<RegionKe
  * is cancelled: finishing afterwards, it would bring back the round just guessed, and the next
  * guess would be refused.
  */
+/** Take the round's hint. Like a guess, it replaces the cached game. */
+export function useHintMutation(day: GameDay, region?: MaybeRefOrGetter<RegionKey>) {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: () => sendHint(day, toValue(region)),
+    onMutate: () => {
+      const key = gameKey(day, toValue(region))
+      return queryClient.cancelQueries({ queryKey: key }).then(() => ({ key }))
+    },
+    onSuccess: async (game, _input, context) => {
+      const key = context?.key ?? gameKey(day, toValue(region))
+      await queryClient.cancelQueries({ queryKey: key })
+      queryClient.setQueryData(key, game)
+    },
+  })
+}
+
 export function useGuessMutation(day: GameDay, region?: MaybeRefOrGetter<RegionKey>) {
   const queryClient = useQueryClient()
   return useMutation({

@@ -12,6 +12,7 @@ from apps.games.geo import rules, services, streetview
 from apps.games.geo.exceptions import (
     AlreadyAnsweredError,
     InvalidGuessError,
+    NothingToHintError,
     RegionLockedError,
     StreetViewError,
     TemporaryStreetViewError,
@@ -503,3 +504,62 @@ def test_seed_without_a_key_uses_an_existing_bank(settings, bank):
     services.seed_puzzle(day)
 
     assert GeoPuzzle.objects.filter(daily_puzzle=day).exists()
+
+
+# Hints
+
+
+def test_a_hint_saves_a_circle_around_the_current_spot(guest, bank):
+    game = services.open_game(guest, CLUJ, today())
+
+    game = services.hint(guest, CLUJ, today())
+
+    [circle] = game.result.details["hints"]
+    assert circle["round"] == 1 and circle["radius_m"] == rules.HINT_RADIUS_M
+    center = rules.Point(circle["lat"], circle["lng"])
+    assert rules.distance_m(center, game.locations[0].point) < rules.HINT_RADIUS_M
+
+
+def test_one_hint_per_round(guest, bank):
+    game = services.open_game(guest, CLUJ, today())
+    services.hint(guest, CLUJ, today())
+
+    with pytest.raises(NothingToHintError):
+        services.hint(guest, CLUJ, today())
+
+    game = play_round(guest, services.open_game(guest, CLUJ, today()))
+    game = services.hint(guest, CLUJ, today())
+    assert [circle["round"] for circle in game.result.details["hints"]] == [1, 2]
+
+
+def test_a_hinted_round_scores_300_less_and_other_rounds_are_untouched(guest, bank):
+    game = services.open_game(guest, CLUJ, today())
+    services.hint(guest, CLUJ, today())
+
+    game = play_round(guest, services.open_game(guest, CLUJ, today()))
+    game = play_round(guest, game)
+
+    first, second = game.result.details["guesses"]
+    assert (first["score"], first["hinted"]) == (700, True)
+    assert (second["score"], second["hinted"]) == (1000, False)
+    assert len(game.result.details["hints"]) == 1
+
+
+def test_the_total_counts_the_hint_cost(guest, bank):
+    game = services.open_game(guest, CLUJ, today())
+    services.hint(guest, CLUJ, today())
+    game = services.open_game(guest, CLUJ, today())
+    for _ in range(rules.ROUNDS):
+        game = play_round(guest, game)
+
+    assert game.result.status == GameResult.Status.COMPLETED
+    assert game.result.score == 4700
+
+
+def test_no_hint_after_the_game_is_finished(guest, bank):
+    game = services.open_game(guest, CLUJ, today())
+    for _ in range(rules.ROUNDS):
+        game = play_round(guest, game)
+
+    with pytest.raises(AlreadyPlayedError):
+        services.hint(guest, CLUJ, today())

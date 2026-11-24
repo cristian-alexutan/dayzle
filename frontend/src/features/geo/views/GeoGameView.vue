@@ -7,6 +7,7 @@ import AppButton from '@/shared/components/AppButton.vue'
 import AppMessage from '@/shared/components/AppMessage.vue'
 import AppSpinner from '@/shared/components/AppSpinner.vue'
 import ErrorState from '@/shared/components/ErrorState.vue'
+import GameActionButton from '@/shared/components/GameActionButton.vue'
 import GameShell from '@/shared/components/GameShell.vue'
 
 import {
@@ -15,6 +16,7 @@ import {
   useGeoGameQuery,
   useGeoHeartbeat,
   useGuessMutation,
+  useHintMutation,
   useRegionsQuery,
 } from '../api/queries'
 import GeoMap from '../components/GeoMap.vue'
@@ -39,6 +41,7 @@ const region = ref<RegionKey>(undefined)
 
 const query = useGeoGameQuery(DAY, region)
 const guess = useGuessMutation(DAY, region)
+const hintMutation = useHintMutation(DAY, region)
 
 const game = computed(() => query.data.value)
 const inProgress = computed(() => game.value?.status === 'in_progress')
@@ -116,6 +119,33 @@ watch(
   },
 )
 
+/** The current round's hint circle, once taken. */
+const roundHint = computed(
+  () => game.value?.hints.find((given) => given.round === game.value?.current_round) ?? null,
+)
+
+/** A friendly message, such as when the round already had its hint. */
+const hintNotice = ref<string | null>(null)
+
+/** Take the round's hint, then show the map with its circle. */
+function takeHint() {
+  guessError.value = null
+  hintNotice.value = null
+  hintMutation.mutate(undefined, {
+    onSuccess: openMap,
+    onError: (error) => {
+      const errorCodeValue = errorCode(error)
+      if (errorCodeValue === 'nothing_to_hint') {
+        hintNotice.value = t('geo.hint.nothingLeft')
+        openMap()
+      } else if (errorCodeValue && STALE_CODES.has(errorCodeValue)) {
+        guessError.value = t('geo.errors.stale')
+        query.refetch()
+      } else guessError.value = t('geo.errors.generic')
+    },
+  })
+}
+
 /** Shown when the server refuses a guess or can't be reached. */
 const guessError = ref<string | null>(null)
 
@@ -150,6 +180,7 @@ function sendGuess() {
 function nextRound() {
   revealed.value = null
   guessError.value = null
+  hintNotice.value = null
   view.value = 'panorama'
 }
 
@@ -177,6 +208,16 @@ const titleParts = computed(() => {
         </span>
       </span>
       <template v-else>{{ t('geo.title') }}</template>
+    </template>
+    <template v-if="game && phase === 'guess'" #actions>
+      <GameActionButton
+        :label="t('geo.hint.label')"
+        icon="pi pi-lightbulb"
+        :loading="hintMutation.isPending.value"
+        :disabled="guess.isPending.value"
+        data-test="hint"
+        @click="takeHint"
+      />
     </template>
     <AppSpinner v-if="query.isPending.value" :aria-label="t('geo.loading')" />
     <AppMessage v-else-if="noPuzzle" severity="info" data-test="no-puzzle">
@@ -235,6 +276,7 @@ const titleParts = computed(() => {
             :pin="phase === 'guess' ? pin : null"
             :results="mapResults"
             :disabled="guess.isPending.value"
+            :hint="phase === 'guess' ? roundHint : null"
             :aria-label="t(phase === 'reveal' ? 'geo.map.reveal' : 'geo.map.guess')"
             @place="place"
           />
@@ -254,7 +296,12 @@ const titleParts = computed(() => {
             @click="openMap"
           />
           <template v-else>
-            <p v-if="!hint" class="geo-game__help">{{ t('geo.placePin') }}</p>
+            <p v-if="!hint && hintNotice" class="geo-game__notice" data-test="hint-notice">
+              {{ hintNotice }}
+            </p>
+            <p v-else-if="!hint" class="geo-game__help">
+              {{ t(roundHint ? 'geo.hint.inCircle' : 'geo.placePin') }}
+            </p>
             <div class="geo-game__actions">
               <AppButton
                 :label="t('geo.backToPanorama')"
@@ -280,6 +327,10 @@ const titleParts = computed(() => {
           <p class="geo-game__reveal" data-test="reveal">
             <strong>{{ t('geo.points', { score: revealed.score }) }}</strong>
             <span>{{ t('geo.distance', { distance: formatDistance(revealed.distance_m) }) }}</span>
+            <span v-if="revealed.hinted" data-test="reveal-hinted">
+              <i class="pi pi-lightbulb" aria-hidden="true" />
+              {{ t('geo.hint.used', { points: game.hint_penalty }) }}
+            </span>
           </p>
           <AppButton
             class="geo-game__action"
@@ -327,6 +378,14 @@ const titleParts = computed(() => {
   justify-content: space-between;
   width: 100%;
   font-weight: 600;
+}
+
+/* A hint notice: the theme's green, like the app's other notices. */
+.geo-game__notice {
+  margin: 0;
+  color: var(--dz-primary-strong);
+  font-weight: 600;
+  text-align: center;
 }
 
 .geo-game__help {

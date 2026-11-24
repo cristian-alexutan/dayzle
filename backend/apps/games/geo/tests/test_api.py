@@ -4,6 +4,7 @@ from datetime import timedelta
 import pytest
 
 from apps.common.time import today_in_romania
+from apps.games.geo import rules
 
 from .factories import GeoPuzzleFactory, LocationFactory, RegionFactory
 
@@ -11,6 +12,7 @@ pytestmark = pytest.mark.django_db
 
 GAME_URL = "/api/v1/games/geo/today/"
 GUESS_URL = "/api/v1/games/geo/today/guess/"
+HINT_URL = "/api/v1/games/geo/today/hint/"
 
 
 @pytest.fixture
@@ -86,6 +88,7 @@ def test_a_guess_reveals_its_location_and_the_next_panorama_only(api_client, loc
             "location": {"lat": locations[0].latitude, "lng": locations[0].longitude},
             "distance_m": 0,
             "score": 1000,
+            "hinted": False,
         }
     ]
     assert data["current_round"] == 2
@@ -203,3 +206,28 @@ def test_heartbeat_keeps_the_clock_running(api_client, puzzle):
     api_client.get(GAME_URL)
 
     assert api_client.post(heartbeat).status_code == 204
+
+
+def test_a_hint_draws_a_circle_that_holds_the_spot_without_giving_it_away(api_client, locations):
+    api_client.get(GAME_URL)
+
+    response = api_client.post(HINT_URL)
+
+    assert response.status_code == 200
+    data = response.json()
+    [circle] = data["hints"]
+    assert circle["round"] == 1 and circle["radius_m"] == rules.HINT_RADIUS_M == 2500
+    center = rules.Point(circle["center"]["lat"], circle["center"]["lng"])
+    assert 625 <= rules.distance_m(center, locations[0].point) <= 1875
+    assert data["hint_penalty"] == 300
+    assert_hidden(response, locations)
+
+
+def test_a_second_hint_in_a_round_is_nothing_to_hint(api_client, locations):
+    api_client.get(GAME_URL)
+    api_client.post(HINT_URL)
+
+    response = api_client.post(HINT_URL)
+
+    assert response.status_code == 409
+    assert response.json()["error"]["code"] == "nothing_to_hint"
