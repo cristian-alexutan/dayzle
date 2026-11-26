@@ -7,4 +7,5 @@ from . import views
 urlpatterns = [
     path("<game_day:day>/", views.game, name="trivia-game"),
     path("<game_day:day>/answer/", views.answer, name="trivia-answer"),
+    path("<game_day:day>/hint/", views.hint, name="trivia-hint"),
 ]

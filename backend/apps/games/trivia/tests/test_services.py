@@ -6,7 +6,12 @@ import pytest
 
 from apps.common.time import today_in_romania
 from apps.games.trivia import services
-from apps.games.trivia.exceptions import AlreadyAnsweredError, InvalidAnswerError, OutOfOrderError
+from apps.games.trivia.exceptions import (
+    AlreadyAnsweredError,
+    InvalidAnswerError,
+    NothingToHintError,
+    OutOfOrderError,
+)
 from apps.games.trivia.models import Category, Question, TriviaPuzzle
 from apps.games.trivia.selectors import pick_questions
 from apps.puzzles.exceptions import ArchiveUnavailableError, NoPuzzleError
@@ -69,30 +74,32 @@ def test_an_answer_is_checked_and_reveals_the_correct_choice(today):
             "choice": wrong_choice(first),
             "correct_choice": correct_choice(first),
             "is_correct": False,
+            "hinted": False,
         }
     ]
     assert services.open_game(guest_id, today).result.details == game.result.details
 
 
 def test_the_fifth_answer_finishes_with_one_point_per_correct_answer(today):
+    # Scores are stored in half points: 3 correct answers are 6.
     guest_id = uuid.uuid4()
     questions = services.open_game(guest_id, today).questions
 
     game = play(guest_id, today, questions, right=3)
 
     assert game.result.status == GameResult.Status.COMPLETED
-    assert game.result.score == 3
+    assert game.result.score == 6
     assert game.result.solved is False
     assert game.result.duration_ms is not None
 
 
-def test_only_five_out_of_five_counts_as_solved(today):
+def test_five_out_of_five_counts_as_solved(today):
     guest_id = uuid.uuid4()
     questions = services.open_game(guest_id, today).questions
 
     game = play(guest_id, today, questions, right=5)
 
-    assert game.result.score == 5
+    assert game.result.score == 10
     assert game.result.solved is True
 
 
@@ -286,3 +293,71 @@ def test_seed_imports_the_bank_and_creates_a_quiz():
     quiz = TriviaPuzzle.objects.get(daily_puzzle=daily_puzzle)
     assert quiz.entries.count() == 5
     assert quiz.questions.values("category").distinct().count() == 5
+
+
+def test_a_hint_removes_two_wrong_choices_of_the_question_to_answer(today):
+    guest_id = uuid.uuid4()
+    first = services.open_game(guest_id, today).questions[0]
+
+    game = services.hint(guest_id, today)
+
+    [hint] = game.result.details["hints"]
+    assert hint["question"] == first.pk
+    wrong = set(first.choices.filter(is_correct=False).values_list("pk", flat=True))
+    assert len(hint["removed"]) == 2 and set(hint["removed"]) <= wrong
+
+
+def test_each_question_gets_one_hint(today):
+    guest_id = uuid.uuid4()
+    first, second = services.open_game(guest_id, today).questions[:2]
+    services.hint(guest_id, today)
+
+    with pytest.raises(NothingToHintError):
+        services.hint(guest_id, today)
+
+    services.answer(guest_id, today, first.pk, correct_choice(first))
+    game = services.hint(guest_id, today)
+    assert [hint["question"] for hint in game.result.details["hints"]] == [first.pk, second.pk]
+
+
+def test_a_removed_choice_cannot_be_picked(today):
+    guest_id = uuid.uuid4()
+    first = services.open_game(guest_id, today).questions[0]
+    removed = services.hint(guest_id, today).result.details["hints"][0]["removed"]
+
+    with pytest.raises(InvalidAnswerError):
+        services.answer(guest_id, today, first.pk, removed[0])
+
+
+def test_hinted_answers_are_worth_half_and_all_right_is_still_solved(today):
+    guest_id = uuid.uuid4()
+    questions = services.open_game(guest_id, today).questions
+    services.hint(guest_id, today)
+
+    game = play(guest_id, today, questions, right=5)
+
+    assert game.result.details["answers"][0]["hinted"] is True
+    assert game.result.score == 9  # 4.5 points, in half points
+    assert game.result.solved is True
+
+
+def test_a_hinted_wrong_answer_is_worth_nothing(today):
+    guest_id = uuid.uuid4()
+    questions = services.open_game(guest_id, today).questions
+    services.hint(guest_id, today)
+    removed = services.open_game(guest_id, today).result.details["hints"][0]["removed"]
+    left_wrong = questions[0].choices.filter(is_correct=False).exclude(pk__in=removed).get().pk
+    services.answer(guest_id, today, questions[0].pk, left_wrong)
+
+    game = play(guest_id, today, questions[1:], right=4)
+
+    assert game.result.score == 8
+    assert game.result.solved is False
+
+
+def test_no_hint_after_the_quiz_is_finished(today):
+    guest_id = uuid.uuid4()
+    play(guest_id, today, services.open_game(guest_id, today).questions, right=5)
+
+    with pytest.raises(AlreadyPlayedError):
+        services.hint(guest_id, today)

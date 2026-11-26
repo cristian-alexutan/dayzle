@@ -19,6 +19,7 @@ const { t } = useI18n()
 const stateLabel = computed(() => {
   if (props.state === 'correct') return t('trivia.option.correct')
   if (props.state === 'wrong') return t('trivia.option.wrong')
+  if (props.state === 'removed') return t('trivia.option.removed')
   return null
 })
 const icon = computed(() => {
@@ -113,6 +114,15 @@ const icon = computed(() => {
 
 .answer-option--dimmed {
   opacity: 0.55;
+}
+
+/* Taken away by a hint: crossed out and faded, and it can't be picked. */
+.answer-option--removed {
+  opacity: 0.4;
+}
+
+.answer-option--removed .answer-option__text {
+  text-decoration: line-through;
 }
 
 /* Read by screen readers only: the color and icon say the same to sighted players. */

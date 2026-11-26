@@ -1,6 +1,7 @@
 """Write operations and business rules for the Trivia game app."""
 
 import json
+import random
 import uuid
 from collections.abc import Iterable, Sequence
 from dataclasses import dataclass
@@ -15,7 +16,12 @@ from apps.results.models import GameResult
 from apps.results.services import complete, save_progress, start_or_resume
 
 from . import rules
-from .exceptions import AlreadyAnsweredError, InvalidAnswerError, OutOfOrderError
+from .exceptions import (
+    AlreadyAnsweredError,
+    InvalidAnswerError,
+    NothingToHintError,
+    OutOfOrderError,
+)
 from .models import Category, Choice, Difficulty, Question, TriviaPuzzle, TriviaPuzzleQuestion
 from .selectors import get_playable_trivia_puzzle, ordered_questions, pick_questions
 
@@ -40,11 +46,31 @@ def open_game(guest_id: uuid.UUID, day: date) -> TriviaGame:
     return TriviaGame(result, puzzle, ordered_questions(puzzle))
 
 
+def _removed_choices(details: dict, question_id: int) -> list[int]:
+    """The choices a hint removed from this question (none if it had no hint)."""
+    hint = next((h for h in details.get("hints", []) if h["question"] == question_id), None)
+    return hint["removed"] if hint else []
+
+
+def _lock_in_progress(result: GameResult) -> GameResult:
+    """Lock the result so two simultaneous requests can't both change the same question."""
+    locked = GameResult.objects.select_for_update().get(pk=result.pk)
+    if locked.status == GameResult.Status.COMPLETED:
+        raise AlreadyPlayedError()
+    return locked
+
+
+def _next_question(game: TriviaGame, answers: list[dict]) -> Question:
+    answered = {given["question"] for given in answers}
+    return next(q for q in game.questions if q.pk not in answered)
+
+
 def answer(guest_id: uuid.UUID, day: date, question_id: int, choice_id: int) -> TriviaGame:
     """Check the answer to the next question and reveal the correct choice.
 
-    Questions are answered in order, once each. The fifth answer finishes the game with
-    ``rules.score`` (one point per correct answer); only 5 out of 5 counts as solved.
+    Questions are answered in order, once each, and a choice removed by a hint can't be picked.
+    The fifth answer finishes the game with ``rules.score`` (half a point less for each hinted
+    correct answer); every answer right counts as solved.
     """
     game = open_game(guest_id, day)
     question = next((q for q in game.questions if q.pk == question_id), None)
@@ -57,17 +83,15 @@ def answer(guest_id: uuid.UUID, day: date, question_id: int, choice_id: int) -> 
     correct = next(c for c in choices if c.is_correct)
 
     with transaction.atomic():
-        # Lock the result so two simultaneous answers can't both count for the same question.
-        result = GameResult.objects.select_for_update().get(pk=game.result.pk)
-        if result.status == GameResult.Status.COMPLETED:
-            raise AlreadyPlayedError()
+        result = _lock_in_progress(game.result)
         answers = result.details.get("answers", [])
-        answered = {given["question"] for given in answers}
-        if question_id in answered:
+        if any(given["question"] == question_id for given in answers):
             raise AlreadyAnsweredError()
-        next_question = next(q for q in game.questions if q.pk not in answered)
-        if next_question.pk != question_id:
+        if _next_question(game, answers).pk != question_id:
             raise OutOfOrderError()
+        removed = _removed_choices(result.details, question_id)
+        if choice_id in removed:
+            raise InvalidAnswerError()
 
         answers = [
             *answers,
@@ -76,16 +100,38 @@ def answer(guest_id: uuid.UUID, day: date, question_id: int, choice_id: int) -> 
                 "choice": choice_id,
                 "correct_choice": correct.pk,
                 "is_correct": chosen.pk == correct.pk,
+                "hinted": bool(removed),
             },
         ]
-        details = {"answers": answers}
+        details = {**result.details, "answers": answers}
         if len(answers) == len(game.questions):
-            points = rules.score(answers)
             result = complete(
-                result, solved=rules.is_perfect(points), score=points, details=details
+                result,
+                solved=rules.is_perfect(answers),
+                score=rules.score(answers),
+                details=details,
             )
         else:
             result = save_progress(result, details)
+    return TriviaGame(result, game.puzzle, game.questions)
+
+
+def hint(guest_id: uuid.UUID, day: date) -> TriviaGame:
+    """50/50: remove two random wrong choices from the question waiting for an answer.
+
+    One hint per question (``NothingToHintError`` for a second one). A correct answer to a
+    hinted question is worth half a point.
+    """
+    game = open_game(guest_id, day)
+    with transaction.atomic():
+        result = _lock_in_progress(game.result)
+        question = _next_question(game, result.details.get("answers", []))
+        if _removed_choices(result.details, question.pk):
+            raise NothingToHintError()
+        wrong = [choice.pk for choice in question.choices.all() if not choice.is_correct]
+        removed = sorted(random.sample(wrong, rules.CHOICES_REMOVED_BY_HINT))
+        hints = [*result.details.get("hints", []), {"question": question.pk, "removed": removed}]
+        result = save_progress(result, {**result.details, "hints": hints})
     return TriviaGame(result, game.puzzle, game.questions)
 
 

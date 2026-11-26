@@ -36,7 +36,7 @@ const { t } = useI18n()
           :letter="LETTERS[index] ?? String(index + 1)"
           :state="choiceState(choice.id)"
           :selected="selected === choice.id"
-          :disabled="disabled"
+          :disabled="disabled || choiceState(choice.id) === 'removed'"
           @select="$emit('choose', choice.id)"
         />
       </div>

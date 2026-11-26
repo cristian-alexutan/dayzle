@@ -9,10 +9,15 @@ import type { TriviaGame } from '../types'
 
 const props = defineProps<{ game: TriviaGame }>()
 
-const { t } = useI18n()
+const { t, locale } = useI18n()
 
 const score = computed(() => props.game.score ?? 0)
-const result = computed(() => `${score.value}/${props.game.max_score}`)
+// Half points are shown the local way: 3,5/5 in Romanian, 3.5/5 in English.
+const result = computed(() => {
+  const points = new Intl.NumberFormat(locale.value).format(score.value)
+  return `${points}/${props.game.max_score}`
+})
+const hintsUsed = computed(() => props.game.hints.length)
 const title = computed(() => {
   if (props.game.solved) return t('trivia.result.perfect')
   if (score.value === 0) return t('trivia.result.none')
@@ -27,6 +32,7 @@ const rows = computed(() =>
       text: question.text,
       correctText: correct?.text ?? '',
       isCorrect: answer?.is_correct === true,
+      hinted: answer?.hinted === true,
     }
   }),
 )
@@ -48,10 +54,19 @@ const rows = computed(() =>
           <i :class="row.isCorrect ? 'pi pi-check' : 'pi pi-times'" aria-hidden="true" />
           <span class="trivia-result__question">
             {{ row.text }}
-            <span class="trivia-result__answer">{{ row.correctText }}</span>
+            <span class="trivia-result__answer">
+              {{ row.correctText }}
+              <span v-if="row.hinted" class="trivia-result__hinted" data-test="result-hinted">
+                · <i class="pi pi-lightbulb" aria-hidden="true" />
+                {{ t('trivia.result.hinted') }}
+              </span>
+            </span>
           </span>
         </li>
       </ol>
+      <p v-if="hintsUsed" class="trivia-result__hints" data-test="result-hints">
+        {{ t('trivia.result.hints', { count: hintsUsed }, hintsUsed) }}
+      </p>
       <p class="trivia-result__comeback">{{ t('trivia.result.comeback') }}</p>
     </ResultCard>
   </section>
@@ -104,6 +119,16 @@ const rows = computed(() =>
 .trivia-result__answer {
   color: var(--dz-text-muted);
   font-size: 0.9rem;
+}
+
+.trivia-result__hinted .pi {
+  margin: 0;
+  color: var(--dz-text-muted);
+}
+
+.trivia-result__hints {
+  margin: 0.75rem 0 0;
+  color: var(--dz-text-muted);
 }
 
 .trivia-result__comeback {

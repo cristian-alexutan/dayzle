@@ -5,7 +5,7 @@ import type { MaybeRefOrGetter } from 'vue'
 import { useHeartbeat } from '@/shared/composables/useHeartbeat'
 
 import type { GameDay } from '../types'
-import { fetchGame, sendAnswer, sendHeartbeat } from './endpoints'
+import { fetchGame, sendAnswer, sendHeartbeat, sendHint } from './endpoints'
 
 const gameKey = (day: GameDay) => ['trivia', 'game', day]
 
@@ -27,6 +27,20 @@ export function useAnswerMutation(day: GameDay) {
   return useMutation({
     mutationFn: ({ question, choice }: { question: number; choice: number }) =>
       sendAnswer(day, question, choice),
+    onMutate: cancelReloads,
+    onSuccess: async (game) => {
+      await cancelReloads()
+      queryClient.setQueryData(gameKey(day), game)
+    },
+  })
+}
+
+/** Take a 50/50 on the current question. Like an answer, it replaces the cached quiz. */
+export function useHintMutation(day: GameDay) {
+  const queryClient = useQueryClient()
+  const cancelReloads = () => queryClient.cancelQueries({ queryKey: gameKey(day) })
+  return useMutation({
+    mutationFn: () => sendHint(day),
     onMutate: cancelReloads,
     onSuccess: async (game) => {
       await cancelReloads()

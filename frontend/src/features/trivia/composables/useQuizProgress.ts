@@ -39,6 +39,13 @@ export function useQuizProgress(game: MaybeRefOrGetter<TriviaGame | undefined>) 
   )
   const isLast = computed(() => currentIndex.value === questions.value.length - 1)
 
+  /** The choices a hint removed from the current question (none without a hint). */
+  const removedChoices = computed(() => {
+    const id = currentQuestion.value?.id
+    return toValue(game)?.hints.find((hint) => hint.question === id)?.removed ?? []
+  })
+  const currentHinted = computed(() => removedChoices.value.length > 0)
+
   const outcomes = computed<QuestionOutcome[]>(() =>
     questions.value.map((question) => {
       const answer = answersByQuestion.value.get(question.id)
@@ -49,6 +56,7 @@ export function useQuizProgress(game: MaybeRefOrGetter<TriviaGame | undefined>) 
 
   /** How a choice of the current question is drawn. */
   function choiceState(choiceId: number): ChoiceState {
+    if (removedChoices.value.includes(choiceId)) return 'removed'
     const answer = currentAnswer.value
     if (!answer) return 'idle'
     if (choiceId === answer.correct_choice) return 'correct'
@@ -70,6 +78,7 @@ export function useQuizProgress(game: MaybeRefOrGetter<TriviaGame | undefined>) 
     currentIndex,
     currentQuestion,
     currentAnswer,
+    currentHinted,
     isLast,
     outcomes,
     finished,

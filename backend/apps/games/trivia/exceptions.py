@@ -19,3 +19,9 @@ class AlreadyAnsweredError(DomainError):
     status_code = 409
     code = "already_answered"
     default_message = "This question has already been answered."
+
+
+class NothingToHintError(DomainError):
+    status_code = 409
+    code = "nothing_to_hint"
+    default_message = "This question already had its hint."

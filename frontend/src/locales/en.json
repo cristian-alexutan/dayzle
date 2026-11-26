@@ -230,12 +230,17 @@
       "right": "Correct!",
       "wrong": "Wrong. The correct answer: {answer}"
     },
+    "hint": {
+      "label": "Hint",
+      "nothingLeft": "Only two choices left. You can do it!"
+    },
     "loading": "Loading the quiz",
     "next": "Next question",
     "noPuzzle": "There is no quiz for today. Come back tomorrow!",
     "option": {
       "correct": "Correct answer",
-      "wrong": "Wrong answer"
+      "wrong": "Wrong answer",
+      "removed": "removed by the hint"
     },
     "outcome": {
       "correct": "Question {number}: correct",
@@ -248,7 +253,9 @@
       "comeback": "Come back tomorrow for a new quiz!",
       "done": "Quiz complete!",
       "none": "Try again tomorrow!",
-      "perfect": "Perfect! Every answer right!"
+      "perfect": "Perfect! Every answer right!",
+      "hinted": "with a hint",
+      "hints": "No hints | 1 hint (half a point) | {count} hints (half a point each)"
     },
     "seeResult": "See result",
     "title": "Trivia"
