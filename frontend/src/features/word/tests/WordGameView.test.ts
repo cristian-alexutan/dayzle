@@ -68,6 +68,7 @@ beforeEach(() => {
 })
 
 afterEach(() => {
+  localStorage.clear()
   fetchMock.mockReset()
   vi.unstubAllGlobals()
   vi.useRealTimers()
@@ -228,17 +229,35 @@ describe('WordGameView', () => {
     wrapper.unmount()
   })
 
-  it('opens the rules every time an unfinished game is opened', async () => {
-    for (const guesses of [[], [tunel]]) {
-      const wrapper = await mountView(jsonResponse(200, makeGame({ guesses })), {
-        keepRules: true,
-      })
+  it('opens the rules by themselves only the first time, then from the info button', async () => {
+    const first = await mountView(jsonResponse(200, makeGame()), { keepRules: true })
+    const rules = () => document.body.querySelector('[data-test="how-to-play-rules"]')
+    expect(rules()?.textContent).toContain('Fiecare indiciu costă 2 puncte')
+    await closeRules()
+    expect(localStorage.getItem('dayzle.word.rulesSeen')).toBe('yes')
+    first.unmount()
+    document.body.innerHTML = ''
 
-      const rules = document.body.querySelector('[data-test="how-to-play-rules"]')
-      expect(rules?.textContent).toContain('Fiecare indiciu costă 2 puncte')
-      wrapper.unmount()
-      document.body.innerHTML = ''
-    }
+    // A reload mid-game, or a later visit: straight to the board.
+    const again = await mountView(jsonResponse(200, makeGame({ guesses: [tunel] })), {
+      keepRules: true,
+    })
+    expect(rules()).toBeNull()
+    await again.find('[data-test="how-to-play"]').trigger('click')
+    await flushPromises()
+    expect(rules()).not.toBeNull()
+    again.unmount()
+  })
+
+  it('shows the rules every time when the browser blocks storage', async () => {
+    vi.spyOn(Storage.prototype, 'getItem').mockImplementation(() => {
+      throw new Error('blocked')
+    })
+    const wrapper = await mountView(jsonResponse(200, makeGame()), { keepRules: true })
+
+    expect(document.body.querySelector('[data-test="how-to-play-rules"]')).not.toBeNull()
+    wrapper.unmount()
+    vi.restoreAllMocks()
   })
 
   it('ignores typing while the rules are open', async () => {

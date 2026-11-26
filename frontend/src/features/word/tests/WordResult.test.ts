@@ -61,6 +61,7 @@ beforeEach(() => {
 })
 
 afterEach(() => {
+  localStorage.clear()
   fetchMock.mockReset()
   vi.unstubAllGlobals()
   vi.useRealTimers()
