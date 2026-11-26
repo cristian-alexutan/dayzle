@@ -31,7 +31,7 @@ const summary = computed(() => {
 </script>
 
 <template>
-  <AppDialog v-model:visible="visible" :header="title" :style="{ width: 'min(90vw, 24rem)' }">
+  <AppDialog v-model:visible="visible" :header="title" size="result">
     <ResultCard :result="result" :duration-ms="game.duration_ms">
       <p class="word-result__summary" data-test="summary">{{ summary }}</p>
       <p class="word-result__label">{{ t('word.result.answer') }}</p>

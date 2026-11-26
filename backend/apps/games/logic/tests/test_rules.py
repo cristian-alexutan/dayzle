@@ -132,3 +132,16 @@ def test_the_time_limit_grows_with_the_grid():
 def test_the_score_never_goes_below_zero():
     assert rules.score(6, duration_ms=60 * 60_000, mistakes=0) == 0
     assert rules.score(6, duration_ms=0, mistakes=30) == 0
+
+
+def test_each_hint_costs_100_points():
+    assert rules.score(6, duration_ms=3 * 60_000, mistakes=1, hints=1) == 600
+    assert rules.score(6, duration_ms=0, mistakes=0, hints=11) == 0
+
+
+def test_hint_candidates_skip_rows_with_their_sun_or_a_hint():
+    solution = [2, 0, 4, 1]
+    suns = [(0, 2), (1, 1)]  # row 0 is right, row 1 has a wrong sun
+    hints = [(2, 4)]
+
+    assert rules.hint_candidates(solution, suns, hints) == [(1, 0), (3, 1)]

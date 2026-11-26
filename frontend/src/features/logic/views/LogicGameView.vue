@@ -7,6 +7,7 @@ import AppButton from '@/shared/components/AppButton.vue'
 import AppMessage from '@/shared/components/AppMessage.vue'
 import AppSpinner from '@/shared/components/AppSpinner.vue'
 import ErrorState from '@/shared/components/ErrorState.vue'
+import GameActionButton from '@/shared/components/GameActionButton.vue'
 import GameShell from '@/shared/components/GameShell.vue'
 import { useTimer } from '@/shared/composables/useTimer'
 
@@ -14,6 +15,7 @@ import {
   errorCode,
   useCellMutation,
   useClearMutation,
+  useHintMutation,
   useLogicGameQuery,
   useLogicHeartbeat,
 } from '../api/queries'
@@ -21,11 +23,13 @@ import LogicBoard from '../components/LogicBoard.vue'
 import LogicResult from '../components/LogicResult.vue'
 import LogicToolbar from '../components/LogicToolbar.vue'
 import LogicTutorial from '../components/LogicTutorial.vue'
+import { sameCell } from '../board'
 import { useBoardState } from '../composables/useBoardState'
 import { useConflicts } from '../composables/useConflicts'
 
 const DAY = 'today'
 const ERROR_MS = 2500
+const NOTICE_MS = 3000
 /** A moment to see the last sun on the board before the result opens. */
 const RESULT_DELAY_MS = 600
 const TUTORIAL_SEEN_KEY = 'dayzle.logic.tutorialSeen'
@@ -91,6 +95,22 @@ const cellMutation = useCellMutation(DAY, {
 })
 const clearMutation = useClearMutation(DAY, { onError })
 
+const isHinted = (cell: [number, number]) =>
+  game.value?.hints.some((hint) => sameCell(hint, cell)) ?? false
+
+/** A friendly message, such as when every row already has its sun or a hint. */
+const notice = ref<string | null>(null)
+let noticeTimer: ReturnType<typeof setTimeout> | undefined
+
+const hintMutation = useHintMutation(DAY, {
+  onError: (error) => {
+    if (errorCode(error) !== 'nothing_to_hint') return onError(error)
+    notice.value = t('logic.hint.nothingLeft')
+    clearTimeout(noticeTimer)
+    noticeTimer = setTimeout(() => (notice.value = null), NOTICE_MS)
+  },
+})
+
 const board = useBoardState({
   game,
   disabled: () => !inProgress.value,
@@ -119,12 +139,22 @@ watch(
 
 onBeforeUnmount(() => {
   clearTimeout(errorTimer)
+  clearTimeout(noticeTimer)
   clearTimeout(resultTimer)
 })
 </script>
 
 <template>
   <GameShell :title="t('logic.title')">
+    <template v-if="inProgress" #actions>
+      <GameActionButton
+        :label="t('logic.hint.label')"
+        icon="pi pi-lightbulb"
+        :loading="hintMutation.isPending.value"
+        data-test="hint"
+        @click="hintMutation.mutate()"
+      />
+    </template>
     <AppSpinner v-if="query.isPending.value" :aria-label="t('logic.loading')" />
     <AppMessage v-else-if="noPuzzle" severity="info" data-test="no-puzzle">
       {{ t('logic.noPuzzle') }}
@@ -150,12 +180,16 @@ onBeforeUnmount(() => {
         <AppMessage v-if="errorMessage" severity="error" size="small" data-test="error">
           {{ errorMessage }}
         </AppMessage>
+        <AppMessage v-else-if="notice" severity="info" size="small" data-test="hint-notice">
+          {{ notice }}
+        </AppMessage>
       </div>
       <LogicBoard
         :regions="game.regions"
         :content-of="board.contentOf"
         :is-rejected="conflicts.isRejected"
         :is-conflict="conflicts.isConflict"
+        :is-hinted="isHinted"
         :disabled="!inProgress"
         @tap="board.tap"
       />

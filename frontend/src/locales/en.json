@@ -108,10 +108,15 @@
     "cell": {
       "empty": "Row {row}, column {col}: empty",
       "mark": "Row {row}, column {col}: X",
-      "sun": "Row {row}, column {col}: sun"
+      "sun": "Row {row}, column {col}: sun",
+      "hinted": "hint: a sun goes here"
     },
     "errors": {
       "generic": "Something went wrong. Please try again."
+    },
+    "hint": {
+      "label": "Hint",
+      "nothingLeft": "Every row has its sun or a hint. You can do it!"
     },
     "loading": "Loading the game",
     "mistakes": "Mistakes",
@@ -119,7 +124,8 @@
     "result": {
       "mistakes": "No mistakes | 1 mistake | {count} mistakes",
       "see": "See result",
-      "title": "Congratulations!"
+      "title": "Congratulations!",
+      "hints": "No hints | 1 hint (−{points} points) | {count} hints (−{points} points)"
     },
     "title": "Sunspots",
     "toolbar": {
@@ -139,7 +145,8 @@
       "controls": {
         "mark": "Tap a cell once to put an X where you know there's no sun. X marks are just your notes.",
         "sun": "Tap it again for a sun, and once more to empty it. A sun that breaks a rule is rejected and counts as a mistake.",
-        "score": "Your score starts at 1000 and goes down with time, and each mistake costs 50 points. Once every sun is placed, the puzzle is solved."
+        "score": "Your score starts at 1000 and goes down with time, and each mistake costs 50 points. Once every sun is placed, the puzzle is solved.",
+        "hint": "Stuck? A hint shows a cell where a sun goes, for 100 points. You place the sun yourself: first remove your suns that clash with it, or it counts as a mistake."
       },
       "start": "Got it"
     }

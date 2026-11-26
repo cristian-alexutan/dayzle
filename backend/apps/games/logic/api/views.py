@@ -44,3 +44,12 @@ def clear(request: Request, day: date) -> Response:
     """Remove every sun and X from the board. Mistakes and time are kept."""
     logic_game = services.clear_board(get_guest_id(request), day)
     return Response(LogicGameSerializer(logic_game).data)
+
+
+@extend_schema(request=None, responses=LogicGameSerializer)
+@api_view(["POST"])
+def hint(request: Request, day: date) -> Response:
+    """Show where a sun of the solution goes (409 ``nothing_to_hint`` when every row has its sun
+    or a hint). Nothing is placed; each hint costs points at the end."""
+    logic_game = services.hint(get_guest_id(request), day)
+    return Response(LogicGameSerializer(logic_game).data)

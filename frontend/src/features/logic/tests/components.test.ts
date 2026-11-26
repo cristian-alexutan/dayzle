@@ -38,6 +38,16 @@ describe('LogicCell', () => {
     )
   })
 
+  it('shows a hinted cell with only a ring, whatever it holds', () => {
+    const empty = mountCell({ hinted: true })
+    expect(empty.classes()).toContain('logic-cell--hinted')
+    expect(empty.find('i').exists()).toBe(false)
+
+    const withSun = mountCell({ hinted: true, content: 'sun' })
+    expect(withSun.classes()).toContain('logic-cell--hinted')
+    expect(withSun.find('[data-test="sun"]').exists()).toBe(true)
+  })
+
   it('emits a tap, unless disabled', async () => {
     const cell = mountCell()
     await cell.trigger('click')
@@ -61,9 +71,16 @@ describe('LogicBoard', () => {
         contentOf: (): CellContent => 'empty',
         isRejected: () => false,
         isConflict: () => false,
+        isHinted: (cell: Cell) => cell[0] === 0 && cell[1] === 2,
       },
     })
   }
+
+  it('says in the label which cell a hint showed', () => {
+    const cells = mountBoard().findAll('[data-test="cell"]')
+    expect(cells[2]!.attributes('aria-label')).toContain('indiciu')
+    expect(cells[0]!.attributes('aria-label')).not.toContain('indiciu')
+  })
 
   it('draws one cell per square of the grid', () => {
     expect(mountBoard().findAll('[data-test="cell"]')).toHaveLength(9)

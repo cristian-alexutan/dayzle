@@ -222,4 +222,48 @@ describe('LogicGameView', () => {
     expect(wrapper.find('[data-test="no-puzzle"]').exists()).toBe(true)
     wrapper.unmount()
   })
+
+  it('takes a hint and highlights the cell, without placing a sun', async () => {
+    const wrapper = await mountView(jsonResponse(200, makeGame()))
+    fetchMock.mockResolvedValueOnce(jsonResponse(200, makeGame({ hints: [[1, 0]] })))
+
+    await wrapper.find('[data-test="hint"]').trigger('click')
+    await flushPromises()
+
+    expect(requestsTo('/games/logic/today/hint/')).toHaveLength(1)
+    const cells = wrapper.findAll('[data-test="cell"]')
+    expect(cells[2]!.classes()).toContain('logic-cell--hinted')
+    expect(cells[2]!.find('[data-test="sun"]').exists()).toBe(false)
+    wrapper.unmount()
+  })
+
+  it('says the player has everything when there is nothing left to hint', async () => {
+    const wrapper = await mountView(jsonResponse(200, makeGame()))
+    fetchMock.mockResolvedValueOnce(errorResponse(409, 'nothing_to_hint'))
+    // After an error the board is loaded again, in case the screen is out of date.
+    fetchMock.mockResolvedValueOnce(jsonResponse(200, makeGame()))
+
+    await wrapper.find('[data-test="hint"]').trigger('click')
+    await flushPromises()
+
+    expect(wrapper.find('[data-test="hint-notice"]').text()).toContain('Poți s-o faci!')
+    expect(wrapper.find('[data-test="error"]').exists()).toBe(false)
+    wrapper.unmount()
+  })
+
+  it('has no hint button once the game is finished, and the result shows the hints', async () => {
+    const wrapper = await mountView(
+      jsonResponse(
+        200,
+        makeGame({ status: 'completed', solved: true, score: 650, hints: [[0, 0]] }),
+      ),
+    )
+    await flushPromises()
+
+    expect(wrapper.find('[data-test="hint"]').exists()).toBe(false)
+    expect(document.body.querySelector('[data-test="result-hints"]')?.textContent).toContain(
+      '1 indiciu (−100 puncte)',
+    )
+    wrapper.unmount()
+  })
 })

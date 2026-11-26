@@ -8,4 +8,5 @@ urlpatterns = [
     path("<game_day:day>/", views.game, name="logic-game"),
     path("<game_day:day>/cell/", views.cell, name="logic-cell"),
     path("<game_day:day>/clear/", views.clear, name="logic-clear"),
+    path("<game_day:day>/hint/", views.hint, name="logic-hint"),
 ]

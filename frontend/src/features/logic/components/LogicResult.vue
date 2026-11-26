@@ -17,14 +17,19 @@ const result = computed(() => `${props.game.score ?? 0}/1000`)
 </script>
 
 <template>
-  <AppDialog
-    v-model:visible="visible"
-    :header="t('logic.result.title')"
-    :style="{ width: 'min(90vw, 24rem)' }"
-  >
+  <AppDialog v-model:visible="visible" :header="t('logic.result.title')" size="result">
     <ResultCard :result="result" :duration-ms="game.duration_ms">
       <p class="logic-result__mistakes" data-test="result-mistakes">
         {{ t('logic.result.mistakes', { count: game.mistakes }, game.mistakes) }}
+      </p>
+      <p v-if="game.hints.length" class="logic-result__mistakes" data-test="result-hints">
+        {{
+          t(
+            'logic.result.hints',
+            { count: game.hints.length, points: game.hints.length * game.hint_penalty },
+            game.hints.length,
+          )
+        }}
       </p>
     </ResultCard>
   </AppDialog>

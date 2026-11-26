@@ -160,6 +160,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/games/logic/{day}/hint/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * @description Show where a sun of the solution goes (409 ``nothing_to_hint`` when every row has its sun
+         *     or a hint). Nothing is placed; each hint costs points at the end.
+         */
+        post: operations["v1_games_logic_hint_create"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/games/math/{day}/": {
         parameters: {
             query?: never;
@@ -417,7 +437,8 @@ export interface components {
         };
         /**
          * @description The player's board. ``solved``, ``score`` and ``duration_ms`` stay null until the game
-         *     ends. ``elapsed_ms`` is only for display. The solution is never sent.
+         *     ends. ``elapsed_ms`` is only for display. The solution is never sent, except the cells the
+         *     player paid for: ``hints``, each costing ``hint_penalty`` points.
          */
         LogicGame: {
             /** Format: date */
@@ -428,6 +449,8 @@ export interface components {
             readonly suns: number[][];
             readonly marks: number[][];
             readonly mistakes: number;
+            readonly hints: number[][];
+            readonly hint_penalty: number;
             readonly solved: boolean | null;
             readonly score: number | null;
             readonly duration_ms: number | null;
@@ -777,6 +800,27 @@ export interface operations {
         };
     };
     v1_games_logic_clear_create: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                day: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LogicGame"];
+                };
+            };
+        };
+    };
+    v1_games_logic_hint_create: {
         parameters: {
             query?: never;
             header?: never;

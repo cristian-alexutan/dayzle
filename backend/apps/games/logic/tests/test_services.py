@@ -6,7 +6,7 @@ from django.utils import timezone
 
 from apps.common.time import today_in_romania
 from apps.games.logic import rules, services
-from apps.games.logic.exceptions import InvalidCellError
+from apps.games.logic.exceptions import InvalidCellError, NothingToHintError
 from apps.games.logic.services import CellContent
 from apps.puzzles.exceptions import NoPuzzleError
 from apps.results.exceptions import AlreadyPlayedError
@@ -58,7 +58,7 @@ def test_a_sun_that_breaks_no_rule_is_kept(today, guest_id):
     outcome = set_cell(guest_id, today, (0, 2), SUN)
 
     assert outcome.rejected is False
-    assert details(outcome) == {"suns": [[0, 2]], "marks": [], "mistakes": 0}
+    assert details(outcome) == {"suns": [[0, 2]], "marks": [], "mistakes": 0, "hints": []}
 
 
 def test_suns_are_not_checked_against_the_solution(today, guest_id):
@@ -107,7 +107,7 @@ def test_a_sun_can_be_removed_without_a_mistake(today, guest_id):
 
     outcome = set_cell(guest_id, today, (0, 0), EMPTY)
 
-    assert details(outcome) == {"suns": [], "marks": [], "mistakes": 0}
+    assert details(outcome) == {"suns": [], "marks": [], "mistakes": 0, "hints": []}
 
 
 def test_a_sun_can_be_turned_into_an_x(today, guest_id):
@@ -127,7 +127,7 @@ def test_setting_the_same_content_twice_changes_nothing(today, guest_id):
     mark_again = set_cell(guest_id, today, (1, 1), MARK)
 
     assert sun_again.rejected is False
-    assert details(mark_again) == {"suns": [[0, 2]], "marks": [[1, 1]], "mistakes": 0}
+    assert details(mark_again) == {"suns": [[0, 2]], "marks": [[1, 1]], "mistakes": 0, "hints": []}
 
 
 def test_a_cell_outside_the_grid_is_rejected_and_not_counted(today, guest_id):
@@ -171,7 +171,7 @@ def test_clearing_the_board_keeps_the_mistakes(today, guest_id):
 
     game = services.clear_board(guest_id, today)
 
-    assert game.result.details == {"suns": [], "marks": [], "mistakes": 1}
+    assert game.result.details == {"suns": [], "marks": [], "mistakes": 1, "hints": []}
 
 
 def test_playing_after_finishing_is_already_played(today, guest_id):
@@ -193,3 +193,70 @@ def test_each_guest_has_their_own_game(today):
 def test_a_future_day_cannot_be_played(today, guest_id):
     with pytest.raises(NoPuzzleError):
         services.open_game(guest_id, today + timedelta(days=1))
+
+
+def test_a_hint_shows_a_solution_cell_without_placing_a_sun(today, guest_id):
+    set_cell(guest_id, today, (0, 2), SUN)
+
+    game = services.hint(guest_id, today)
+
+    hint = tuple(game.result.details["hints"][0])
+    assert hint in SOLUTION_CELLS and hint != (0, 2)
+    assert game.result.details["suns"] == [[0, 2]]
+    assert game.result.status == GameResult.Status.IN_PROGRESS
+
+
+def test_a_row_with_a_wrong_sun_can_still_be_hinted(today, guest_id):
+    # Every row has its correct sun except row 5, which has none: only (5, 5) is left.
+    place_all(guest_id, today, SOLUTION_CELLS[:5])
+
+    game = services.hint(guest_id, today)
+
+    assert game.result.details["hints"] == [[5, 5]]
+
+
+def test_hints_never_repeat_and_run_out(today, guest_id):
+    for _ in range(len(SOLUTION_CELLS)):
+        services.hint(guest_id, today)
+
+    hints = services.open_game(guest_id, today).result.details["hints"]
+    assert sorted(tuple(hint) for hint in hints) == SOLUTION_CELLS
+    with pytest.raises(NothingToHintError):
+        services.hint(guest_id, today)
+
+
+def test_a_sun_on_a_hinted_cell_that_clashes_is_still_a_mistake(today, guest_id):
+    place_all(guest_id, today, SOLUTION_CELLS[:5])
+    set_cell(guest_id, today, (4, 3), EMPTY)
+    set_cell(guest_id, today, (5, 3), SUN)  # breaks no rule, but row 5's sun is (5, 5)
+    services.hint(guest_id, today)  # rows 4 and 5 are left
+
+    outcome = set_cell(guest_id, today, (5, 5), SUN)
+
+    assert outcome.rejected is True
+    assert details(outcome)["mistakes"] == 1
+
+
+def test_clearing_the_board_keeps_the_hints(today, guest_id):
+    hinted = services.hint(guest_id, today).result.details["hints"]
+
+    game = services.clear_board(guest_id, today)
+
+    assert game.result.details["hints"] == hinted
+
+
+def test_hints_lower_the_final_score(today, guest_id):
+    services.hint(guest_id, today)
+
+    outcome = place_all(guest_id, today)
+
+    result = outcome.game.result
+    assert result.status == GameResult.Status.COMPLETED
+    assert result.score == rules.score(6, result.duration_ms, mistakes=0, hints=1)
+
+
+def test_no_hint_after_the_game_is_finished(today, guest_id):
+    place_all(guest_id, today)
+
+    with pytest.raises(AlreadyPlayedError):
+        services.hint(guest_id, today)

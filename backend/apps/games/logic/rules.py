@@ -55,10 +55,11 @@ def conflicts(cell: Cell, suns: list[Cell], regions: Regions) -> list[Cell]:
 
 
 # The score starts at 1000 and goes down evenly to 0 over 2 minutes per row (12 minutes for a
-# 6 × 6 grid). Each rejected sun costs 50 more points.
+# 6 × 6 grid). Each rejected sun costs 50 more points, and each hint 100.
 MAX_SCORE = 1000
 TIME_LIMIT_PER_ROW_MS = 2 * 60 * 1000
 MISTAKE_PENALTY = 50
+HINT_PENALTY = 100
 
 
 def is_full(suns: list[Cell], size: int) -> bool:
@@ -67,16 +68,24 @@ def is_full(suns: list[Cell], size: int) -> bool:
     return len(suns) == size
 
 
-def score(size: int, duration_ms: int, mistakes: int) -> int:
+def score(size: int, duration_ms: int, mistakes: int, hints: int = 0) -> int:
     """The final score, from 0 to 1000 (higher is better):
-    ``max(0, round(1000 × (1 − duration / limit)) − 50 × mistakes)``, with ``limit`` = 2 minutes
-    per row.
+    ``max(0, round(1000 × (1 − duration / limit)) − 50 × mistakes − 100 × hints)``, with
+    ``limit`` = 2 minutes per row.
 
-    For example, a 6 × 6 grid solved in 3 minutes with 1 mistake scores 750 − 50 = 700.
+    For example, a 6 × 6 grid solved in 3 minutes with 1 mistake and 1 hint scores
+    750 − 50 − 100 = 600.
     """
     limit_ms = size * TIME_LIMIT_PER_ROW_MS
     time_points = round(MAX_SCORE * (1 - duration_ms / limit_ms))
-    return max(0, time_points - MISTAKE_PENALTY * mistakes)
+    return max(0, time_points - MISTAKE_PENALTY * mistakes - HINT_PENALTY * hints)
+
+
+def hint_candidates(solution: list[int], suns: list[Cell], hints: list[Cell]) -> list[Cell]:
+    """The cells a hint may show: the solution's sun of every row that doesn't have it on the
+    board yet and wasn't hinted before. A row with a sun in the wrong cell still counts."""
+    known = set(suns) | set(hints)
+    return [(row, col) for row, col in enumerate(solution) if (row, col) not in known]
 
 
 def count_solutions(regions: Regions, limit: int = 2) -> int:

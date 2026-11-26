@@ -9,6 +9,7 @@ pytestmark = pytest.mark.django_db
 GAME_URL = "/api/v1/games/logic/today/"
 CELL_URL = "/api/v1/games/logic/today/cell/"
 CLEAR_URL = "/api/v1/games/logic/today/clear/"
+HINT_URL = "/api/v1/games/logic/today/hint/"
 SOLUTION_CELLS = list(enumerate(rules.DEMO_SOLUTION))
 
 
@@ -118,3 +119,25 @@ def test_each_guest_has_their_own_game(api_client, client):
     set_cell(api_client, 0, 2)
 
     assert client.get(GAME_URL).json()["suns"] == []
+
+
+def test_hint_returns_the_board_with_a_solution_cell(api_client):
+    assert api_client.get(GAME_URL).data["hints"] == []
+
+    response = api_client.post(HINT_URL)
+
+    assert response.status_code == 200
+    assert response.data["suns"] == []
+    assert response.data["hint_penalty"] == 100
+    [hint] = response.data["hints"]
+    assert tuple(hint) in SOLUTION_CELLS
+
+
+def test_hint_when_every_row_is_known_is_nothing_to_hint(api_client):
+    for _ in SOLUTION_CELLS:
+        api_client.post(HINT_URL)
+
+    response = api_client.post(HINT_URL)
+
+    assert response.status_code == 409
+    assert response.data["error"]["code"] == "nothing_to_hint"
