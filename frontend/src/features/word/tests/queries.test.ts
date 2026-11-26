@@ -4,7 +4,7 @@ import { defineComponent, h } from 'vue'
 
 import { mountWithPlugins } from '@/tests/utils'
 
-import { useGuessMutation, useWordGameQuery } from '../api/queries'
+import { useGuessMutation, useHintMutation, useWordGameQuery } from '../api/queries'
 
 const fetchMock = vi.fn()
 
@@ -21,6 +21,8 @@ const emptyGame = {
   word_length: 5,
   max_attempts: 6,
   guesses: [],
+  hints: [],
+  hint_penalty: 2,
   answer: null,
   solved: null,
   score: null,
@@ -31,11 +33,16 @@ function mountHooks() {
   let hooks!: {
     game: ReturnType<typeof useWordGameQuery>
     guess: ReturnType<typeof useGuessMutation>
+    hint: ReturnType<typeof useHintMutation>
   }
   mountWithPlugins(
     defineComponent({
       setup() {
-        hooks = { game: useWordGameQuery('today'), guess: useGuessMutation('today') }
+        hooks = {
+          game: useWordGameQuery('today'),
+          guess: useGuessMutation('today'),
+          hint: useHintMutation('today'),
+        }
         return () => h('div')
       },
     }),
@@ -79,5 +86,17 @@ describe('word queries', () => {
     expect(url).toBe('/api/v1/games/word/today/guess/')
     expect(init.body).toBe(JSON.stringify({ guess: 'tunel' }))
     expect(game.data.value?.guesses).toEqual(updated.guesses)
+  })
+
+  it('posts a hint and replaces the cached game with the response', async () => {
+    fetchMock.mockResolvedValueOnce(jsonResponse(emptyGame))
+    const { game, hint } = mountHooks()
+    await flushPromises()
+
+    fetchMock.mockResolvedValueOnce(jsonResponse({ ...emptyGame, hints: ['c'] }))
+    await hint.mutateAsync()
+
+    expect(fetchMock.mock.calls[1]![0]).toBe('/api/v1/games/word/today/hint/')
+    expect(game.data.value?.hints).toEqual(['c'])
   })
 })

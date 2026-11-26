@@ -16,6 +16,12 @@
     "unconfigured": "Setează VITE_GOOGLE_CLIENT_ID în frontend/.env pentru a activa butonul Google Sign-In. Poți continua ca vizitator."
   },
   "common": {
+    "howToPlay": {
+      "close": "Am înțeles",
+      "rulesHeading": "Reguli",
+      "scoringHeading": "Punctaj",
+      "title": "Cum se joacă"
+    },
     "retry": "Încearcă din nou",
     "time": "Timp"
   },
@@ -249,14 +255,27 @@
       "not_a_word": "Cuvântul nu este în listă",
       "tooShort": "Cuvântul trebuie să aibă 5 litere"
     },
+    "hint": {
+      "label": "Indiciu",
+      "nothingLeft": "Ai toate literele. Poți s-o faci!",
+      "revealed": "Litere din indicii: {letters}"
+    },
     "keyboard": "Tastatură",
     "loading": "Se încarcă jocul",
     "noPuzzle": "Nu există un cuvânt pentru astăzi. Revino mâine!",
     "result": {
       "answer": "Cuvântul",
+      "guesses": "Nicio încercare | 1 încercare | {count} încercări",
+      "hints": "Fără indicii | 1 indiciu | {count} indicii",
       "lost": "Mai încearcă mâine!",
       "see": "Vezi rezultatul",
       "won": "Felicitări!"
+    },
+    "rules": {
+      "colors": "După fiecare încercare literele își schimbă culoarea: verde e în cuvânt și la locul ei, galben e în cuvânt, dar în alt loc, gri nu e în cuvânt.",
+      "guess": "Ghicește cuvântul de 5 litere din cel mult 6 încercări. Fiecare încercare trebuie să fie un cuvânt din listă.",
+      "hint": "Te-ai blocat? Un indiciu îți arată o literă din cuvânt pe care n-ai găsit-o încă. Fiecare indiciu costă {points} puncte.",
+      "score": "Ghicit din prima valorează 6 puncte, iar fiecare încercare în plus costă 1. Un cuvânt ghicit primește mereu cel puțin 1 punct."
     },
     "title": "Cuvântăl"
   }

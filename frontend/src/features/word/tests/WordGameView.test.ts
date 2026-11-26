@@ -26,6 +26,8 @@ function makeGame(overrides: Partial<WordGame> = {}): WordGame {
     word_length: 5,
     max_attempts: 6,
     guesses: [],
+    hints: [],
+    hint_penalty: 2,
     answer: null,
     solved: null,
     score: null,
@@ -39,10 +41,17 @@ const tunel = {
   colors: ['present', 'absent', 'absent', 'present', 'absent'],
 } as WordGame['guesses'][number]
 
-async function mountView(firstResponse: Response) {
+/** Close the rules that open with an unfinished game, so tests can play. */
+async function closeRules() {
+  document.body.querySelector<HTMLElement>('[data-test="how-to-play-close"]')?.click()
+  await flushPromises()
+}
+
+async function mountView(firstResponse: Response, { keepRules = false } = {}) {
   fetchMock.mockResolvedValueOnce(firstResponse)
   const wrapper = mountWithPlugins(WordGameView, { attachTo: document.body })
   await flushPromises()
+  if (!keepRules) await closeRules()
   return wrapper
 }
 
@@ -59,6 +68,7 @@ beforeEach(() => {
 })
 
 afterEach(() => {
+  localStorage.clear()
   fetchMock.mockReset()
   vi.unstubAllGlobals()
   vi.useRealTimers()
@@ -156,7 +166,9 @@ describe('WordGameView', () => {
     const wrapper = await mountView(errorResponse(404, 'no_puzzle'))
 
     expect(wrapper.find('[data-test="no-puzzle"]').exists()).toBe(true)
-    expect(wrapper.find('button').exists()).toBe(false)
+    // Only the rules button stays; there is nothing to retry or hint.
+    const buttons = wrapper.findAll('button')
+    expect(buttons.map((button) => button.attributes('data-test'))).toEqual(['how-to-play'])
     wrapper.unmount()
   })
 
@@ -175,5 +187,129 @@ describe('WordGameView', () => {
     vi.advanceTimersByTime(30_000)
     expect(fetchMock).not.toHaveBeenCalled()
     finished.unmount()
+  })
+
+  it('takes a hint and shows the revealed letter on a tile and the keyboard', async () => {
+    const wrapper = await mountView(jsonResponse(200, makeGame()))
+    expect(wrapper.find('[data-test="hint"]').text()).toBe('Indiciu')
+    fetchMock.mockResolvedValueOnce(jsonResponse(200, makeGame({ hints: ['c'] })))
+
+    await wrapper.find('[data-test="hint"]').trigger('click')
+    await flushPromises()
+
+    const [url, init] = fetchMock.mock.calls[1]!
+    expect(url).toBe('/api/v1/games/word/today/hint/')
+    expect(init.method).toBe('POST')
+    expect(wrapper.find('[data-test="hint-letters"]').text()).toBe('c')
+    expect(wrapper.find('[data-test="key-c"]').classes()).toContain('word-keyboard__key--present')
+    wrapper.unmount()
+  })
+
+  it('says the player has every letter when there is nothing left to hint', async () => {
+    const wrapper = await mountView(jsonResponse(200, makeGame()))
+    fetchMock.mockResolvedValueOnce(errorResponse(409, 'nothing_to_hint'))
+
+    await wrapper.find('[data-test="hint"]').trigger('click')
+    await flushPromises()
+
+    expect(wrapper.find('[data-test="hint-notice"]').text()).toBe(
+      'Ai toate literele. Poți s-o faci!',
+    )
+    expect(wrapper.find('[data-test="rejection"]').exists()).toBe(false)
+    wrapper.unmount()
+  })
+
+  it('has no hint button once the game is finished', async () => {
+    const wrapper = await mountView(
+      jsonResponse(200, makeGame({ status: 'completed', answer: 'carte', hints: ['c'] })),
+    )
+
+    expect(wrapper.find('[data-test="hint"]').exists()).toBe(false)
+    expect(wrapper.find('[data-test="hint-letters"]').exists()).toBe(true)
+    wrapper.unmount()
+  })
+
+  it('opens the rules by themselves only the first time, then from the info button', async () => {
+    const first = await mountView(jsonResponse(200, makeGame()), { keepRules: true })
+    const rules = () => document.body.querySelector('[data-test="how-to-play-rules"]')
+    expect(rules()?.textContent).toContain('Fiecare indiciu costă 2 puncte')
+    await closeRules()
+    expect(localStorage.getItem('dayzle.word.rulesSeen')).toBe('yes')
+    first.unmount()
+    document.body.innerHTML = ''
+
+    // A reload mid-game, or a later visit: straight to the board.
+    const again = await mountView(jsonResponse(200, makeGame({ guesses: [tunel] })), {
+      keepRules: true,
+    })
+    expect(rules()).toBeNull()
+    await again.find('[data-test="how-to-play"]').trigger('click')
+    await flushPromises()
+    expect(rules()).not.toBeNull()
+    again.unmount()
+  })
+
+  it('shows the rules every time when the browser blocks storage', async () => {
+    vi.spyOn(Storage.prototype, 'getItem').mockImplementation(() => {
+      throw new Error('blocked')
+    })
+    const wrapper = await mountView(jsonResponse(200, makeGame()), { keepRules: true })
+
+    expect(document.body.querySelector('[data-test="how-to-play-rules"]')).not.toBeNull()
+    wrapper.unmount()
+    vi.restoreAllMocks()
+  })
+
+  it('ignores typing while the rules are open', async () => {
+    const wrapper = await mountView(jsonResponse(200, makeGame()), { keepRules: true })
+
+    typeWord('carte')
+    pressEnter()
+    await flushPromises()
+
+    expect(fetchMock).toHaveBeenCalledTimes(1)
+    expect(wrapper.findAll('[data-test="tile"]')[0]!.text()).toBe('')
+    wrapper.unmount()
+  })
+
+  it('pauses the clock while the rules are open', async () => {
+    vi.useFakeTimers({ toFake: ['setInterval', 'clearInterval'] })
+    const wrapper = await mountView(jsonResponse(200, makeGame()), { keepRules: true })
+    fetchMock.mockResolvedValue(new Response(null, { status: 204 }))
+
+    vi.advanceTimersByTime(30_000)
+    expect(fetchMock).toHaveBeenCalledTimes(1)
+
+    await closeRules()
+    vi.advanceTimersByTime(15_000)
+    expect(fetchMock.mock.calls[1]![0]).toBe('/api/v1/results/word/today/heartbeat/')
+    wrapper.unmount()
+  })
+
+  it('shows only the result, not the rules, when the game is already finished', async () => {
+    vi.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout'] })
+    const wrapper = await mountView(
+      jsonResponse(200, makeGame({ status: 'completed', answer: 'carte', solved: true })),
+      { keepRules: true },
+    )
+    vi.advanceTimersByTime(0)
+    await flushPromises()
+
+    expect(document.body.querySelector('[data-test="how-to-play-rules"]')).toBeNull()
+    expect(document.body.querySelector('[data-test="answer"]')).not.toBeNull()
+    wrapper.unmount()
+  })
+
+  it('opens the rules from the info button, also once the game is finished', async () => {
+    const wrapper = await mountView(
+      jsonResponse(200, makeGame({ status: 'completed', answer: 'carte' })),
+    )
+    expect(document.body.querySelector('[data-test="how-to-play-rules"]')).toBeNull()
+
+    await wrapper.find('[data-test="how-to-play"]').trigger('click')
+    await flushPromises()
+
+    expect(document.body.querySelector('[data-test="how-to-play-rules"]')).not.toBeNull()
+    wrapper.unmount()
   })
 })

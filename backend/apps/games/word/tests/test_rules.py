@@ -60,3 +60,30 @@ def test_color_guess(guess, answer, expected):
 )
 def test_score(solved, attempts, expected):
     assert rules.score(solved=solved, attempts=attempts) == expected
+
+
+@pytest.mark.parametrize(
+    ("attempts", "hints", "expected"),
+    [(3, 0, 4), (3, 1, 2), (3, 2, 1), (1, 1, 4), (6, 3, 1)],
+)
+def test_each_hint_costs_two_points_but_a_win_scores_at_least_one(attempts, hints, expected):
+    assert rules.score(solved=True, attempts=attempts, hints=hints) == expected
+
+
+def test_hints_do_not_change_a_lost_game():
+    assert rules.score(solved=False, attempts=6, hints=2) == 0
+
+
+def test_undiscovered_letters_skip_green_yellow_and_hinted_letters():
+    # "câine" against "carte": c green, e green; "tunel": t yellow, e yellow.
+    guesses = [
+        {"word": "câine", "colors": rules.color_guess("câine", "carte")},
+        {"word": "tunel", "colors": rules.color_guess("tunel", "carte")},
+    ]
+
+    assert rules.undiscovered_letters("carte", guesses, ["r"]) == ["a"]
+
+
+def test_undiscovered_letters_count_a_repeated_letter_once():
+    assert rules.undiscovered_letters("mamei", [], []) == ["m", "a", "e", "i"]
+    assert rules.undiscovered_letters("mamei", [], ["m", "a", "e", "i"]) == []

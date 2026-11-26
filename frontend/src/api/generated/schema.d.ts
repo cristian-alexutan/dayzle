@@ -4,6 +4,57 @@
  */
 
 export interface paths {
+    "/api/v1/accounts/google/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** @description Verify a Google ID token, sign the user into the session, and claim guest results. */
+        post: operations["v1_accounts_google_create"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/accounts/logout/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** @description Sign out of the current session and return the new guest session state. */
+        post: operations["v1_accounts_logout_create"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/accounts/me/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** @description Return the visitor's session state (guest id and signed-in user, if any). */
+        get: operations["v1_accounts_me_retrieve"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/games/geo/{day}/": {
         parameters: {
             query?: never;
@@ -233,6 +284,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/games/word/{day}/hint/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** @description Reveal a letter of the word not discovered yet (409 ``nothing_to_hint`` if none is left). */
+        post: operations["v1_games_word_hint_create"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/results/{game}/{day}/heartbeat/": {
         parameters: {
             query?: never;
@@ -341,6 +409,9 @@ export interface components {
             /** Format: double */
             lng: number;
         };
+        GoogleLoginInput: {
+            credential: string;
+        };
         GuessInput: {
             guess: string;
         };
@@ -430,6 +501,13 @@ export interface components {
             distance_m: number;
             score: number;
         };
+        /** @description Current visitor identity: anonymous guest or signed-in user. */
+        SessionState: {
+            readonly is_authenticated: boolean;
+            /** Format: uuid */
+            readonly guest_id: string;
+            readonly user: components["schemas"]["UserProfile"] | null;
+        };
         /**
          * @description * `in_progress` - In progress
          *     * `completed` - Completed
@@ -465,7 +543,30 @@ export interface components {
             readonly solved: boolean | null;
             readonly duration_ms: number | null;
         };
-        /** @description The player's board. ``answer``, ``solved`` and ``score`` stay null until the game ends. */
+        UserProfile: {
+            readonly id: number;
+            /**
+             * Nume utilizator
+             * @description Obligatoriu. 150 de caractere sau mai puține. Numai litere, cifre și @/./+/-/_.
+             */
+            readonly username: string;
+            /**
+             * Adresă de email
+             * Format: email
+             */
+            readonly email: string;
+            /** Prenume */
+            readonly first_name: string;
+            /** Nume */
+            readonly last_name: string;
+            readonly display_name: string;
+        };
+        /**
+         * @description The player's board. ``answer``, ``solved`` and ``score`` stay null until the game ends.
+         *
+         *     ``hints`` are the letters revealed by hints, in the order they were taken; each costs
+         *     ``hint_penalty`` points when the game is solved.
+         */
         WordGame: {
             /** Format: date */
             date: string;
@@ -475,6 +576,8 @@ export interface components {
             readonly guesses: {
                 [key: string]: unknown;
             }[];
+            readonly hints: string[];
+            readonly hint_penalty: number;
             readonly answer: string | null;
             readonly solved: boolean | null;
             readonly score: number | null;
@@ -489,6 +592,69 @@ export interface components {
 }
 export type $defs = Record<string, never>;
 export interface operations {
+    v1_accounts_google_create: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["GoogleLoginInput"];
+                "application/x-www-form-urlencoded": components["schemas"]["GoogleLoginInput"];
+                "multipart/form-data": components["schemas"]["GoogleLoginInput"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SessionState"];
+                };
+            };
+        };
+    };
+    v1_accounts_logout_create: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SessionState"];
+                };
+            };
+        };
+    };
+    v1_accounts_me_retrieve: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SessionState"];
+                };
+            };
+        };
+    };
     v1_games_geo_retrieve: {
         parameters: {
             query?: {
@@ -791,6 +957,27 @@ export interface operations {
                 "multipart/form-data": components["schemas"]["GuessInput"];
             };
         };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["WordGame"];
+                };
+            };
+        };
+    };
+    v1_games_word_hint_create: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                day: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
         responses: {
             200: {
                 headers: {

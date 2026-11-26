@@ -19,13 +19,19 @@ class GuessSerializer(serializers.Serializer):
 
 
 class WordGameSerializer(serializers.Serializer):
-    """The player's board. ``answer``, ``solved`` and ``score`` stay null until the game ends."""
+    """The player's board. ``answer``, ``solved`` and ``score`` stay null until the game ends.
+
+    ``hints`` are the letters revealed by hints, in the order they were taken; each costs
+    ``hint_penalty`` points when the game is solved.
+    """
 
     date = serializers.DateField(source="word_puzzle.daily_puzzle.date")
     status = serializers.ChoiceField(choices=GameResult.Status.choices, source="result.status")
     word_length = serializers.SerializerMethodField()
     max_attempts = serializers.SerializerMethodField()
     guesses = serializers.SerializerMethodField()
+    hints = serializers.SerializerMethodField()
+    hint_penalty = serializers.SerializerMethodField()
     answer = serializers.SerializerMethodField()
     solved = serializers.SerializerMethodField()
     score = serializers.SerializerMethodField()
@@ -46,6 +52,12 @@ class WordGameSerializer(serializers.Serializer):
 
     def get_guesses(self, game) -> list[dict]:
         return GuessSerializer(self._guesses(game), many=True).data
+
+    def get_hints(self, game) -> list[str]:
+        return list(game.result.details.get("hints", []))
+
+    def get_hint_penalty(self, game) -> int:
+        return rules.HINT_PENALTY
 
     # Secret until the game is finished: never reveal the answer while it can still be guessed.
     def get_answer(self, game) -> str | None:

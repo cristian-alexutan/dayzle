@@ -5,7 +5,7 @@ import pytest
 
 from apps.common.time import today_in_romania
 from apps.games.word import services
-from apps.games.word.exceptions import InvalidGuessError, NotAWordError
+from apps.games.word.exceptions import InvalidGuessError, NotAWordError, NothingToHintError
 from apps.games.word.models import Word, WordPuzzle
 from apps.puzzles.exceptions import ArchiveUnavailableError, NoPuzzleError
 from apps.puzzles.models import Game
@@ -142,3 +142,44 @@ def test_seed_imports_the_lists_and_picks_unused_answers():
     assert Word.objects.filter(is_answer=True).exists()
     answers = WordPuzzle.objects.values_list("answer", flat=True)
     assert len(set(answers)) == 2
+
+
+def test_a_hint_reveals_an_undiscovered_letter_and_keeps_guesses(today):
+    guest_id = uuid.uuid4()
+    services.guess(guest_id, today, "tunel")  # discovers t and e
+
+    game = services.hint(guest_id, today)
+
+    assert game.result.status == GameResult.Status.IN_PROGRESS
+    assert len(game.result.details["guesses"]) == 1
+    assert game.result.details["hints"][0] in {"c", "a", "r"}
+
+
+def test_hints_never_repeat_and_run_out_once_every_letter_is_known(today):
+    guest_id = uuid.uuid4()
+    for _ in range(5):
+        services.hint(guest_id, today)
+
+    game = services.open_game(guest_id, today)
+    assert sorted(game.result.details["hints"]) == sorted("carte")
+    with pytest.raises(NothingToHintError):
+        services.hint(guest_id, today)
+
+
+def test_guesses_keep_the_hints_and_hints_lower_the_score(today):
+    guest_id = uuid.uuid4()
+    services.hint(guest_id, today)
+    services.guess(guest_id, today, "tunel")
+
+    game = services.guess(guest_id, today, "carte")
+
+    assert len(game.result.details["hints"]) == 1
+    assert game.result.score == 3  # 7 - 2 attempts - 2 for the hint
+
+
+def test_no_hint_after_the_game_is_finished(today):
+    guest_id = uuid.uuid4()
+    services.guess(guest_id, today, "carte")
+
+    with pytest.raises(AlreadyPlayedError):
+        services.hint(guest_id, today)
