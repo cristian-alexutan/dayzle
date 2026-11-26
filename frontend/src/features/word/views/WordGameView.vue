@@ -66,19 +66,9 @@ const rulesSections = computed(() => [
 
 const noPuzzle = computed(() => errorCode(query.error.value) === 'no_puzzle')
 
-// Every visit to an unfinished game starts with the rules; a finished one shows only its
-// result. Decided once, when the game loads, so finishing it doesn't open them again.
+// The rules open by themselves the first time a player sees an unfinished game (HowToPlay
+// remembers it); a finished game shows only its result.
 const rulesVisible = ref(false)
-let rulesDecided = false
-watch(
-  () => game.value?.status,
-  (status) => {
-    if (rulesDecided || status === undefined) return
-    rulesDecided = true
-    rulesVisible.value = status === 'in_progress'
-  },
-  { immediate: true },
-)
 
 // The clock doesn't run while the rules are open.
 useWordHeartbeat(DAY, () => inProgress.value && !rulesVisible.value)
@@ -182,7 +172,12 @@ onBeforeUnmount(() => {
         data-test="hint"
         @click="takeHint"
       />
-      <HowToPlay v-model:visible="rulesVisible" :sections="rulesSections" />
+      <HowToPlay
+        v-model:visible="rulesVisible"
+        game="word"
+        :sections="rulesSections"
+        :auto-open="inProgress"
+      />
     </template>
     <AppSpinner v-if="query.isPending.value" :aria-label="t('word.loading')" />
     <AppMessage v-else-if="noPuzzle" severity="info" data-test="no-puzzle">
