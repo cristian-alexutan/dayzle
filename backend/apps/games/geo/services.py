@@ -23,6 +23,7 @@ from . import rules, streetview
 from .exceptions import (
     AlreadyAnsweredError,
     InvalidGuessError,
+    NothingToHintError,
     RegionLockedError,
     StreetViewError,
     TemporaryStreetViewError,
@@ -179,7 +180,8 @@ def guess(
     """Score a guess for the current round and reveal that round's location.
 
     Rounds are guessed in order, once each. A guess outside the region is refused without
-    using up the round. The fifth guess finishes the game with the sum of the round scores.
+    using up the round. A round with a hint loses ``rules.HINT_PENALTY`` points. The fifth guess
+    finishes the game with the sum of the round scores.
     """
     game = open_game(guest_id, region_key, day)
     region = game.puzzle.region
@@ -203,6 +205,9 @@ def guess(
             )
 
         distance = rules.distance_m(point, game.locations[current - 1].point)
+        hints = result.details.get("hints", [])
+        hinted = any(hint["round"] == current for hint in hints)
+        points = rules.round_score(distance, game.puzzle.score_scale_m)
         guesses = [
             *guesses,
             {
@@ -210,15 +215,46 @@ def guess(
                 "lat": lat,
                 "lng": lng,
                 "distance_m": round(distance),
-                "score": rules.round_score(distance, game.puzzle.score_scale_m),
+                "score": rules.hinted_round_score(points, hinted),
+                "hinted": hinted,
             },
         ]
-        details = {"region": region.key, "guesses": guesses}
+        details = {"region": region.key, "guesses": guesses, "hints": hints}
         if len(guesses) == rules.ROUNDS:
             total = rules.total_score(given["score"] for given in guesses)
             result = complete(result, solved=rules.is_solved(total), score=total, details=details)
         else:
             result = save_progress(result, details)
+    return GeoGame(result, game.puzzle, game.locations)
+
+
+def hint(guest_id: uuid.UUID, region_key: str | None, day: date) -> GeoGame:
+    """Draw a circle that holds the current round's spot, sized to the region
+    (``rules.hint_radius_m``).
+
+    One hint per round (``NothingToHintError`` for a second one); the round's guess then scores
+    ``rules.HINT_PENALTY`` points less. The circle is saved, so a refresh shows it again.
+    """
+    game = open_game(guest_id, region_key, day)
+    with transaction.atomic():
+        result = GameResult.objects.select_for_update().get(pk=game.result.pk)
+        if result.status == GameResult.Status.COMPLETED:
+            raise AlreadyPlayedError()
+        current = len(result.details.get("guesses", [])) + 1
+        hints = result.details.get("hints", [])
+        if any(given["round"] == current for given in hints):
+            raise NothingToHintError()
+        spot = game.locations[current - 1].point
+        bounds = game.puzzle.region.bounds
+        radius = rules.hint_radius_m(bounds)
+        center = rules.hint_circle(spot, bounds, radius, random.Random())
+        circle = {
+            "round": current,
+            "lat": center.lat,
+            "lng": center.lng,
+            "radius_m": radius,
+        }
+        result = save_progress(result, {**result.details, "hints": [*hints, circle]})
     return GeoGame(result, game.puzzle, game.locations)
 
 

@@ -47,7 +47,17 @@ class RoundResultSerializer(serializers.Serializer):
     guess = PointSerializer()
     location = PointSerializer()
     distance_m = serializers.IntegerField()
+    # Points after the hint's cost, if the round had one.
     score = serializers.IntegerField()
+    hinted = serializers.BooleanField(default=False)
+
+
+class HintCircleSerializer(serializers.Serializer):
+    """A hint: a circle that holds the round's spot, which is never at its center."""
+
+    round = serializers.IntegerField()
+    center = PointSerializer()
+    radius_m = serializers.IntegerField()
 
 
 class GeoGameSerializer(serializers.Serializer):
@@ -66,6 +76,8 @@ class GeoGameSerializer(serializers.Serializer):
     results = serializers.SerializerMethodField()
     total_score = serializers.SerializerMethodField()
     max_score = serializers.SerializerMethodField()
+    hints = serializers.SerializerMethodField()
+    hint_penalty = serializers.SerializerMethodField()
     solved = serializers.SerializerMethodField()
     duration_ms = serializers.SerializerMethodField()
 
@@ -98,9 +110,26 @@ class GeoGameSerializer(serializers.Serializer):
                     "location": {"lat": location.latitude, "lng": location.longitude},
                     "distance_m": given["distance_m"],
                     "score": given["score"],
+                    "hinted": given.get("hinted", False),
                 }
             )
         return RoundResultSerializer(rows, many=True).data
+
+    @extend_schema_field(HintCircleSerializer(many=True))
+    def get_hints(self, game) -> list[dict]:
+        """The hint circles taken, one per round at most; the current round's is the last."""
+        circles = [
+            {
+                "round": hint["round"],
+                "center": {"lat": hint["lat"], "lng": hint["lng"]},
+                "radius_m": hint["radius_m"],
+            }
+            for hint in game.result.details.get("hints", [])
+        ]
+        return HintCircleSerializer(circles, many=True).data
+
+    def get_hint_penalty(self, game) -> int:
+        return rules.HINT_PENALTY
 
     def get_total_score(self, game) -> int:
         return rules.total_score(given["score"] for given in self._guesses(game))

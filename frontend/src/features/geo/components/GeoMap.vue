@@ -13,7 +13,7 @@ import {
   useRegionMap,
   type RegionMap,
 } from '../composables/useRegionMap'
-import type { Bounds, Point, RoundResult } from '../types'
+import type { Bounds, HintCircle, Point, RoundResult } from '../types'
 import MapsStatusOverlay from './MapsStatusOverlay.vue'
 import './map.css'
 
@@ -26,8 +26,10 @@ const props = withDefaults(
     /** Write the round number on each real spot, for a map with several rounds. */
     numbered?: boolean
     disabled?: boolean
+    /** The round's hint: the spot is somewhere in this circle. */
+    hint?: HintCircle | null
   }>(),
-  { pin: null, results: () => [], numbered: false, disabled: false },
+  { pin: null, results: () => [], numbered: false, disabled: false, hint: null },
 )
 const emit = defineEmits<{ place: [point: Point] }>()
 
@@ -41,6 +43,7 @@ const { status, instance } = useRegionMap(container, () => props.bounds)
 
 let frame: google.maps.Rectangle | null = null
 let marker: google.maps.Marker | null = null
+let hintCircle: google.maps.Circle | null = null
 let shapes: Array<{ setMap(map: null): void }> = []
 
 function drawFrame(kit: RegionMap) {
@@ -60,6 +63,27 @@ function drawPin() {
   if (!kit) return
   marker?.setMap(null)
   marker = props.pin ? new kit.Marker(pinOptions(kit, 'guess', props.pin)) : null
+}
+
+/** Draw the hint circle and zoom to it; it lets clicks through, so a pin can go inside it. */
+function drawHint({ fit }: { fit: boolean }) {
+  const kit = instance.value
+  if (!kit) return
+  hintCircle?.setMap(null)
+  hintCircle = null
+  if (!props.hint) return
+  hintCircle = new kit.Circle({
+    map: kit.map,
+    center: props.hint.center,
+    radius: props.hint.radius_m,
+    clickable: false,
+    strokeColor: themeColor('--dz-primary-strong'),
+    strokeWeight: 2,
+    fillColor: themeColor('--dz-primary'),
+    fillOpacity: 0.2,
+  })
+  const area = hintCircle.getBounds()
+  if (fit && area) kit.map.fitBounds(area, FIT_PADDING)
 }
 
 /** Draw the guessed rounds and zoom to them, or zoom back out to the region when there are none. */
@@ -119,11 +143,17 @@ watch(instance, (kit) => {
     emit('place', { lat: event.latLng.lat(), lng: event.latLng.lng() })
   })
   drawPin()
-  // A map made for the end screen starts on its rounds; a guess map starts on the region.
+  // A map made for the end screen starts on its rounds; a guess map starts on the region, or
+  // on the hint's circle.
   if (props.results.length > 0) drawResults({ fit: true })
+  else drawHint({ fit: true })
 })
 
 watch(() => props.pin, drawPin)
+watch(
+  () => props.hint,
+  () => drawHint({ fit: true }),
+)
 watch(
   () => props.results,
   () => drawResults({ fit: true }),
@@ -135,6 +165,7 @@ onThemeChange(() => {
   if (!kit) return
   drawFrame(kit)
   drawPin()
+  drawHint({ fit: false })
   drawResults({ fit: false })
 })
 </script>

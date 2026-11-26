@@ -37,6 +37,7 @@ export interface RegionMap {
   Marker: typeof google.maps.Marker
   Polyline: typeof google.maps.Polyline
   Rectangle: typeof google.maps.Rectangle
+  Circle: typeof google.maps.Circle
   LatLngBounds: typeof google.maps.LatLngBounds
   circle: google.maps.SymbolPath
 }
@@ -116,6 +117,7 @@ export function useRegionMap(container: Ref<HTMLElement | null>, bounds: MaybeRe
       Marker: markers.Marker,
       Polyline: maps.Polyline,
       Rectangle: maps.Rectangle,
+      Circle: maps.Circle,
       LatLngBounds: core.LatLngBounds,
       circle: core.SymbolPath.CIRCLE,
     }

@@ -377,4 +377,41 @@ describe('GeoGameView', () => {
     expect(fetchMock.mock.calls[1]![0]).toBe('/api/v1/results/geo/today/heartbeat/')
     wrapper.unmount()
   })
+
+  it('takes the hint, then shows the map with its circle', async () => {
+    const wrapper = await mountView(jsonResponse(200, newGame))
+    const hint = { round: 1, center: { lat: 46.77, lng: 23.6 }, radius_m: 1000 }
+    fetchMock.mockResolvedValueOnce(jsonResponse(200, { ...newGame, hints: [hint] }))
+
+    await click(wrapper, '[data-test="hint"]')
+
+    expect(fetchMock.mock.calls[1]![0]).toBe('/api/v1/games/geo/today/hint/')
+    const map = wrapper.findComponent(GeoMap)
+    expect(map.props('hint')).toEqual(hint)
+    expect(isHidden(wrapper, GeoMap)).toBe(false)
+    expect(wrapper.text()).toContain('Locul e undeva în cerc')
+    wrapper.unmount()
+  })
+
+  it('says the round already has its hint after a second one', async () => {
+    const wrapper = await mountView(jsonResponse(200, newGame))
+    fetchMock.mockResolvedValueOnce(errorResponse(409, 'nothing_to_hint'))
+
+    await click(wrapper, '[data-test="hint"]')
+
+    expect(wrapper.find('[data-test="hint-notice"]').text()).toContain('locul e în cerc')
+    expect(wrapper.find('[data-test="guess-error"]').exists()).toBe(false)
+    wrapper.unmount()
+  })
+
+  it('shows the hint cost on the reveal of a hinted round', async () => {
+    const wrapper = await mountView(jsonResponse(200, newGame))
+    const [round] = afterFirstGuess.results
+    const hinted = { ...afterFirstGuess, results: [{ ...round!, score: 294, hinted: true }] }
+
+    await guess(wrapper, jsonResponse(200, hinted))
+
+    expect(wrapper.find('[data-test="reveal-hinted"]').text()).toBe('Indiciu: −300 puncte')
+    wrapper.unmount()
+  })
 })

@@ -37,6 +37,12 @@
       "stale": "The game changed in the meantime, so it was reloaded."
     },
     "guess": "Confirm the spot",
+    "hint": {
+      "label": "Hint",
+      "nothingLeft": "This round already has its hint: the spot is in the circle.",
+      "inCircle": "The spot is somewhere in the circle. Put your pin there.",
+      "used": "Hint: −{points} points"
+    },
     "loading": "Loading the game",
     "map": {
       "guess": "Map to pick the place on",

@@ -164,6 +164,20 @@ describe('GeoMap', () => {
     expect(shapesOnMap('marker')).toHaveLength(0)
     wrapper.unmount()
   })
+
+  it('draws the hint circle, zooms to it and still lets the pin go inside it', async () => {
+    const hint = { round: 1, center: { lat: 46.77, lng: 23.6 }, radius_m: 1000 }
+    const wrapper = await mountMap({ hint })
+
+    const [circle] = shapesOnMap('circle')
+    expect(circle!.options).toMatchObject({ center: hint.center, radius: 1000, clickable: false })
+    fake.maps[0]!.click({ lat: 46.771, lng: 23.601 })
+    expect(wrapper.emitted('place')).toHaveLength(1)
+
+    await wrapper.setProps({ hint: null })
+    expect(shapesOnMap('circle')).toHaveLength(0)
+    wrapper.unmount()
+  })
 })
 
 describe('GeoMap with guessed rounds', () => {

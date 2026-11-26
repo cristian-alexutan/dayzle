@@ -16,6 +16,8 @@ export const newGame: GeoGame = {
   results: [],
   total_score: 0,
   max_score: 5000,
+  hints: [],
+  hint_penalty: 300,
   solved: null,
   duration_ms: null,
 }
@@ -26,6 +28,7 @@ const guessedRound = (round: number) => ({
   location: { lat: 46.771, lng: 23.59 },
   distance_m: 780,
   score: 594,
+  hinted: false,
 })
 
 export const afterFirstGuess: GeoGame = {
