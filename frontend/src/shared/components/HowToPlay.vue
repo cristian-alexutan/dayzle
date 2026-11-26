@@ -1,5 +1,10 @@
-<!-- HowToPlay: the rules (info) button at the top of a game and the dialog with its rules. -->
+<!--
+  HowToPlay: the rules (info) button at the top of a game and the dialog with its rules. The
+  rules open by themselves the first time a player sees the game; after that, only from the
+  button.
+-->
 <script setup lang="ts">
+import { watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 
 import AppButton from './AppButton.vue'
@@ -12,11 +17,58 @@ export interface HowToPlaySection {
   rules: { icon: string; text: string }[]
 }
 
-defineProps<{ sections: HowToPlaySection[] }>()
-/** Bind it so the game can open the rules itself, or pause its clock while they're open. */
+const props = withDefaults(
+  defineProps<{
+    sections: HowToPlaySection[]
+    /** The game's key, e.g. `word`: whether its rules were seen is remembered under it. */
+    game: string
+    /**
+     * Whether the rules may open by themselves now, e.g. only while the game is unfinished. They
+     * still open by themselves only once per browser.
+     */
+    autoOpen?: boolean
+  }>(),
+  { autoOpen: true },
+)
+/** Bind it so the game can pause its clock (or its keyboard) while the rules are open. */
 const visible = defineModel<boolean>('visible', { default: false })
 
 const { t } = useI18n()
+
+const seenKey = () => `dayzle.${props.game}.rulesSeen`
+
+function seen(): boolean {
+  try {
+    return localStorage.getItem(seenKey()) === 'yes'
+  } catch {
+    // Storage is blocked (e.g. some private windows): show the rules, they just aren't remembered.
+    return false
+  }
+}
+
+function rememberSeen() {
+  try {
+    localStorage.setItem(seenKey(), 'yes')
+  } catch {
+    // Not remembered: the rules open by themselves again next time.
+  }
+}
+
+let opened = false
+watch(
+  () => props.autoOpen,
+  (allowed) => {
+    if (!allowed || opened || seen()) return
+    opened = true
+    visible.value = true
+  },
+  { immediate: true },
+)
+
+// Closing the rules, however they were opened, means the player has seen them.
+watch(visible, (isVisible, wasVisible) => {
+  if (wasVisible && !isVisible) rememberSeen()
+})
 </script>
 
 <template>
