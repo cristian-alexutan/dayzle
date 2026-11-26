@@ -216,9 +216,10 @@ def test_a_hint_draws_a_circle_that_holds_the_spot_without_giving_it_away(api_cl
     assert response.status_code == 200
     data = response.json()
     [circle] = data["hints"]
-    assert circle["round"] == 1 and circle["radius_m"] == rules.HINT_RADIUS_M == 2500
+    radius = rules.hint_radius_m(locations[0].region.bounds)
+    assert circle["round"] == 1 and circle["radius_m"] == radius
     center = rules.Point(circle["center"]["lat"], circle["center"]["lng"])
-    assert 625 <= rules.distance_m(center, locations[0].point) <= 1875
+    assert 0.25 * radius - 1 <= rules.distance_m(center, locations[0].point) <= 0.75 * radius + 1
     assert data["hint_penalty"] == 300
     assert_hidden(response, locations)
 

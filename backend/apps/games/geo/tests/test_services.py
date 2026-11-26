@@ -515,9 +515,10 @@ def test_a_hint_saves_a_circle_around_the_current_spot(guest, bank):
     game = services.hint(guest, CLUJ, today())
 
     [circle] = game.result.details["hints"]
-    assert circle["round"] == 1 and circle["radius_m"] == rules.HINT_RADIUS_M
+    radius = rules.hint_radius_m(game.puzzle.region.bounds)
+    assert circle["round"] == 1 and circle["radius_m"] == radius
     center = rules.Point(circle["lat"], circle["lng"])
-    assert rules.distance_m(center, game.locations[0].point) < rules.HINT_RADIUS_M
+    assert rules.distance_m(center, game.locations[0].point) < radius
 
 
 def test_one_hint_per_round(guest, bank):

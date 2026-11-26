@@ -229,7 +229,8 @@ def guess(
 
 
 def hint(guest_id: uuid.UUID, region_key: str | None, day: date) -> GeoGame:
-    """Draw a circle of ``rules.HINT_RADIUS_M`` that holds the current round's spot.
+    """Draw a circle that holds the current round's spot, sized to the region
+    (``rules.hint_radius_m``).
 
     One hint per round (``NothingToHintError`` for a second one); the round's guess then scores
     ``rules.HINT_PENALTY`` points less. The circle is saved, so a refresh shows it again.
@@ -244,12 +245,14 @@ def hint(guest_id: uuid.UUID, region_key: str | None, day: date) -> GeoGame:
         if any(given["round"] == current for given in hints):
             raise NothingToHintError()
         spot = game.locations[current - 1].point
-        center = rules.hint_circle(spot, game.puzzle.region.bounds, random.Random())
+        bounds = game.puzzle.region.bounds
+        radius = rules.hint_radius_m(bounds)
+        center = rules.hint_circle(spot, bounds, radius, random.Random())
         circle = {
             "round": current,
             "lat": center.lat,
             "lng": center.lng,
-            "radius_m": rules.HINT_RADIUS_M,
+            "radius_m": radius,
         }
         result = save_progress(result, {**result.details, "hints": [*hints, circle]})
     return GeoGame(result, game.puzzle, game.locations)
