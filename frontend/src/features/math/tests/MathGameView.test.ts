@@ -37,6 +37,8 @@ const game: MathGame = {
   solution: null,
   min_operations: null,
   difficulty: null,
+  hints: 0,
+  hint_penalty: 100,
 }
 
 const tileTexts = (wrapper: VueWrapper) =>
@@ -670,6 +672,64 @@ describe('MathGameView', () => {
 
     expect(fetchMock).toHaveBeenCalledTimes(2)
     expect(wrapper.find('[data-test="target"]').exists()).toBe(true)
+    wrapper.unmount()
+  })
+
+  it('lights up the two numbers a hint gives, without the operator', async () => {
+    const wrapper = await mountView(jsonResponse(200, game))
+    const hinted = { ...game, hints: 1 }
+    fetchMock.mockResolvedValueOnce(
+      jsonResponse(200, { pair: [100, 2], restart: null, game: hinted }),
+    )
+
+    await tap(wrapper, wrapper.find('[data-test="hint"]'))
+
+    const [url, init] = fetchMock.mock.calls[1]!
+    expect(url).toBe('/api/v1/games/math/today/hint/')
+    expect(JSON.parse(init.body)).toEqual({ steps: [] })
+    const lit = wrapper
+      .findAll('[data-test="tile"]')
+      .filter((item) => item.classes().includes('number-tile--hinted'))
+      .map((item) => item.text().trim())
+    expect(lit).toEqual(['2', '100'])
+    expect(wrapper.find('[data-test="hint-restart"]').exists()).toBe(false)
+    wrapper.unmount()
+  })
+
+  it('lights up two different tiles when the hint gives the same number twice', async () => {
+    const wrapper = await mountView(jsonResponse(200, game))
+    fetchMock.mockResolvedValueOnce(jsonResponse(200, { pair: [2, 2], restart: null, game }))
+
+    await tap(wrapper, wrapper.find('[data-test="hint"]'))
+
+    expect(wrapper.findAll('.number-tile--hinted')).toHaveLength(2)
+    wrapper.unmount()
+  })
+
+  it('suggests a first step, operator included, when the board is a dead end', async () => {
+    const wrapper = await mountView(jsonResponse(200, game))
+    const restart = { left: 100, op: '*', right: 2 }
+    fetchMock.mockResolvedValueOnce(jsonResponse(200, { pair: null, restart, game }))
+
+    await tap(wrapper, wrapper.find('[data-test="hint"]'))
+
+    expect(wrapper.find('[data-test="hint-restart"]').text()).toBe('Încearcă să începi cu: 100 × 2')
+    expect(wrapper.findAll('.number-tile--hinted')).toHaveLength(0)
+    wrapper.unmount()
+  })
+
+  it('forgets the hint after the next step', async () => {
+    const wrapper = await mountView(jsonResponse(200, game))
+    fetchMock.mockResolvedValueOnce(jsonResponse(200, { pair: [100, 2], restart: null, game }))
+    await tap(wrapper, wrapper.find('[data-test="hint"]'))
+    const played = { ...game, steps: [{ left: 50, op: '+', right: 25, result: 75 }] }
+    fetchMock.mockResolvedValueOnce(jsonResponse(200, played))
+
+    await tap(wrapper, tile(wrapper, '50'))
+    await tap(wrapper, wrapper.find('[data-test="operator-add"]'))
+    await tap(wrapper, tile(wrapper, '25'))
+
+    expect(wrapper.findAll('.number-tile--hinted')).toHaveLength(0)
     wrapper.unmount()
   })
 })

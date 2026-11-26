@@ -12,6 +12,13 @@ export type StepInput = components['schemas']['StepInput']
 
 export type Operator = components['schemas']['OpEnum']
 
+/**
+ * A hint: `pair` is the two numbers of the board to combine next (the operator stays for the
+ * player to find); `restart` is the first step of a solution, when the board can no longer
+ * reach the target. Exactly one is set. `game` is the board, with the hint counted.
+ */
+export type HintResult = components['schemas']['HintResult']
+
 /** How each operator is shown: the API uses `*` and `/`, players see × and ÷. */
 export const OPERATOR_SYMBOLS: Record<Operator, string> = { '+': '+', '-': '−', '*': '×', '/': '÷' }
 

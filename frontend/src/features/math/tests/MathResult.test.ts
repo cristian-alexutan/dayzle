@@ -31,6 +31,8 @@ const exact: MathGame = {
   ],
   min_operations: 3,
   difficulty: 'medium',
+  hints: 0,
+  hint_penalty: 100,
 }
 
 const close: MathGame = {
@@ -110,6 +112,13 @@ describe('MathResult', () => {
     await flushPromises()
 
     expect(dialog()).toBeNull()
+    wrapper.unmount()
+  })
+
+  it('lists the hints and what they cost', async () => {
+    const wrapper = await mountResult({ ...exact, hints: 2, score: 800 })
+
+    expect(text('[data-test="result-hints"]')).toBe('2 indicii (−200 puncte)')
     wrapper.unmount()
   })
 })

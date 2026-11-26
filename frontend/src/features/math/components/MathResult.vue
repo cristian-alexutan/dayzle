@@ -35,6 +35,18 @@ const operations = computed(() => props.game.operations ?? props.game.steps.leng
             {{ t('math.result.steps', { count: operations, min: game.min_operations }) }}
           </dd>
         </div>
+        <div v-if="game.hints">
+          <dt>{{ t('math.result.hintsLabel') }}</dt>
+          <dd data-test="result-hints">
+            {{
+              t(
+                'math.result.hints',
+                { count: game.hints, points: game.hints * game.hint_penalty },
+                game.hints,
+              )
+            }}
+          </dd>
+        </div>
         <div v-if="game.difficulty">
           <dt>{{ t('math.result.difficultyLabel') }}</dt>
           <dd data-test="result-difficulty">

@@ -37,6 +37,8 @@ const newGame: MathGame = {
   solution: null,
   min_operations: null,
   difficulty: null,
+  hints: 0,
+  hint_penalty: 100,
 }
 
 const solvedSteps: PlayedStep[] = [

@@ -7,6 +7,7 @@ pytestmark = pytest.mark.django_db
 GAME_URL = "/api/v1/games/math/today/"
 PROGRESS_URL = "/api/v1/games/math/today/progress/"
 SUBMIT_URL = "/api/v1/games/math/today/submit/"
+HINT_URL = "/api/v1/games/math/today/hint/"
 
 SECRETS = ("solution", "min_operations", "difficulty")
 RESULTS = ("final_result", "distance", "operations", "solved", "score", "duration_ms")
@@ -127,3 +128,25 @@ def test_each_guest_has_their_own_game(api_client, client):
 
     assert other["status"] == "in_progress"
     assert other["solution"] is None
+
+
+def test_hint_returns_two_numbers_without_the_operator(api_client):
+    assert api_client.get(GAME_URL).data["hints"] == 0
+
+    response = api_client.post(HINT_URL, body(), format="json")
+
+    assert response.status_code == 200
+    assert len(response.data["pair"]) == 2
+    assert response.data["restart"] is None
+    assert response.data["game"]["hints"] == 1
+    assert response.data["game"]["hint_penalty"] == 100
+    assert response.data["game"]["solution"] is None
+
+
+def test_hint_on_a_dead_end_returns_the_first_step(api_client):
+    dead_end = body((100, "*", 50), (5000, "*", 25))
+
+    response = api_client.post(HINT_URL, dead_end, format="json")
+
+    assert response.data["pair"] is None
+    assert response.data["restart"] == {"left": 100, "op": "*", "right": 2}

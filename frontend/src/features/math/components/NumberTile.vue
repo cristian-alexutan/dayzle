@@ -11,6 +11,8 @@ const props = defineProps<{
   tile: Tile
   selected?: boolean
   refused?: boolean
+  /** One of the two numbers a hint says to combine next. */
+  hinted?: boolean
   /**
    * Counts the refusals that shake this tile (0: none). Each new count plays the shake once:
    * odd and even counts use two animations with different names, because the browser only
@@ -29,6 +31,7 @@ const label = computed(() =>
     props.tile.computed && t('math.tile.computed'),
     props.selected && t('math.tile.selected'),
     props.refused && t('math.tile.refused'),
+    props.hinted && t('math.tile.hinted'),
   ]
     .filter((part): part is string => Boolean(part))
     .reduce((label, part) => t('math.tile.labelPart', { label, part }), String(props.tile.value)),
@@ -42,6 +45,7 @@ const label = computed(() =>
       'number-tile--computed': tile.computed,
       'number-tile--selected': selected,
       'number-tile--refused': refused,
+      'number-tile--hinted': hinted && !selected,
       'number-tile--shake-odd': shake && shake % 2 === 1,
       'number-tile--shake-even': shake && shake % 2 === 0,
     }"
@@ -54,6 +58,12 @@ const label = computed(() =>
   >
     <i v-if="selected" class="number-tile__mark pi pi-check" aria-hidden="true" />
     <i v-else-if="refused" class="number-tile__mark pi pi-times-circle" aria-hidden="true" />
+    <i
+      v-else-if="hinted"
+      class="number-tile__mark pi pi-lightbulb"
+      aria-hidden="true"
+      data-test="tile-hint"
+    />
     <span v-if="tile.computed" class="number-tile__badge" aria-hidden="true">
       {{ t('math.tile.new') }}
     </span>
@@ -100,6 +110,13 @@ const label = computed(() =>
     0 0 0 3px var(--dz-page),
     0 0 0 6px var(--dz-primary-strong);
   transform: translateY(-3px);
+}
+
+/* A hint: a ring in the hint color, the yellow of a letter found in Word. */
+.number-tile--hinted {
+  box-shadow:
+    0 0 0 3px var(--dz-page),
+    0 0 0 6px var(--dz-present);
 }
 
 .number-tile--refused {

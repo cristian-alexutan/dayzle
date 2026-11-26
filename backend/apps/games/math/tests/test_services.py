@@ -179,6 +179,7 @@ def test_saving_a_step_that_reaches_the_target_finishes_the_game(today):
         "final_result": 253,
         "distance": 0,
         "operations": 3,
+        "hints": 0,
     }
 
 
@@ -238,3 +239,58 @@ def test_a_day_without_content_has_no_puzzle():
 def test_only_todays_puzzle_is_playable(today):
     with pytest.raises(ArchiveUnavailableError):
         services.open_game(uuid.uuid4(), today - timedelta(days=1))
+
+
+# Steps after which 1, 2, 3 and 125000 can't make 253 any more.
+DEAD_END = ("100 * 50", "5000 * 25")
+
+
+def test_a_hint_gives_two_numbers_of_the_board_that_lead_to_the_target(today):
+    guest_id = uuid.uuid4()
+    services.save_steps(guest_id, today, steps("100 * 2"))
+
+    game, given = services.hint(guest_id, today, steps("100 * 2"))
+
+    assert given.restart is None
+    left, right = given.pair
+    board = [1, 3, 25, 50, 200]
+    assert left in board and right in board
+    assert game.result.details["hints"] == 1
+    assert game.result.details["steps"] == [{"left": 100, "op": "*", "right": 2, "result": 200}]
+
+
+def test_a_hint_on_a_dead_end_gives_the_first_step_of_the_solution(today):
+    guest_id = uuid.uuid4()
+
+    _, given = services.hint(guest_id, today, steps(*DEAD_END))
+
+    assert given.pair is None
+    assert given.restart == Step(100, Operator.MUL, 2)
+
+
+def test_hints_lower_the_final_score(today):
+    guest_id = uuid.uuid4()
+    services.hint(guest_id, today, [])
+    services.hint(guest_id, today, [])
+
+    game = services.save_steps(guest_id, today, steps(*SOLVED))
+
+    assert game.result.score == 800
+    assert game.result.details["hints"] == 2
+
+
+def test_saving_steps_keeps_the_hints(today):
+    guest_id = uuid.uuid4()
+    services.hint(guest_id, today, [])
+
+    game = services.save_steps(guest_id, today, steps("100 * 2"))
+
+    assert game.result.details["hints"] == 1
+
+
+def test_no_hint_after_the_game_is_finished(today):
+    guest_id = uuid.uuid4()
+    services.save_steps(guest_id, today, steps(*SOLVED))
+
+    with pytest.raises(AlreadyPlayedError):
+        services.hint(guest_id, today, [])

@@ -7,11 +7,13 @@ import AppButton from '@/shared/components/AppButton.vue'
 import AppMessage from '@/shared/components/AppMessage.vue'
 import AppSpinner from '@/shared/components/AppSpinner.vue'
 import ErrorState from '@/shared/components/ErrorState.vue'
+import GameActionButton from '@/shared/components/GameActionButton.vue'
 import GameShell from '@/shared/components/GameShell.vue'
 import { formatGameDay } from '@/shared/utils/formatGameDay'
 
 import {
   errorCode,
+  useHintMutation,
   useMathGameQuery,
   useMathHeartbeat,
   useSaveProgressMutation,
@@ -37,13 +39,14 @@ const { t, locale } = useI18n()
 const query = useMathGameQuery(DAY)
 const save = useSaveProgressMutation(DAY)
 const submit = useSubmitMutation(DAY)
+const hint = useHintMutation(DAY)
 
 const game = computed(() => query.data.value)
 const inProgress = computed(() => game.value?.status === 'in_progress')
 const finished = computed(() => game.value?.status === 'completed')
 const noPuzzle = computed(() => errorCode(query.error.value) === 'no_puzzle')
 const boardDisabled = computed(
-  () => !inProgress.value || save.isPending.value || submit.isPending.value,
+  () => !inProgress.value || save.isPending.value || submit.isPending.value || hint.isPending.value,
 )
 
 useMathHeartbeat(DAY, inProgress)
@@ -80,6 +83,48 @@ function onRefused(error: Error, refusedMessage: string) {
     serverError.value = t(code === 'invalid_step' ? refusedMessage : 'math.errors.generic')
   query.refetch()
 }
+
+/**
+ * What the last hint said, until the next step, undo or reset: the two numbers to combine
+ * (`pair`), or the first step of a solution when the board can't reach the target (`restart`).
+ */
+const hintPair = ref<[number, number] | null>(null)
+const hintRestart = ref<StepInput | null>(null)
+
+/** The tiles of the hinted pair. Two equal numbers light up two different tiles. */
+const hintedTileIds = computed(() => {
+  const ids = new Set<string>()
+  for (const value of hintPair.value ?? []) {
+    const tile = tiles.value.find((tile) => tile.value === value && !ids.has(tile.id))
+    if (tile) ids.add(tile.id)
+  }
+  return ids
+})
+
+const hintText = computed(() => {
+  const step = hintRestart.value
+  if (!step) return ''
+  return t('math.hint.restart', {
+    step: `${step.left} ${OPERATOR_SYMBOLS[step.op]} ${step.right}`,
+  })
+})
+
+function takeHint() {
+  serverError.value = null
+  hint.mutate(steps.value, {
+    onSuccess: ({ pair, restart }) => {
+      hintPair.value = pair ? [pair[0]!, pair[1]!] : null
+      hintRestart.value = restart
+    },
+    onError: (error) => onRefused(error, 'math.refused.server'),
+  })
+}
+
+// A step, undo or reset changes the board, so the hint no longer applies.
+watch(steps, () => {
+  hintPair.value = null
+  hintRestart.value = null
+})
 
 const eggs = useEasterEggs()
 
@@ -181,6 +226,16 @@ onBeforeUnmount(() => {
 
 <template>
   <GameShell :title="t('math.title')">
+    <template v-if="inProgress" #actions>
+      <GameActionButton
+        :label="t('math.hint.label')"
+        icon="pi pi-lightbulb"
+        :loading="hint.isPending.value"
+        :disabled="save.isPending.value || submit.isPending.value"
+        data-test="hint"
+        @click="takeHint"
+      />
+    </template>
     <AppSpinner v-if="query.isPending.value" :aria-label="t('math.loading')" />
     <AppMessage v-else-if="noPuzzle" severity="info" data-test="no-puzzle">
       {{ t('math.noPuzzle') }}
@@ -207,6 +262,7 @@ onBeforeUnmount(() => {
             :tile="tile"
             :selected="firstId === tile.id"
             :refused="refusal?.tileId === tile.id"
+            :hinted="hintedTileIds.has(tile.id)"
             :shake="shake?.tileId === tile.id ? shake.count : 0"
             :disabled="boardDisabled"
             @select="selectTile(tile.id)"
@@ -225,6 +281,10 @@ onBeforeUnmount(() => {
       <p v-if="message" class="math-game__refusal" role="alert" data-test="refusal">
         <i class="pi pi-exclamation-circle" aria-hidden="true" />
         <span>{{ message }}</span>
+      </p>
+      <p v-if="hintText" class="math-game__hint" role="status" data-test="hint-restart">
+        <i class="pi pi-lightbulb" aria-hidden="true" />
+        <span>{{ hintText }}</span>
       </p>
       <p v-if="closestText" class="math-game__closest" aria-hidden="true" data-test="closest">
         {{ closestText }}
@@ -327,6 +387,17 @@ onBeforeUnmount(() => {
   .math-game__tiles--glitch {
     animation: none;
   }
+}
+
+/* The hint's advice: the theme's green, like other notices. */
+.math-game__hint {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  margin: 0;
+  color: var(--dz-primary-strong);
+  font-size: 0.95rem;
+  font-weight: 600;
 }
 
 .math-game__closest {
